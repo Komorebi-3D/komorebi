@@ -97,8 +97,9 @@ class OutdoorNpcManager {
  }
  add(id,x,z){
   if(this.agents.some(a=>a.id===id)||this.collision.collides(x,z))throw new Error('Invalid NPC start: '+id);
+  const initialSeed=(0x7a4b91ce ^ Math.imul(this.agents.length+1,0x9e3779b9))>>>0;
   const a={id,startX:x,startZ:z,x,z,drawX:x,drawZ:z,yaw:0,drawYaw:0,
-   moving:true,speed:.63,remaining:2.8,accumulated:0,visible:true,seed:0x7a4b91ce};
+   moving:true,speed:.63,remaining:2.8,accumulated:0,visible:true,seed:initialSeed,initialSeed};
   this.agents.push(a);
   return a;
  }
@@ -111,7 +112,7 @@ class OutdoorNpcManager {
   for(const a of this.agents){
    a.x=a.drawX=a.startX;a.z=a.drawZ=a.startZ;
    a.yaw=a.drawYaw=0;a.moving=true;a.speed=.63;a.remaining=2.8;
-   a.accumulated=0;a.visible=true;a.seed=0x7a4b91ce;
+   a.accumulated=0;a.visible=true;a.seed=a.initialSeed;
   }
   this.visibleTicks=0;this.offscreenTicks=0;
  }
