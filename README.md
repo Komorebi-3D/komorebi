@@ -26,6 +26,7 @@ komorebi/
 └── README.md
 ```
 
+- **[📍最新の開発状況・次タスク・チャット引き継ぎ](docs/STATUS.md)**
 - [Engineの仕様](engine/README.md)
 - [ゲーム版と確認手順](komorebi3d/README.md)
 
