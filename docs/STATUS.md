@@ -3,20 +3,21 @@
 > **用途:** 開発状況・確定方針・次タスク・チャット引き継ぎ情報の正本。
 >
 > **更新日:** 2026-11-09（JST）
-> **確認対象:** `main`（確認時点の先頭コミット `babf264904b824255374b8dbd9733a4e703ae284`）
+> **確認対象:** `main`（本整理の直前に確認したコミット `0046f8527a569a0ce8b4dc7f9b751bfc374c628b`）
 >
 > **注意:** これは記録時点の状態です。コードの最新状況と最終コミット時刻はGitHubで確認してください。本ファイルはGitHubコミットに連動して自動更新されません。
 
 ## 1. 現在の結論
 
 - **開発フェーズ:** Development / Debug（テスト開発モード）。現段階ではプロダクト用コードへの分離・デバッグ機能の撤去を急がない。
-- **実機PASS済みの基準版:** **Komorebi 3D v0.7**。Input / Camera / Renderer A・B / Core / Collision 統合。iPhone SafariでユーザーがPASSを確認。
+- **実機PASS済みの基準版:** **Komorebi 3D v0.7（最新版）＋ v0.6（1世代前）**。Input / Camera / Renderer A・B / Core / Collision 統合。iPhone SafariでユーザーがPASSを確認。
 - **共通Engine:** `engine/` に正式配置済み（現在42ファイル）。既存のゲームは実際にこのEngineのモジュールを利用。
 - **最新の固定開発URL:** [komorebi3d/dev.html](https://shuma-fujita1012.github.io/komorebi/komorebi3d/dev.html)。
   - v0.7をベースに作成。ゲーム版、固定Engineコミット、GitHub `main` 最新コミット・最終コミット時刻（JST）を表示。
   - **GitHubへの実装・静的確認済み。dev.html単体のSafari実機PASSは未取得。**
   - `main` の最新コミット表示はGitHub APIで取得する情報であり、**現在配信中のHTMLそのもののコミットIDを証明するものではない**。
-- **安定版URL:** [v0.7 engine-main-test.html](https://shuma-fujita1012.github.io/komorebi/komorebi3d/komorebi3d-app-v07-engine-main-test.html)。dev.htmlを更新するときも、このPASS版は退避基準として維持する。
+- **安定版URL:** [v0.7 engine-main-test.html](https://shuma-fujita1012.github.io/komorebi/komorebi3d/komorebi3d-app-v07-engine-main-test.html)。dev.htmlを更新するときも、最新PASS版と1世代前のPASS版は退避基準として維持する。
+- **保存ルール:** `dev.html` ＋ 最新PASS版 ＋ 1世代前PASS版の最大3種類を通常保持。v0.5.1のHTMLは `main` から削除済み。復元は原則Git履歴を用いる。
 
 ## 2. 実装・検証済み
 
@@ -28,7 +29,7 @@
 | Core + Collision | 実機PASS | 移動、地面境界、家の壁、木との衝突 |
 | ゲームシーン | 実機PASS（v0.7） | 森・家・階段・室内・ハムスター |
 | Engineのmain統合 | 完了 | 8つの主要Engine importが統合時のmainコミットに固定 |
-| 旧ファイル整理 | 完了 | 旧試験HTMLなど22ファイルをmainから削除。バックアップあり |
+| 旧ファイル整理 | 完了（HTML） | 旧試験22ファイルと、2世代前v0.5.1 HTMLをmainから削除。Git履歴に残る |
 | README | 更新済み | ルート、Engine、Komorebi 3D |
 | 固定開発URL | 配置・静的チェックPASS | **実機確認待ち** |
 
@@ -54,9 +55,8 @@ komorebi/
 └── komorebi3d/
     ├── README.md
     ├── dev.html                  # 固定の開発用URL（開発の入口）
-    ├── komorebi3d-app-v07-engine-main-test.html # 最終実機PASS基準
-    ├── komorebi3d-app-v06-core-test.html       # 過去のPASS版
-    └── komorebi3d-app-v05-renderer-v2-test.html # 過去のPASS版
+    ├── komorebi3d-app-v07-engine-main-test.html # 最新の実機PASS版
+    └── komorebi3d-app-v06-core-test.html       # 1世代前の実機PASS版
 ```
 
 ### 重要な依存関係
@@ -73,26 +73,34 @@ komorebi/
 2. **「00｜統合開発」チャットを基本1本で運用**。肥大化したら新しい00に切り替える。旧01〜03（Core / Renderer / Input）は必要時に参照する過去資料とし、通常は分業しない。
 3. **Development / Debugを維持。** ゲーム完成後にテスト表示・診断機能を整理して製品版に昇格する。現時点ではプロダクトコードの大規模分割は急がない。
 4. **固定URL `komorebi3d/dev.html` を開発の入口**にする。テスト前にGitHubへのコミットと公開ページの反映を区別する。
-5. **最後の実機PASS版を保護**する。新機能はdev.html等で試し、ユーザーの実機PASS後に次の基準版とする。
-6. 重大なファイル削除、ブランチ削除は**対象を提示して承認後**に行う。GitHub履歴とバックアップを維持する。
-7. 動作確認の報告では、**静的チェック／自動テスト／Safari実機PASSを区別**して記録する。
+5. **通常保持するゲームHTMLは3種類のみ:** `dev.html`（開発版）＋最新の実機PASS版＋1世代前の実機PASS版。新バージョンのPASS後、旧い2世代前のHTMLは履歴からの復元可能性を確認してから `main` より削除する。現在は v0.7（最新）と v0.6（前世代）。
+6. **原則、日常的な `archive/` バックアップブランチを作らない。** Gitのコミット履歴を通常の復元方法とする。コミット履歴を書き換えたりリポジトリを失った場合はこの方法だけでは復元できない。必要性が高い特例のみ、保存理由・コミットSHA・保持期限を記載してバックアップする。
+7. **履歴・別ブランチにしか存在しない重要資材は保護。** `main` の祖先ではない独自コミットを持つ開発ブランチや、重要資材の削除・履歴改変は対象を提示し個別承認を得る。単純なPASS世代ローテーションはこの運用への承認に基づく。
+8. **GitHubブランチの削除:** `archive/` は復元元のコミットが `main` の祖先と検証できた場合に削除可。通常、削除前に対象とSHAを記録する。削除結果をGitHubで確認してから台帳を更新する。
+9. 動作確認の報告では、**静的チェック／自動テスト／Safari実機PASSを区別**して記録する。
 
-## 5. ブランチ・復元情報
+## 5. ブランチ・復元情報（新ルール）
 
-- `main` — 現在の開発正本。
-- `engine-foundation-v0.1` — 統合前のEngine開発履歴（保護）。
-- `archive/pre-cleanup-2026-11-08` — 旧22ファイル削除前のバックアップ。
-- `archive/pre-engine-main-2026-11-08` — Engineをmainへ昇格する前のバックアップ。
-- `feature/v03-core-input-renderers` — 過去の作業ブランチ。削除未承認につき保留。
+| ブランチ | 管理 | 根拠・状況 |
+| --- | --- | --- |
+| `main` | 開発正本 | dev.html、v0.7、v0.6 と共通Engine |
+| `archive/pre-cleanup-2026-11-08` | **削除承認済み・実行待ち** | コミット `21c11b0e2310eabe0a87c51c93ba95f5a36a8904` は現在の `main` の祖先 |
+| `archive/pre-engine-main-2026-11-08` | **削除承認済み・実行待ち** | コミット `f2fcda583834e5324ddcb563514f406efc34eef8` は現在の `main` の祖先 |
+| `engine-foundation-v0.1` | **保護・変更しない** | `main` にない独自コミットを持つ |
+| `feature/v03-core-input-renderers` | **保護・変更しない** | `main` にない独自コミットを持つ |
 
-過去のPASSページも `komorebi3d/` に残す。単なる整理目的で勝手に削除しない。
+**運用変更（2026-11-09）:** 原則として `archive/` を増やさず、Gitコミット履歴から復元する。2つの既存 `archive/` ブランチはユーザーが削除を承認し、両先端が `main` の祖先であることを比較で確認済み。ただし、**GitHub接続の操作範囲にブランチ削除がなく、現在は未削除**。GitHubのBranches画面などで2ブランチを削除し、完了確認後にこの項目を更新する。
+
+**HTML世代管理:** `dev.html` と「v0.7最新PASS / v0.6前PASS」の2つを `main` に残す。v0.5.1 HTMLは `0046f8527a569a0ce8b4dc7f9b751bfc374c628b` で削除済み。必要時はGit履歴の該当コミットから復旧する。
+
+**重要な注意:** Git履歴を消す強制更新やリポジトリ消失まで想定したバックアップではない。重要な長期節目では外部へのリポジトリ複製を別途検討する。
 
 ## 6. 次のタスク（候補・未着手）
 
 | 優先度 | タスク | 完了条件 |
 | --- | --- | --- |
 | **P0** | **dev.htmlのiPhone Safari確認** | 固定URLでゲーム起動、入力・描画・時刻表示が確認でき、ユーザーがPASS |
-| P1 | v0.7基準版のリリース管理 | 復旧可能なタグ/基準を定義し、dev.htmlと区別 |
+| P1 | v0.7基準版のリリース管理 | 最新・前世代の2版を識別し、履歴復元手順を確立 |
 | P1 | 自動テスト・CI | 既存の `engine/tests/*.test.mjs` をGitHub Actions等で実行 |
 | P1 | 回帰テスト項目の標準化 | 移動、カメラ、屋内・階段、衝突、Renderer A/B、リセットをチェックリスト化 |
 | P1 | 次のゲーム機能を設計・実装 | ユーザーと優先機能を決め、dev.htmlで機能追加・実機PASS |
@@ -100,13 +108,13 @@ komorebi/
 | P2 | iPhoneでのパフォーマンス検証 | FPS・描画負荷を観測し、改善案と比較基準を記録 |
 | 将来 | ゲームの製品化 | 完成後にデバッグ機能を外し、正式起動ページへ昇格 |
 
-**次回の第一候補:** dev.html の実機PASS確認。その後は、ユーザーと次に作るゲーム機能を相談する。
+**次回の第一候補:** dev.html の実機PASS確認。加えて、承認済みのarchive 2ブランチ削除をGitHub UIで完了確認する。その後は、ユーザーと次に作るゲーム機能を相談する。
 
 ## 7. チャット世代交代の引き継ぎ手順
 
 新しい「00｜統合開発」を作ったら、最初に次のように依頼する：
 
-> Komorebi 3Dの開発を引き継いで。GitHub `shuma-fujita1012/komorebi` の `main` にある `docs/STATUS.md` と最新のコミット・ソースを確認して、現状と次タスクを整理して。コードの正本はGitHubで、開発は `komorebi3d/dev.html` を使用する。勝手に旧PASS版やバックアップを削除しないで。
+> Komorebi 3Dの開発を引き継いで。GitHub `shuma-fujita1012/komorebi` の `main` にある `docs/STATUS.md` と最新のコミット・ソースを確認して、現状と次タスクを整理して。コードの正本はGitHubで、開発は `komorebi3d/dev.html` を使用する。HTMLは `dev.html`・最新PASS版・1世代前PASS版だけを原則保持し、世代ローテーションを行う。アーカイブブランチは通常作らない。未統合の開発ブランチやGit履歴を勝手に削除・改変しないで。
 
 **チャットを切り替える直前／実機PASS後／設計方針変更後**に、このSTATUSを更新する。
 
