@@ -43,13 +43,11 @@ npm test
 
 ## ブランチと復元
 
-- `main` — 現在の統合版と正式なEngine配置先。
-- `engine-foundation-v0.1` — 統合前のEngine開発履歴。**保全中**。
-- `archive/pre-cleanup-2026-11-08` — 削除承認済み・削除操作待ち（対象コミットはmainの祖先）。
-- `archive/pre-engine-main-2026-11-08` — 削除承認済み・削除操作待ち（対象コミットはmainの祖先）。
-- `feature/v03-core-input-renderers` — 過去の作業ブランチ。レビュー・整理待ち。
+- `main` — 開発正本。ゲーム開発版・最新PASS版・1世代前PASS版と共通Engineを配置。
+- `engine-foundation-v0.1` — Engine基盤の開発ブランチ（独自コミットがあり保護）。
+- `feature/v03-core-input-renderers` — 機能開発ブランチ（独自コミットがあり保護）。
 
-**保存方針（2026-11-09更新）:** `komorebi3d/dev.html`・最新のiPhone実機PASS版・1世代前PASS版を通常保持。2世代前以前のHTMLは復元可能なGit履歴を確認してから整理します。日常的な`archive/`ブランチは作りません。上記2つのarchiveブランチは削除承認・祖先確認済みですが、GitHub接続からブランチ削除を実行できないため**未削除**です。詳細は [docs/STATUS.md](docs/STATUS.md) を参照してください。
+**通常の保持ルール:** `komorebi3d/dev.html` ＋ 最新PASS版 ＋ 1世代前PASS版。古い版はGit履歴から復元し、バックアップ用のブランチは通常作りません。詳細は [開発ステータス](docs/STATUS.md) を参照してください。
 
 ## リリース管理について
 
