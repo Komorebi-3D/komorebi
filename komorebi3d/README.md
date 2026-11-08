@@ -17,15 +17,20 @@ Komorebi Engineを利用するモバイル向け3Dゲームです。
 - 家への出入り、階段、屋内での視点追従
 - A（WebGL）・B（Three.js）・A/B同時比較。初期表示は **B**。
 
-## 保護している安定版
+## 保護している安定版（最新＋1世代前）
 
 | ファイル | 位置付け |
 | --- | --- |
 | `komorebi3d-app-v07-engine-main-test.html` | **現在の安定基準／実機PASS** |
 | `komorebi3d-app-v06-core-test.html` | 旧統合版／実機PASS |
-| `komorebi3d-app-v05-renderer-v2-test.html` | Renderer統合の復旧用基準／実機PASS |
 
-旧試験HTMLは`main`から整理済み。必要な際は`archive/pre-cleanup-2026-11-08`ブランチやGit履歴から復元します。
+通常保存するゲームHTMLは **`dev.html`（開発版）＋最新PASS版＋1世代前PASS版** の3種類です。v0.5.1以前のHTMLは`main`から整理済みで、必要な場合はGitのコミット履歴から復元します。
+
+新しいPASS版ができたら、最新と前世代を残し、2世代前はGit履歴を確認して整理します。通常の`archive/`バックアップブランチは作りません。詳細は [開発ステータス](../docs/STATUS.md) を参照してください。
+
+## 現在の開発用ページ
+
+**[固定開発URL dev.html](https://shuma-fujita1012.github.io/komorebi/komorebi3d/dev.html)** — ゲームv0.7を元にした開発版。コミット情報・JST時刻表示を実装済み（実機再確認待ち）。
 
 ## ソースと依存
 
