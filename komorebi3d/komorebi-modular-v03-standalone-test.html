@@ -118,10 +118,7 @@ function createKomorebiStick({pad,ring,knob,left,right,reset,onRotate,onReset}){
  }
  function clear(){const oldPid=pid;clearStick();safeRelease(pad,oldPid);const previous=[...held.entries()];held.clear();for(const [button,v] of previous)safeRelease(button,v.id);onRotate({direction:0,phase:'hold'});}
  function resetAll(){active=false;clear();onReset();active=true;}
- // Handle touch immediately, even while another finger holds the joystick.
- reset.addEventListener('pointerdown',e=>{e.preventDefault();resetAll();});
- // Keyboard and assistive-technology activation still works without double reset.
- reset.addEventListener('click',e=>{if(e.detail===0)resetAll();});
+ reset.addEventListener('click',resetAll);
  return {getInput:()=>({...stick}),clear,reset:resetAll,pause:()=>{active=false;clear();},resume:()=>{active=true;}};
 }
 root.createKomorebiStick=createKomorebiStick;
