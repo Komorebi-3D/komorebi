@@ -211,7 +211,7 @@ class OutdoorNpcManager {
   }
   this.drawCandidates.sort((a,b)=>a.score-b.score);
   if(this.drawCandidates.length>64)this.drawCandidates.length=64;
-  this.drawCount=this.drawCandidates.length+(this.agents[0].visible?1:0);
+  this.drawCount=this.drawCandidates.length+1;
  }
 }
 const npcManager=new OutdoorNpcManager({collision:npcCollisionWorld,ground:groundSystem});
@@ -556,18 +556,38 @@ const engineMeshes=renderParts.map((p,i)=>{
  }
 });
 console.info("[Komorebi v0.5.1] 空の描画パーツを除外:",emptyParts.map(p=>p.name));
+// Extra NPCs share one inexpensive mesh (the original hamster stays detailed).
+const hamsterLiteMesh={p:[],n:[],c:[]};
+ellipsoid(hamsterLiteMesh,0,.78,0,.78,.79,.66,0xbd854c,4,6);
+ellipsoid(hamsterLiteMesh,0,.64,.43,.57,.58,.25,0xf7e6c7,4,6);
+ellipsoid(hamsterLiteMesh,0,1.63,.06,.7,.65,.59,0xbd854c,4,6);
+for(const x of [-.46,.46])ellipsoid(hamsterLiteMesh,x,1.45,.52,.3,.29,.20,0xf7e6c7,4,6);
+for(const x of [-.5,.5])ellipsoid(hamsterLiteMesh,x,2.13,.12,.22,.27,.14,0xbd854c,4,6);
+for(const x of [-.28,.28])ellipsoid(hamsterLiteMesh,x,1.75,.63,.11,.11,.10,0x161419,4,6);
+ellipsoid(hamsterLiteMesh,0,1.45,.8,.13,.09,.11,0xf09aaa,4,6);
+const hamsterLiteGeometry=createMeshGeometry({
+ id:'komorebi3d:hamster-lite-shared',
+ positions:hamsterLiteMesh.p,normals:hamsterLiteMesh.n,colors:hamsterLiteMesh.c
+});
+
 let renderFrameId=0;
 function productRenderSnapshot(){
  const pose=cameraRig.getPose({x:game.x,z:game.z},0);
- return createMeshRenderSnapshot({
-  frameId:++renderFrameId,
-  camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:150},
-  objects:renderParts.map((p,i)=>({
+ const objects=renderParts.map((p,i)=>({
    id:p.name+":"+i,geometry:engineMeshes[i],
    position:p.name==='avatar'?[game.x,characterY,game.z]:p.name==='hamster'?[hamsterNpc.drawX,0,hamsterNpc.drawZ]:p.offset,
    yaw:p.name==='avatar'?game.angle:p.name==='hamster'?hamsterNpc.drawYaw:0,
    opacity:wallOpacity(p.name),visible:!hiddenPart(p.name)
-  }))
+ }));
+ // No more than 64 extra meshes reach Renderer A or B on any frame.
+ for(const a of npcManager.drawCandidates){
+  objects.push({id:'npc:'+a.id,geometry:hamsterLiteGeometry,
+   position:[a.drawX,0,a.drawZ],yaw:a.drawYaw,opacity:1,visible:true});
+ }
+ return createMeshRenderSnapshot({
+  frameId:++renderFrameId,
+  camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:150},
+  objects
  });
 }
 let rendererA=null,rendererB=null,loadingA=null,loadingB=null;
