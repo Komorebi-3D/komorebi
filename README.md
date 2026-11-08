@@ -22,7 +22,7 @@ komorebi/
 │   ├── camera/
 │   ├── renderer/
 │   └── tests/
-├── komorebi3d/    # ゲーム本体と比較・復旧用の安定版
+├── komorebi3d/    # 固定開発URL＋最新・前世代の実機PASS版
 └── README.md
 ```
 
@@ -45,11 +45,11 @@ npm test
 
 - `main` — 現在の統合版と正式なEngine配置先。
 - `engine-foundation-v0.1` — 統合前のEngine開発履歴。**保全中**。
-- `archive/pre-cleanup-2026-11-08` — 旧22ファイル削除前のスナップショット（旧26ファイル）。
-- `archive/pre-engine-main-2026-11-08` — Engineを`main`へ移す直前のスナップショット。
+- `archive/pre-cleanup-2026-11-08` — 削除承認済み・削除操作待ち（対象コミットはmainの祖先）。
+- `archive/pre-engine-main-2026-11-08` — 削除承認済み・削除操作待ち（対象コミットはmainの祖先）。
 - `feature/v03-core-input-renderers` — 過去の作業ブランチ。レビュー・整理待ち。
 
-削除済みの旧HTMLはGitの履歴とバックアップブランチから復元できます。バックアップのブランチは削除していません。
+**保存方針（2026-11-09更新）:** `komorebi3d/dev.html`・最新のiPhone実機PASS版・1世代前PASS版を通常保持。2世代前以前のHTMLは復元可能なGit履歴を確認してから整理します。日常的な`archive/`ブランチは作りません。上記2つのarchiveブランチは削除承認・祖先確認済みですが、GitHub接続からブランチ削除を実行できないため**未削除**です。詳細は [docs/STATUS.md](docs/STATUS.md) を参照してください。
 
 ## リリース管理について
 
