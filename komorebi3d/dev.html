@@ -1,4 +1,4 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Komorebi 3D DEV｜森カフェ試作</title><style>*{box-sizing:border-box}body{margin:0;padding:12px;background:#f2f0e4;color:#4d5540;font:12px system-ui}.shell{max-width:760px;margin:auto}.views{display:grid;grid-template-columns:1fr 1fr;gap:8px}.views.single{grid-template-columns:minmax(0,1fr)}.view-panel.off{display:none}.mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 4px}.mode-buttons button{min-width:0;padding:11px 3px}.mode-buttons button.selected{color:#fff;background:#4f8161;border-color:#4f8161}#mode-status{font-size:11px;color:#55725c;margin:4px 0 7px}#panel-a,#panel-b{min-width:0}canvas{display:block;width:100%;aspect-ratio:3/4;border-radius:9px;background:#a7d9e9}.label{text-align:center;font-weight:700;margin:8px 0}.play-surface{position:relative}.touch-layer{position:absolute;inset:0;display:flex;z-index:2;touch-action:none}.touch-zone{flex:1;min-width:0;touch-action:none;background:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.buttons{display:flex;gap:7px;margin-top:8px}button{flex:1;padding:12px 3px;border:1px solid #cbb48f;border-radius:9px;background:#fffaf0;color:#574934;font-weight:700;touch-action:none}.stats{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:11px;margin-top:9px}.note{padding:9px;background:#fffaf0;border-radius:9px;margin-top:8px}.build-info{margin:9px 0 12px;padding:10px 11px;border:1px solid #aec2a8;border-radius:9px;background:#e8f2e4;color:#31563b;font-size:11px;line-height:1.65;overflow-wrap:anywhere}.build-info strong{font-size:12px}.build-info .build-line{display:block}.build-info .build-note{display:block;color:#66735f;font-size:10px}</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong><span>🌍 100m × 100m</span></div><p>☕ v0.7ベース・森カフェ試作（実機確認待ち）｜Engine統合｜B標準</p><div id="build-info" class="build-info" aria-live="polite"><strong>🧪 DEV / Game v0.7ベース｜森カフェ試作</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-note">※main最新情報と、現在表示中のPages配信内容は反映待ちで異なる場合があります。</span></div><div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div><div class="play-surface" id="play-surface"><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div class="note">🏡 2階建て住宅＋☕ 森カフェ（平屋・テラス・室内家具） / 🌳 木 / 🐹 操作キャラ：共通座標 / 地面：100 × 100m</div><div class="note">🎮 操作：左側1本指で移動／右側1本指スワイプで視点変更／右側2本指ピンチでズーム。左1本指＋右2本指の同時操作も可能。ゲーム画面の操作UIは非表示。</div><div class="buttons"><button id="reset">⌂ リセット（開発用）</button></div><div class="note"><strong>🧪 衝突テスト用スタート位置</strong><div class="buttons"><button data-spot="front">🏡 家の前</button><button data-spot="tree">🌳 木の近く</button><button data-spot="side">↔ 壁沿い</button><button data-spot="cafe">☕ カフェ前</button></div><div class="buttons"><button data-spot="west">西端</button><button data-spot="east">東端</button><button data-spot="north">奥端</button><button data-spot="south">手前端</button></div><div style="margin-top:6px">※四方向の端ボタンは100mフィールドの新しい境界付近へ移動します。各ボタンは衝突しない安全な位置へ移動します。スティックで障害物に向かって進んでください。</div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div></div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p></div><script>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Komorebi 3D DEV｜ハムスター自由散歩試作</title><style>*{box-sizing:border-box}body{margin:0;padding:12px;background:#f2f0e4;color:#4d5540;font:12px system-ui}.shell{max-width:760px;margin:auto}.views{display:grid;grid-template-columns:1fr 1fr;gap:8px}.views.single{grid-template-columns:minmax(0,1fr)}.view-panel.off{display:none}.mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 4px}.mode-buttons button{min-width:0;padding:11px 3px}.mode-buttons button.selected{color:#fff;background:#4f8161;border-color:#4f8161}#mode-status{font-size:11px;color:#55725c;margin:4px 0 7px}#panel-a,#panel-b{min-width:0}canvas{display:block;width:100%;aspect-ratio:3/4;border-radius:9px;background:#a7d9e9}.label{text-align:center;font-weight:700;margin:8px 0}.play-surface{position:relative}.touch-layer{position:absolute;inset:0;display:flex;z-index:2;touch-action:none}.touch-zone{flex:1;min-width:0;touch-action:none;background:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.buttons{display:flex;gap:7px;margin-top:8px}button{flex:1;padding:12px 3px;border:1px solid #cbb48f;border-radius:9px;background:#fffaf0;color:#574934;font-weight:700;touch-action:none}.stats{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:11px;margin-top:9px}.note{padding:9px;background:#fffaf0;border-radius:9px;margin-top:8px}.build-info{margin:9px 0 12px;padding:10px 11px;border:1px solid #aec2a8;border-radius:9px;background:#e8f2e4;color:#31563b;font-size:11px;line-height:1.65;overflow-wrap:anywhere}.build-info strong{font-size:12px}.build-info .build-line{display:block}.build-info .build-note{display:block;color:#66735f;font-size:10px}</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong><span>🌍 100m × 100m</span></div><p>🐹 v0.7ベース・ハムスター自由散歩試作（実機確認待ち）｜Engine統合｜B標準</p><div id="build-info" class="build-info" aria-live="polite"><strong>🧪 DEV / Game v0.7ベース｜ハムスター自由散歩試作</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-note">※main最新情報と、現在表示中のPages配信内容は反映待ちで異なる場合があります。</span></div><div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div><div class="play-surface" id="play-surface"><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div class="note">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター1匹が森を自由散歩（画面外1Hz） / 地面：100 × 100m</div><div class="note">🎮 操作：左側1本指で移動／右側1本指スワイプで視点変更／右側2本指ピンチでズーム。左1本指＋右2本指の同時操作も可能。ゲーム画面の操作UIは非表示。</div><div class="buttons"><button id="reset">⌂ リセット（開発用）</button></div><div class="note"><strong>🧪 衝突テスト用スタート位置</strong><div class="buttons"><button data-spot="front">🏡 家の前</button><button data-spot="tree">🌳 木の近く</button><button data-spot="side">↔ 壁沿い</button><button data-spot="cafe">☕ カフェ前</button></div><div class="buttons"><button data-spot="west">西端</button><button data-spot="east">東端</button><button data-spot="north">奥端</button><button data-spot="south">手前端</button></div><div style="margin-top:6px">※四方向の端ボタンは100mフィールドの新しい境界付近へ移動します。各ボタンは衝突しない安全な位置へ移動します。スティックで障害物に向かって進んでください。</div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div></div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span><span id="npc-status">🐹 お散歩AI準備中</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p></div><script>
 (function () {
   const hash = document.getElementById('github-commit');
   const time = document.getElementById('github-commit-time');
@@ -77,6 +77,113 @@ const core=new CharacterMotionCore2D({
 });
 $('core-status').textContent='🧩 Engine main正式接続：Core・Collision・Input・Camera・Renderer';
 const game=new Proxy({}, {get:(_,key)=>core.getState()[key]});
+// Lightweight outdoor NPC manager: shared collision map, 10Hz when on screen,
+// 1Hz when off screen. No per-NPC intervals, DOM handlers, or mesh allocations.
+const npcCollisionWorld=new CollisionWorld2D({
+ obstacles:[
+  ...GAME_COLLISION_OBSTACLES,
+  {id:'npc-no-house-interior',type:'rect',centerX:4.5,centerZ:-4.5,width:14,depth:10},
+  {id:'npc-no-cafe-interior',type:'rect',centerX:CAFE_X,centerZ:CAFE_Z,width:14,depth:10}
+ ],
+ characterRadius:.78,maxStep:.12
+});
+class OutdoorNpcManager {
+ constructor({collision,ground}){
+  this.collision=collision;
+  this.ground=ground;
+  this.agents=[];
+  this.visibleTicks=0;
+  this.offscreenTicks=0;
+ }
+ add(id,x,z){
+  if(this.agents.some(a=>a.id===id)||this.collision.collides(x,z))throw new Error('Invalid NPC start: '+id);
+  const a={id,startX:x,startZ:z,x,z,drawX:x,drawZ:z,yaw:0,drawYaw:0,
+   moving:true,speed:.63,remaining:2.8,accumulated:0,visible:true,seed:0x7a4b91ce};
+  this.agents.push(a);
+  return a;
+ }
+ random(a){
+  // Fast per-agent deterministic generator; no repeated random object allocation.
+  a.seed=(Math.imul(1664525,a.seed)+1013904223)>>>0;
+  return a.seed/4294967296;
+ }
+ reset(){
+  for(const a of this.agents){
+   a.x=a.drawX=a.startX;a.z=a.drawZ=a.startZ;
+   a.yaw=a.drawYaw=0;a.moving=true;a.speed=.63;a.remaining=2.8;
+   a.accumulated=0;a.visible=true;a.seed=0x7a4b91ce;
+  }
+  this.visibleTicks=0;this.offscreenTicks=0;
+ }
+ isVisible(a,view){
+  // Conservative perspective-frustum check. A margin prevents rapid LOD flipping.
+  const [ex,ey,ez]=view.eye,[tx,ty,tz]=view.target;
+  let fx=tx-ex,fy=ty-ey,fz=tz-ez;
+  const length=Math.hypot(fx,fy,fz)||1;
+  fx/=length;fy/=length;fz/=length;
+  const horizontal=Math.hypot(fx,fz)||1;
+  const rx=-fz/horizontal,rz=fx/horizontal;
+  const ux=-rz*fy,uy=rz*fx-rx*fz,uz=rx*fy;
+  const vx=a.x-ex,vy=1.15-ey,vz=a.z-ez;
+  const depth=vx*fx+vy*fy+vz*fz;
+  if(depth<-.8)return false;
+  const side=vx*rx+vz*rz,up=vx*ux+vy*uy+vz*uz;
+  const halfHeight=Math.max(0,depth)*.41421356+1.8;
+  return Math.abs(up)<=halfHeight&&Math.abs(side)<=halfHeight*.75+1.0;
+ }
+ chooseNext(a){
+  if(this.random(a)<.25){
+   a.moving=false;a.remaining=.9+this.random(a)*1.8;
+  }else{
+   a.moving=true;a.yaw=this.random(a)*Math.PI*2;
+   a.speed=.46+this.random(a)*.30;
+   a.remaining=2.0+this.random(a)*3.2;
+  }
+ }
+ step(a,elapsed){
+  let left=elapsed;
+  while(left>1e-6){
+   if(a.remaining<=1e-6)this.chooseNext(a);
+   const span=Math.min(left,.24,a.remaining);
+   if(a.moving){
+    const dx=Math.sin(a.yaw)*a.speed*span,dz=Math.cos(a.yaw)*a.speed*span;
+    const prevX=a.x,prevZ=a.z;
+    this.collision.move(a,dx,dz,this.ground);
+    // Wall or tree encountered: turn away, never enter building interiors.
+    if(Math.hypot(a.x-prevX,a.z-prevZ)<Math.hypot(dx,dz)*.65){
+     a.yaw+=Math.PI*.6+this.random(a)*Math.PI*.8;
+     a.remaining=Math.min(a.remaining,1.1);
+    }
+   }
+   a.remaining-=span;left-=span;
+  }
+ }
+ update(dt,view){
+  const seconds=Math.max(0,Math.min(.05,dt));
+  for(const a of this.agents){
+   a.visible=this.isVisible(a,view);
+   const cadence=a.visible?.1:1.0;
+   a.accumulated+=seconds;
+   if(a.accumulated>=cadence){
+    const elapsed=a.accumulated;a.accumulated=0;
+    this.step(a,elapsed);
+    if(a.visible)this.visibleTicks++;else this.offscreenTicks++;
+   }
+   if(a.visible){
+    const blend=Math.min(1,seconds*12);
+    a.drawX+=(a.x-a.drawX)*blend;
+    a.drawZ+=(a.z-a.drawZ)*blend;
+    const delta=Math.atan2(Math.sin(a.yaw-a.drawYaw),Math.cos(a.yaw-a.drawYaw));
+    a.drawYaw+=Math.max(-3*seconds,Math.min(3*seconds,delta));
+   }else{
+    a.drawX=a.x;a.drawZ=a.z;a.drawYaw=a.yaw;
+   }
+  }
+ }
+}
+const npcManager=new OutdoorNpcManager({collision:npcCollisionWorld,ground:groundSystem});
+const hamsterNpc=npcManager.add('hamster',4.5,3);
+
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 // Invisible floating movement (Engine TouchStick) and right-side swipe delta.
 // Keep the existing Engine InputManager contract and multi-pointer capture.
@@ -168,7 +275,7 @@ $('input-status').textContent='🎮 タッチ操作準備OK：左側で移動・
 function readEngineInput(){return inputManager.poll();}
 function releaseEngineInput(){inputManager.clear();}
 $('reset').addEventListener('click',()=>{
- core.reset();resetHouse();engineInputAdapter.resetZoom();$('input-status').textContent='🎮 リセット完了（ズームも初期化）';
+ core.reset();resetHouse();engineInputAdapter.resetZoom();npcManager.reset();$('input-status').textContent='🎮 リセット完了（ズーム・NPCも初期化）';
 });
 // The game owns house/stair logic; Engine owns orbit yaw, pitch, distance and pose.
 let houseLevel=0,characterY=0,cafeInside=false;
@@ -212,6 +319,7 @@ function update(dt,commands){
    horizontalDistance:(indoor?6.2:19)*engineInputAdapter.zoomFactor,
    targetY:indoor?characterY+1.45:2.7
  });
+ npcManager.update(dt/60,cameraRig.getPose({x:now.x,z:now.z},0));
  wallFade+=(wallTarget()-wallFade)*Math.min(1,.16*dt);
  cafeWallFade+=(cafeWallTarget()-cafeWallFade)*Math.min(1,.16*dt);
  if(Math.abs(cafeWallFade-cafeWallTarget())<.005)cafeWallFade=cafeWallTarget();
@@ -410,8 +518,8 @@ function productRenderSnapshot(){
   camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:150},
   objects:renderParts.map((p,i)=>({
    id:p.name+":"+i,geometry:engineMeshes[i],
-   position:p.name==='avatar'?[game.x,characterY,game.z]:p.offset,
-   yaw:p.name==='avatar'?game.angle:0,
+   position:p.name==='avatar'?[game.x,characterY,game.z]:p.name==='hamster'?[hamsterNpc.drawX,0,hamsterNpc.drawZ]:p.offset,
+   yaw:p.name==='avatar'?game.angle:p.name==='hamster'?hamsterNpc.drawYaw:0,
    opacity:wallOpacity(p.name),visible:!hiddenPart(p.name)
   }))
  });
@@ -498,7 +606,7 @@ function frame(t){
   console.error(error);
  }
  frames++;
- if(t-start>1000){$('fps').textContent='FPS '+Math.round(frames*1000/(t-start));start=t;frames=0}
+ if(t-start>1000){$('fps').textContent='FPS '+Math.round(frames*1000/(t-start));$('npc-status').textContent='🐹 X '+hamsterNpc.x.toFixed(1)+' / Z '+hamsterNpc.z.toFixed(1)+' / '+(hamsterNpc.visible?'画面内推定10Hz':'画面外推定1Hz');start=t;frames=0}
  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
