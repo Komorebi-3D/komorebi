@@ -24,7 +24,7 @@ Komorebi Engineを利用するモバイル向け3Dゲームです。
 | `komorebi3d-app-v07-engine-main-test.html` | **現在の安定基準／実機PASS** |
 | `komorebi3d-app-v06-core-test.html` | 旧統合版／実機PASS |
 
-通常保存するゲームHTMLは **`dev.html`（開発版）＋最新PASS版＋1世代前PASS版** の3種類です。v0.5.1以前のHTMLは`main`から整理済みで、必要な場合はGitのコミット履歴から復元します。
+通常保存するゲームHTMLは **`dev.html`（開発版）＋最新PASS版＋1世代前PASS版** の3種類です。さらに古いバージョンが必要な場合は、Gitのコミット履歴から復元します。
 
 新しいPASS版ができたら、最新と前世代を残し、2世代前はGit履歴を確認して整理します。通常の`archive/`バックアップブランチは作りません。詳細は [開発ステータス](../docs/STATUS.md) を参照してください。
 
