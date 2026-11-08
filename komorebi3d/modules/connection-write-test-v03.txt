@@ -1,0 +1,2 @@
+Komorebi 3D GitHub connector write verification.
+Created after GitHub App installation; protected PASS files untouched.
