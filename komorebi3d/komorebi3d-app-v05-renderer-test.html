@@ -325,6 +325,7 @@ function resumeProductInput(){inputManager.resume();last=0;}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseProductInput();else resumeProductInput();});
 window.addEventListener('blur',pauseProductInput);
 window.addEventListener('focus',()=>{if(!document.hidden)resumeProductInput();});
-window.addEventListener('pagehide',()=>{pauseProductInput();rendererA?.dispose();rendererB?.dispose();});
+// Keep initialized GL resources when Safari stores this page in its back/forward cache.
+window.addEventListener('pagehide',pauseProductInput);
 window.addEventListener('pageshow',()=>{if(!document.hidden)resumeProductInput();});
 </script></body></html>
