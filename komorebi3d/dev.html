@@ -1,4 +1,4 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Komorebi 3D DEV｜タッチ操作試作</title><style>*{box-sizing:border-box}body{margin:0;padding:12px;background:#f2f0e4;color:#4d5540;font:12px system-ui}.shell{max-width:760px;margin:auto}.views{display:grid;grid-template-columns:1fr 1fr;gap:8px}.views.single{grid-template-columns:minmax(0,1fr)}.view-panel.off{display:none}.mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 4px}.mode-buttons button{min-width:0;padding:11px 3px}.mode-buttons button.selected{color:#fff;background:#4f8161;border-color:#4f8161}#mode-status{font-size:11px;color:#55725c;margin:4px 0 7px}#panel-a,#panel-b{min-width:0}canvas{display:block;width:100%;aspect-ratio:3/4;border-radius:9px;background:#a7d9e9}.label{text-align:center;font-weight:700;margin:8px 0}.play-surface{position:relative}.touch-layer{position:absolute;inset:0;display:flex;z-index:2;touch-action:none}.touch-zone{flex:1;min-width:0;touch-action:none;background:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.buttons{display:flex;gap:7px;margin-top:8px}button{flex:1;padding:12px 3px;border:1px solid #cbb48f;border-radius:9px;background:#fffaf0;color:#574934;font-weight:700;touch-action:none}.stats{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:11px;margin-top:9px}.note{padding:9px;background:#fffaf0;border-radius:9px;margin-top:8px}.build-info{margin:9px 0 12px;padding:10px 11px;border:1px solid #aec2a8;border-radius:9px;background:#e8f2e4;color:#31563b;font-size:11px;line-height:1.65;overflow-wrap:anywhere}.build-info strong{font-size:12px}.build-info .build-line{display:block}.build-info .build-note{display:block;color:#66735f;font-size:10px}</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong><span>🌍 100m × 100m</span></div><p>🏡 v0.7ベース・タッチ操作試作（実機確認待ち）｜Engine統合｜B標準</p><div id="build-info" class="build-info" aria-live="polite"><strong>🧪 DEV / Game v0.7ベース｜タッチ操作試作</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-note">※main最新情報と、現在表示中のPages配信内容は反映待ちで異なる場合があります。</span></div><div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div><div class="play-surface" id="play-surface"><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div class="note">🏡 家：矩形 / 🌳 木：円形 / 🐹 操作キャラ：共通座標 / 地面：100 × 100m / 🏡 二階建て室内テスト</div><div class="note">🎮 新操作（試作）：画面左半分をタッチして移動／右半分をスワイプして視点変更。操作UIは非表示。2本指で同時操作できます。</div><div class="buttons"><button id="reset">⌂ リセット（開発用）</button></div><div class="note"><strong>🧪 衝突テスト用スタート位置</strong><div class="buttons"><button data-spot="front">🏡 家の前</button><button data-spot="tree">🌳 木の近く</button><button data-spot="side">↔ 壁沿い</button></div><div class="buttons"><button data-spot="west">西端</button><button data-spot="east">東端</button><button data-spot="north">奥端</button><button data-spot="south">手前端</button></div><div style="margin-top:6px">※四方向の端ボタンは100mフィールドの新しい境界付近へ移動します。各ボタンは衝突しない安全な位置へ移動します。スティックで障害物に向かって進んでください。</div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div></div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p></div><script>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Komorebi 3D DEV｜ピンチズーム試作</title><style>*{box-sizing:border-box}body{margin:0;padding:12px;background:#f2f0e4;color:#4d5540;font:12px system-ui}.shell{max-width:760px;margin:auto}.views{display:grid;grid-template-columns:1fr 1fr;gap:8px}.views.single{grid-template-columns:minmax(0,1fr)}.view-panel.off{display:none}.mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 4px}.mode-buttons button{min-width:0;padding:11px 3px}.mode-buttons button.selected{color:#fff;background:#4f8161;border-color:#4f8161}#mode-status{font-size:11px;color:#55725c;margin:4px 0 7px}#panel-a,#panel-b{min-width:0}canvas{display:block;width:100%;aspect-ratio:3/4;border-radius:9px;background:#a7d9e9}.label{text-align:center;font-weight:700;margin:8px 0}.play-surface{position:relative}.touch-layer{position:absolute;inset:0;display:flex;z-index:2;touch-action:none}.touch-zone{flex:1;min-width:0;touch-action:none;background:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.buttons{display:flex;gap:7px;margin-top:8px}button{flex:1;padding:12px 3px;border:1px solid #cbb48f;border-radius:9px;background:#fffaf0;color:#574934;font-weight:700;touch-action:none}.stats{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:11px;margin-top:9px}.note{padding:9px;background:#fffaf0;border-radius:9px;margin-top:8px}.build-info{margin:9px 0 12px;padding:10px 11px;border:1px solid #aec2a8;border-radius:9px;background:#e8f2e4;color:#31563b;font-size:11px;line-height:1.65;overflow-wrap:anywhere}.build-info strong{font-size:12px}.build-info .build-line{display:block}.build-info .build-note{display:block;color:#66735f;font-size:10px}</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong><span>🌍 100m × 100m</span></div><p>🏡 v0.7ベース・ピンチズーム試作（実機確認待ち）｜Engine統合｜B標準</p><div id="build-info" class="build-info" aria-live="polite"><strong>🧪 DEV / Game v0.7ベース｜ピンチズーム試作</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-note">※main最新情報と、現在表示中のPages配信内容は反映待ちで異なる場合があります。</span></div><div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div><div class="play-surface" id="play-surface"><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div class="note">🏡 家：矩形 / 🌳 木：円形 / 🐹 操作キャラ：共通座標 / 地面：100 × 100m / 🏡 二階建て室内テスト</div><div class="note">🎮 操作：左側1本指で移動／右側1本指スワイプで視点変更／右側2本指ピンチでズーム。左1本指＋右2本指の同時操作も可能。ゲーム画面の操作UIは非表示。</div><div class="buttons"><button id="reset">⌂ リセット（開発用）</button></div><div class="note"><strong>🧪 衝突テスト用スタート位置</strong><div class="buttons"><button data-spot="front">🏡 家の前</button><button data-spot="tree">🌳 木の近く</button><button data-spot="side">↔ 壁沿い</button></div><div class="buttons"><button data-spot="west">西端</button><button data-spot="east">東端</button><button data-spot="north">奥端</button><button data-spot="south">手前端</button></div><div style="margin-top:6px">※四方向の端ボタンは100mフィールドの新しい境界付近へ移動します。各ボタンは衝突しない安全な位置へ移動します。スティックで障害物に向かって進んでください。</div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div></div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p></div><script>
 (function () {
   const hash = document.getElementById('github-commit');
   const time = document.getElementById('github-commit-time');
@@ -63,31 +63,61 @@ const game=new Proxy({}, {get:(_,key)=>core.getState()[key]});
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 // Invisible floating movement (Engine TouchStick) and right-side swipe delta.
 // Keep the existing Engine InputManager contract and multi-pointer capture.
+// One relative distance factor works indoors and outdoors without abrupt zoom changes.
+// Shared safe ranges: outdoor approx 11..26m; indoor approx 3.6..8.5m.
+const MIN_ZOOM_FACTOR=Math.max(11/19,3.5/6.2);
+const MAX_ZOOM_FACTOR=Math.min(27/19,8.5/6.2);
 class InvisibleTouchAdapter {
  constructor(movePad,cameraPad){
   this.movement=new TouchStick({pad:movePad,radius:64,deadzone:.08});
-  this.cameraPad=cameraPad;
-  this.active=true;
-  this.cameraPointerId=null;this.lastX=0;this.lastY=0;this.dragX=0;this.dragY=0;
+  this.cameraPad=cameraPad;this.active=true;
+  this.cameraPointers=new Map();this.pinchDistance=0;this.zoomFactor=1;
+  this.dragX=0;this.dragY=0;
   this.listeners=[
    ['pointerdown',e=>{
-    if(!this.active||this.cameraPointerId!==null)return;
+    if(!this.active||this.cameraPointers.has(e.pointerId)||this.cameraPointers.size>=2)return;
     e.preventDefault();
-    this.cameraPointerId=e.pointerId;this.lastX=e.clientX;this.lastY=e.clientY;
+    this.cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(this.cameraPointers.size===2){
+     this.dragX=0;this.dragY=0;
+     this.pinchDistance=this.measurePinch();
+    }
     try{cameraPad.setPointerCapture?.(e.pointerId)}catch(_){}
    }],
    ['pointermove',e=>{
-    if(!this.active||e.pointerId!==this.cameraPointerId)return;
+    const prev=this.cameraPointers.get(e.pointerId);
+    if(!this.active||!prev)return;
     e.preventDefault();
-    this.dragX+=e.clientX-this.lastX;this.dragY+=e.clientY-this.lastY;
-    this.lastX=e.clientX;this.lastY=e.clientY;
+    if(this.cameraPointers.size===1){
+     this.dragX+=e.clientX-prev.x;this.dragY+=e.clientY-prev.y;
+    }
+    this.cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(this.cameraPointers.size===2){
+     const distance=this.measurePinch();
+     if(this.pinchDistance>4&&distance>4){
+      this.zoomFactor=clamp(this.zoomFactor*this.pinchDistance/distance,MIN_ZOOM_FACTOR,MAX_ZOOM_FACTOR);
+     }
+     this.pinchDistance=distance;
+    }
    }],
-   ['pointerup',e=>{if(e.pointerId===this.cameraPointerId)this.stopCamera(false)}],
-   ['pointercancel',e=>{if(e.pointerId===this.cameraPointerId)this.stopCamera(true)}],
-   ['lostpointercapture',e=>{if(e.pointerId===this.cameraPointerId)this.stopCamera(true)}]
+   ['pointerup',e=>this.endCameraPointer(e)],
+   ['pointercancel',e=>this.endCameraPointer(e)],
+   ['lostpointercapture',e=>this.endCameraPointer(e)]
   ];
   cameraPad.style.touchAction='none';
   for(const [name,handler] of this.listeners)cameraPad.addEventListener(name,handler);
+ }
+ measurePinch(){
+  if(this.cameraPointers.size!==2)return 0;
+  const [a,b]=[...this.cameraPointers.values()];
+  return Math.hypot(a.x-b.x,a.y-b.y);
+ }
+ endCameraPointer(e){
+  if(!this.cameraPointers.has(e.pointerId))return;
+  this.cameraPointers.delete(e.pointerId);
+  // Do not replay leftover swipe movement when returning to one finger.
+  this.dragX=0;this.dragY=0;this.pinchDistance=0;
+  try{if(this.cameraPad.hasPointerCapture?.(e.pointerId))this.cameraPad.releasePointerCapture(e.pointerId)}catch(_){}
  }
  poll(){
   const move=this.movement.poll();
@@ -95,23 +125,22 @@ class InvisibleTouchAdapter {
  }
  takeCameraDrag(){
   const drag={x:this.dragX,y:this.dragY};
-  this.dragX=0;this.dragY=0;
-  return drag;
+  this.dragX=0;this.dragY=0;return drag;
  }
- stopCamera(discard=true){
-  const old=this.cameraPointerId;
-  this.cameraPointerId=null;
-  if(discard){this.dragX=0;this.dragY=0;}
-  if(old!==null){
-   try{if(this.cameraPad.hasPointerCapture?.(old))this.cameraPad.releasePointerCapture(old)}catch(_){}
+ resetZoom(){this.zoomFactor=1;}
+ clear(){
+  this.movement.clear();
+  const ids=[...this.cameraPointers.keys()];
+  this.cameraPointers.clear();
+  this.dragX=0;this.dragY=0;this.pinchDistance=0;
+  for(const id of ids){
+   try{if(this.cameraPad.hasPointerCapture?.(id))this.cameraPad.releasePointerCapture(id)}catch(_){}
   }
  }
- clear(){this.movement.clear();this.stopCamera(true);}
- pause(){this.active=false;this.movement.pause();this.stopCamera(true);}
+ pause(){this.active=false;this.movement.pause();this.clear();}
  resume(){this.movement.resume();this.active=true;}
  dispose(){
-  this.pause();
-  this.movement.dispose();
+  this.pause();this.movement.dispose();
   for(const [name,handler] of this.listeners)this.cameraPad.removeEventListener(name,handler);
   this.listeners=[];
  }
@@ -122,12 +151,12 @@ $('input-status').textContent='🎮 タッチ操作準備OK：左側で移動・
 function readEngineInput(){return inputManager.poll();}
 function releaseEngineInput(){inputManager.clear();}
 $('reset').addEventListener('click',()=>{
- core.reset();resetHouse();$('input-status').textContent='🎮 リセット完了';
+ core.reset();resetHouse();engineInputAdapter.resetZoom();$('input-status').textContent='🎮 リセット完了（ズームも初期化）';
 });
 // The game owns house/stair logic; Engine owns orbit yaw, pitch, distance and pose.
 let houseLevel=0,characterY=0;
 const cameraRig=new FollowCameraRig({yaw:0,pitch:35*Math.PI/180,horizontalDistance:19,targetY:2.7,yawSpeed:1.5,pitchSpeed:1.08,followRate:5.1});
-$('camera-status').textContent='📷 Engine Camera接続OK：旋回・家の追従・上下角度';
+$('camera-status').textContent='📷 Engine Camera接続OK：右スワイプ・2指ピンチズーム・屋内外の追従';
 function cameraDirection(){return cameraRig.snapshot().yaw;}
 
 
@@ -161,7 +190,7 @@ function update(dt,commands){
  const indoor=houseLevel!==0;
  // Legacy input commands use old frame units; Engine camera uses real seconds.
  cameraRig.update(commands,dt/60,{
-   horizontalDistance:indoor?6.2:19,
+   horizontalDistance:(indoor?6.2:19)*engineInputAdapter.zoomFactor,
    targetY:indoor?characterY+1.45:2.7
  });
  wallFade+=(wallTarget()-wallFade)*Math.min(1,.16*dt);
