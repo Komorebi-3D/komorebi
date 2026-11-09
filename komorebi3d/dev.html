@@ -8,12 +8,20 @@
 button.slider-step{flex:0 0 44px;width:44px;min-height:44px;padding:0;border-radius:14px;background:#e5f0df;border-color:#91af8e;color:#315c3f;font-size:25px;line-height:1;touch-action:manipulation}
 button.slider-step:active{background:#c4dec1}.debug-controls output{font-variant-numeric:tabular-nums;white-space:nowrap}.debug-map{position:absolute;top:8px;left:8px;z-index:3;width:min(47%,210px);padding:6px;border-radius:9px;background:rgba(17,35,29,.65);box-shadow:0 2px 12px #2133247a;pointer-events:none;color:#fff;user-select:none}.debug-map[hidden]{display:none}.debug-map canvas{width:100%;height:auto;aspect-ratio:1;background:transparent;border-radius:3px}.debug-map-title{font-size:10px;font-weight:700;margin-bottom:3px}.debug-map-legend{font-size:9px;display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
 .build-info{position:relative}.build-info>strong{display:block;padding-right:43px;min-height:38px}
-button.build-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;padding:0;border:0;border-radius:9px;background:transparent;color:#31563b;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
-button.build-help-button span{position:absolute;right:8px;top:8px;width:14px;height:14px;display:grid;place-items:center;font:700 12px/1 system-ui}
+
+/* Shared panel-help interaction and centered overlays. Variants keep panel colors. */
+button.panel-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;padding:0;border:0;border-radius:9px;background:transparent;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
+button.panel-help-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 12px/1 system-ui}
+button.panel-help-button:focus-visible{outline:2px solid #397452;outline-offset:-4px}
+.panel-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;pointer-events:none;display:grid;place-items:center;padding:12px}
+.panel-help-overlay[hidden]{display:none}
+.panel-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;font-size:16px;font-weight:750;text-align:center}
+button.build-help-button{color:#31563b}
+
 button.build-help-button:focus-visible{outline:3px solid #397452;outline-offset:2px}
-.build-help-overlay{position:absolute;inset:0;z-index:3;display:flex;justify-content:center;align-items:center;padding:14px;background:rgba(29,52,35,.55);border-radius:9px;pointer-events:none}
-.build-help-overlay[hidden]{display:none}
-.build-help-label{padding:14px 20px;border-radius:13px;background:#fffdf3;color:#30533b;font-size:16px;font-weight:750;box-shadow:0 4px 18px #15241855;text-align:center}
+.build-help-overlay{background:rgba(29,52,35,.55);padding:14px}
+
+.build-help-label{padding:14px 20px;background:#fffdf3;color:#30533b;box-shadow:0 4px 18px #15241855}
 
 
 /* Dedicated test controls: draft approved in the chat review. */
@@ -21,8 +29,8 @@ button.build-help-button:focus-visible{outline:3px solid #397452;outline-offset:
 .test-panel-header{position:relative;padding:10px 11px 9px;background:#f5ede0;border-bottom:1px solid #dccbb5;z-index:1}
 .test-panel-body{padding:10px 11px 11px}
 .test-panel-heading{display:block;min-height:38px;padding-right:43px;font-size:12px;font-weight:750}
-button.test-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;padding:0;border:0;border-radius:9px;background:transparent;color:#554a3f;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
-button.test-help-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 12px/1 system-ui}
+button.test-help-button{color:#554a3f}
+
 button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-4px}
 .test-panel button:not(.test-help-button){min-height:44px;padding:9px 7px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3;color:#554a3f;font:700 12px system-ui;cursor:pointer;touch-action:manipulation}
 .test-panel button.test-reset{display:block;width:100%;margin:0;background:#f6e5da;border-color:#d0a793;color:#8a4a38}
@@ -44,9 +52,9 @@ button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-
 .test-panel #npc-stress-info,.test-panel #npc-render-warning{font-size:11px}
 .test-panel .test-locations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .test-panel .test-locations button{min-width:0}
-.test-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;background:rgba(69,50,28,.34);pointer-events:none;display:grid;place-items:center;padding:12px}
-.test-help-overlay[hidden]{display:none}
-.test-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;background:#fffdf8;color:#554a3f;font-size:16px;font-weight:750;text-align:center;box-shadow:0 4px 18px #0003}
+.test-help-overlay{background:rgba(69,50,28,.34)}
+
+.test-help-label{background:#fffdf8;color:#554a3f;box-shadow:0 4px 18px #0003}
 
 
 /* Responsive iPad mini 5 landscape: whole first viewport = developer info + game/test split.
@@ -54,12 +62,12 @@ button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-
 /* Runtime status uses the same press-and-hold info affordance as the other panels. */
 .runtime-status{position:relative}
 .runtime-status-heading{display:block;min-height:36px;margin:0 0 8px;padding-right:43px;font-size:13px}
-button.runtime-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;border-radius:9px;background:transparent;color:#455a49;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
-button.runtime-help-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 12px/1 system-ui}
-button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offset:-4px}
-.runtime-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;background:rgba(29,52,35,.42);pointer-events:none;display:grid;place-items:center;padding:12px}
-.runtime-help-overlay[hidden]{display:none}
-.runtime-help-label{max-width:100%;width:max-content;padding:14px 19px;border-radius:13px;background:#fffdf3;color:#30533b;font-size:16px;font-weight:750;text-align:center;box-shadow:0 4px 18px #15241855}
+button.runtime-help-button{color:#455a49}
+
+
+.runtime-help-overlay{background:rgba(29,52,35,.42)}
+
+.runtime-help-label{background:#fffdf3;color:#30533b;box-shadow:0 4px 18px #15241855}
 @media (orientation:landscape) and (min-width:900px) and (min-height:600px){
  body{padding:12px}
  .shell{max-width:none;width:100%;margin:0}
@@ -84,10 +92,10 @@ button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offse
  .runtime-status-heading{display:block;font-size:13px;margin:0 0 8px}
  .runtime-status .stats{margin-top:8px}
 }
-</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div class="landscape-hero"><div class="site-heading" style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div id="build-info" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><button id="build-help-button" class="build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="build-help-overlay" role="tooltip" hidden><div class="build-help-label">🧪 開発情報パネル</div></div></div><div class="landscape-main"><div class="landscape-game"><div class="play-surface" id="play-surface"><div class="debug-map" id="debug-map" hidden aria-hidden="true"><div class="debug-map-title">🗺️ 100m × 100m / 全NPC位置</div><canvas id="debug-map-canvas" width="256" height="256" role="img" aria-label="主人公が赤い点、全ハムスターが黄色い点のデバッグマップ"></canvas><div class="debug-map-legend"><span>🔴 主人公</span><span>🟡 ハム全員（3D非表示も）</span></div></div><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div></div><section id="test-ops-panel" class="test-panel" role="region" aria-label="テスト操作パネル">
+</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div class="landscape-hero"><div class="site-heading" style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div id="build-info" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div><div class="landscape-main"><div class="landscape-game"><div class="play-surface" id="play-surface"><div class="debug-map" id="debug-map" hidden aria-hidden="true"><div class="debug-map-title">🗺️ 100m × 100m / 全NPC位置</div><canvas id="debug-map-canvas" width="256" height="256" role="img" aria-label="主人公が赤い点、全ハムスターが黄色い点のデバッグマップ"></canvas><div class="debug-map-legend"><span>🔴 主人公</span><span>🟡 ハム全員（3D非表示も）</span></div></div><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div></div><section id="test-ops-panel" class="test-panel" role="region" aria-label="テスト操作パネル">
 <div class="test-panel-header">
 <strong class="test-panel-heading">🧪 テスト操作（開発用）</strong>
-<button type="button" class="test-help-button" id="test-help-button" aria-label="このエリアの名前：テスト操作パネル" aria-describedby="test-help-overlay"><span>ⓘ</span></button>
+<button type="button" class="panel-help-button test-help-button" id="test-help-button" aria-label="このエリアの名前：テスト操作パネル" aria-describedby="test-help-overlay"><span>ⓘ</span></button>
 <button id="reset" type="button" class="test-reset">↻ リセット（開発用）</button>
 </div>
 <div class="test-panel-body">
@@ -108,7 +116,7 @@ button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offse
 <div class="test-locations"><button type="button" data-spot="front">🏡 家の前</button><button type="button" data-spot="tree">🌳 木の近く</button><button type="button" data-spot="side">↔ 壁沿い</button><button type="button" data-spot="cafe">☕ カフェ前</button><button type="button" data-spot="west">西端</button><button type="button" data-spot="east">東端</button><button type="button" data-spot="north">奥端</button><button type="button" data-spot="south">手前端</button></div>
 <div style="margin-top:6px">各地点への移動は、建物・衝突・カメラ・マップ境界などの汎用テストに使えます。</div>
 </div>
-<div id="test-help-overlay" class="test-help-overlay" role="tooltip" hidden><div class="test-help-label">🧪 テスト操作パネル</div></div></section></div></div><section class="runtime-status" aria-label="実行ステータス"><h2 class="runtime-status-heading">📊 実行ステータス</h2><button type="button" id="runtime-help-button" class="runtime-help-button" aria-label="このエリアの名前：実行ステータス" aria-describedby="runtime-help-overlay"><span>ⓘ</span></button><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span><span id="npc-status">🐹 お散歩AI準備中</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p><div id="runtime-help-overlay" class="runtime-help-overlay" role="tooltip" hidden><div class="runtime-help-label">📊 実行ステータス</div></div></section></div><script>
+<div id="test-help-overlay" class="panel-help-overlay test-help-overlay" role="tooltip" hidden><div class="panel-help-label test-help-label">🧪 テスト操作パネル</div></div></section></div></div><section class="runtime-status" aria-label="実行ステータス"><h2 class="runtime-status-heading">📊 実行ステータス</h2><button type="button" id="runtime-help-button" class="panel-help-button runtime-help-button" aria-label="このエリアの名前：実行ステータス" aria-describedby="runtime-help-overlay"><span>ⓘ</span></button><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span><span id="npc-status">🐹 お散歩AI準備中</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p><div id="runtime-help-overlay" class="panel-help-overlay runtime-help-overlay" role="tooltip" hidden><div class="panel-help-label runtime-help-label">📊 実行ステータス</div></div></section></div><script>
 (function () {
   const hash = document.getElementById('github-commit');
   const time = document.getElementById('github-commit-time');
@@ -135,79 +143,13 @@ button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offse
     .finally(() => clearTimeout(timeout));
 })();
 
-// Hold the (ⓘ) button to reveal the panel's name; release to hide it.
-// Mouse hover also works on desktop. Keyboard Enter/Space shows the label while held.
-(function () {
- const button=document.getElementById('build-help-button');
- const label=document.getElementById('build-help-overlay');
- let pressed=false,hovered=false,keyboardPressed=false;
- const update=()=>{label.hidden=!(pressed||hovered||keyboardPressed);};
- button.addEventListener('pointerenter',event=>{
-  if(event.pointerType==='mouse'){hovered=true;update();}
- });
- button.addEventListener('pointerleave',event=>{
-  if(event.pointerType==='mouse'){hovered=false;update();}
- });
- button.addEventListener('pointerdown',event=>{
-  if(event.button!==0)return;
-  pressed=true;update();
-  if(button.setPointerCapture)button.setPointerCapture(event.pointerId);
-  event.preventDefault();
- });
- const release=()=>{pressed=false;update();};
- button.addEventListener('pointerup',release);
- button.addEventListener('pointercancel',release);
- button.addEventListener('lostpointercapture',release);
- button.addEventListener('keydown',event=>{
-  if(event.key===' '||event.key==='Enter'){
-   keyboardPressed=true;update();
-   if(event.key===' ')event.preventDefault();
-  }
-  if(event.key==='Escape'){keyboardPressed=false;release();}
- });
- button.addEventListener('keyup',event=>{
-  if(event.key===' '||event.key==='Enter'){keyboardPressed=false;update();}
- });
- button.addEventListener('blur',()=>{
-  keyboardPressed=false;hovered=false;release();
- });
-})();
-
-// Show the test panel's name centered over the entire panel (header and scrolling body).
-(function(){
- const button=document.getElementById('test-help-button');
- const overlay=document.getElementById('test-help-overlay');
- let pressed=false,hovered=false,keyboardPressed=false;
- function update(){overlay.hidden=!(pressed||hovered||keyboardPressed);}
- button.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hovered=true;update();}});
- button.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'){hovered=false;update();}});
- button.addEventListener('pointerdown',event=>{
-  if(event.button!==0)return;
-  pressed=true;update();
-  try{button.setPointerCapture?.(event.pointerId)}catch(_){}
-  event.preventDefault();
- });
- const release=()=>{pressed=false;update();};
- button.addEventListener('pointerup',release);
- button.addEventListener('pointercancel',release);
- button.addEventListener('lostpointercapture',release);
- button.addEventListener('keydown',event=>{
-  if(event.key==='Enter'||event.key===' '){
-   keyboardPressed=true;update();
-   if(event.key===' ')event.preventDefault();
-  }
-  if(event.key==='Escape'){keyboardPressed=false;hovered=false;release();}
- });
- button.addEventListener('keyup',event=>{if(event.key==='Enter'||event.key===' '){keyboardPressed=false;update();}});
- button.addEventListener('blur',()=>{keyboardPressed=false;hovered=false;release();});
-})();
-
-// Runtime status: match the other panel info buttons (hold / hover / keyboard).
-(function(){
- const button=document.getElementById('runtime-help-button');
- const overlay=document.getElementById('runtime-help-overlay');
+// Shared explanation controller for all three panels; aria-describedby pairs button and label.
+function setupPanelHelp(button){
+ const overlay=document.getElementById(button.getAttribute('aria-describedby'));
+ if(!overlay)throw new Error('Info overlay missing for '+button.id);
  let pressed=false,hovered=false,keyboardPressed=false;
  const update=()=>{overlay.hidden=!(pressed||hovered||keyboardPressed);};
+ const release=()=>{pressed=false;update();};
  button.addEventListener('pointerenter',event=>{
   if(event.pointerType==='mouse'){hovered=true;update();}
  });
@@ -220,7 +162,6 @@ button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offse
   try{button.setPointerCapture?.(event.pointerId)}catch(_){}
   event.preventDefault();
  });
- const release=()=>{pressed=false;update();};
  button.addEventListener('pointerup',release);
  button.addEventListener('pointercancel',release);
  button.addEventListener('lostpointercapture',release);
@@ -229,13 +170,18 @@ button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offse
    keyboardPressed=true;update();
    if(event.key===' ')event.preventDefault();
   }
-  if(event.key==='Escape'){keyboardPressed=false;hovered=false;release();}
+  if(event.key==='Escape'){
+   pressed=false;hovered=false;keyboardPressed=false;update();
+  }
  });
  button.addEventListener('keyup',event=>{
   if(event.key==='Enter'||event.key===' '){keyboardPressed=false;update();}
  });
- button.addEventListener('blur',()=>{keyboardPressed=false;hovered=false;release();});
-})();
+ button.addEventListener('blur',()=>{
+  pressed=false;hovered=false;keyboardPressed=false;update();
+ });
+}
+document.querySelectorAll('.panel-help-button').forEach(setupPanelHelp);
 </script><script type="module">
 import { InputManager } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/input/InputManager.js";
 import { TouchStick } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/input/TouchStick.js";
