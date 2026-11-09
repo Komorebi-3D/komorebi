@@ -188,6 +188,60 @@ import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1
 (function(){var d=document.getElementById("launch-diagnostic");if(d)d.textContent="診断：JavaScript実行OK / WebGL="+(function(){try{return !!document.createElement("canvas").getContext("webgl")}catch(e){return false}})()+" / Three.js読み込みを確認中";window.addEventListener("error",function(e){if(d)d.textContent="診断：JavaScriptエラー："+e.message});window.addEventListener("unhandledrejection",function(e){if(d)d.textContent="診断：読み込みエラー："+String(e.reason)});})();
 
 const $=id=>document.getElementById(id);
+// Game view owns all game-panel DOM. A missing panel is a valid headless state.
+function createGameView(root){
+ if(!root)return null;
+ const get=id=>root.querySelector('#'+id);
+ const elements={
+  movePad:get('pad'),cameraPad:get('camera-pad'),
+  canvasA:get('a'),canvasB:get('b'),
+  panelA:get('panel-a'),panelB:get('panel-b'),
+  views:get('views'),surface:get('play-surface'),
+  map:get('debug-map'),mapCanvas:get('debug-map-canvas')
+ };
+ if(Object.values(elements).some(el=>!el))throw new Error('Game view elements incomplete');
+ const ctx=elements.mapCanvas.getContext('2d');
+ return {
+  movePad:elements.movePad,cameraPad:elements.cameraPad,
+  canvasA:elements.canvasA,canvasB:elements.canvasB,
+  setRenderMode(mode){
+   const showA=mode!=='B',showB=mode!=='A';
+   elements.panelA.classList.toggle('off',!showA);
+   elements.panelB.classList.toggle('off',!showB);
+   elements.views.classList.toggle('single',mode!=='compare');
+   elements.surface.classList.toggle('ab-compare',mode==='compare');
+  },
+  setMapVisible(visible){
+   elements.map.hidden=!visible;
+   elements.map.setAttribute('aria-hidden',String(!visible));
+  },
+  paintMap(agents,playerX,playerZ,cafeX,cafeZ){
+   if(!ctx)return;
+   const w=elements.mapCanvas.width,h=elements.mapCanvas.height;
+   const wx=x=>(x+50)*w/100,wz=z=>(z+50)*h/100;
+   ctx.clearRect(0,0,w,h);
+   ctx.fillStyle='rgba(15,36,27,.74)';ctx.fillRect(0,0,w,h);
+   ctx.strokeStyle='rgba(225,248,228,.20)';ctx.lineWidth=1;
+   for(let n=0;n<=4;n++){
+    const v=n*w/4;ctx.beginPath();ctx.moveTo(v,0);ctx.lineTo(v,h);
+    ctx.moveTo(0,v);ctx.lineTo(w,v);ctx.stroke();
+   }
+   ctx.fillStyle='rgba(230,216,174,.38)';
+   ctx.fillRect(wx(-2.5),wz(-9.5),14*w/100,10*h/100);
+   ctx.fillStyle='rgba(228,163,111,.47)';
+   ctx.fillRect(wx(cafeX-7),wz(cafeZ-5),14*w/100,10*h/100);
+   ctx.fillStyle='#7cb78b';ctx.beginPath();ctx.arc(wx(-7),wz(-5),3,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#ffe04c';
+   for(const a of agents)ctx.fillRect(wx(a.x)-1.2,wz(a.z)-1.2,2.4,2.4);
+   ctx.fillStyle='#fb4343';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.3;
+   ctx.beginPath();ctx.arc(wx(playerX),wz(playerZ),4,0,Math.PI*2);ctx.fill();ctx.stroke();
+   ctx.font='bold 11px system-ui';ctx.fillStyle='rgba(255,255,255,.88)';
+   ctx.fillText('N',w/2-4,12);
+  }
+ };
+}
+const gameView=createGameView(document.querySelector('.landscape-game'));
+
 // Game-to-panel boundary: status events are buffered even when no status panel is mounted.
 const runtimeStatusValues=new Map();
 const gameStateListeners=new Set();
@@ -470,13 +524,13 @@ class InvisibleTouchAdapter {
   this.listeners=[];
  }
 }
-const engineInputAdapter=new InvisibleTouchAdapter($('pad'),$('camera-pad'));
+const engineInputAdapter=gameView?new InvisibleTouchAdapter(gameView.movePad,gameView.cameraPad):null;
 const inputManager=new InputManager(engineInputAdapter);
 publishRuntimeStatus('input-status','🎮 タッチ操作準備OK：左側で移動・右側スワイプで視点変更');
 function readEngineInput(){return inputManager.poll();}
 function releaseEngineInput(){inputManager.clear();}
 function resetGameForTest(){
- core.reset();resetHouse();engineInputAdapter.resetZoom();
+ core.reset();resetHouse();engineInputAdapter?.resetZoom();
  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
  npcManager.actualLimit=65;slowRenderWindows=0;testWarning=defaultTestWarning;
  setMiniMapVisible(false);setRenderMode('B');
@@ -496,7 +550,7 @@ const stairHeight=z=>Math.max(0,Math.min(3.35,(-z-.6)/7.65*3.35));
 function update(dt,commands){
  const before=core.getState(),wasStair=onStairs(before.x,before.z);
  // Camera movement is derived from pixel deltas, not how long the finger is held.
- const drag=engineInputAdapter.takeCameraDrag();
+ const drag=engineInputAdapter?.takeCameraDrag()??{x:0,y:0};
  cameraRig.state.applyInput(drag.x,drag.y,.0055);
  // Left-stick displacement defines speed; heading is relative to the free camera.
  const stickX=commands.moveX,stickY=commands.moveY,yaw=cameraRig.snapshot().yaw;
@@ -521,7 +575,7 @@ function update(dt,commands){
  const indoor=houseLevel!==0||cafeInside;
  // Legacy input commands use old frame units; Engine camera uses real seconds.
  cameraRig.update(commands,dt/60,{
-   horizontalDistance:(indoor?6.2:19)*engineInputAdapter.zoomFactor,
+   horizontalDistance:(indoor?6.2:19)*(engineInputAdapter?.zoomFactor??1),
    targetY:indoor?characterY+1.45:2.7
  });
  npcManager.update(dt/60,{...cameraRig.getPose({x:now.x,z:now.z},0),playerX:now.x,playerZ:now.z});
@@ -547,35 +601,14 @@ function setNpcRenderDistance(v){
 function setNpcCount(v){npcManager.setPopulation(v);publishGameState();}
 // Semi-transparent game overlay: draw every simulated NPC, including hidden 3D meshes.
 // 5Hz canvas redraw is decoupled from the 3D renderer, with pointer-events disabled.
-const miniMap=$('debug-map'),miniMapCanvas=$('debug-map-canvas');
-const miniCtx=miniMapCanvas.getContext('2d');
 let miniMapVisible=false,lastMiniMapFrame=-1000;
 function paintDebugMap(){
- if(!miniMapVisible||!miniCtx)return;
- const ctx=miniCtx,w=miniMapCanvas.width,h=miniMapCanvas.height;
- const wx=x=>(x+50)*w/100,wz=z=>(z+50)*h/100;
- ctx.clearRect(0,0,w,h);
- ctx.fillStyle='rgba(15,36,27,.74)';ctx.fillRect(0,0,w,h);
- ctx.strokeStyle='rgba(225,248,228,.20)';ctx.lineWidth=1;
- for(let n=0;n<=4;n++){
-  const v=n*w/4;ctx.beginPath();ctx.moveTo(v,0);ctx.lineTo(v,h);
-  ctx.moveTo(0,v);ctx.lineTo(w,v);ctx.stroke();
- }
- ctx.fillStyle='rgba(230,216,174,.38)';
- ctx.fillRect(wx(-2.5),wz(-9.5),14*w/100,10*h/100);
- ctx.fillStyle='rgba(228,163,111,.47)';
- ctx.fillRect(wx(CAFE_X-7),wz(CAFE_Z-5),14*w/100,10*h/100);
- ctx.fillStyle='#7cb78b';ctx.beginPath();ctx.arc(wx(-7),wz(-5),3,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#ffe04c';
- for(const a of npcManager.agents)ctx.fillRect(wx(a.x)-1.2,wz(a.z)-1.2,2.4,2.4);
- ctx.fillStyle='#fb4343';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.3;
- ctx.beginPath();ctx.arc(wx(game.x),wz(game.z),4,0,Math.PI*2);ctx.fill();ctx.stroke();
- ctx.font='bold 11px system-ui';ctx.fillStyle='rgba(255,255,255,.88)';
- ctx.fillText('N',w/2-4,12);
+ if(!miniMapVisible||!gameView)return;
+ gameView.paintMap(npcManager.agents,game.x,game.z,CAFE_X,CAFE_Z);
 }
 function setMiniMapVisible(value){
- miniMapVisible=Boolean(value);miniMap.hidden=!miniMapVisible;
- miniMap.setAttribute('aria-hidden',String(!miniMapVisible));
+ miniMapVisible=Boolean(value);
+ gameView?.setMapVisible(miniMapVisible);
  if(miniMapVisible)paintDebugMap();publishGameState();
 }
 const spots={front:[0,4.5],tree:[-8.4,-5],side:[-2.9,2],cafe:[CAFE_X,CAFE_Z+10.5],west:[-49.2,5],east:[49.2,6],north:[-8,-49.2],south:[0,49.2]};
@@ -807,12 +840,13 @@ let rendererA=null,rendererB=null,loadingA=null,loadingB=null;
 let okA=false,okB=false,renderMode='B';
 let last=0,start=0,frames=0;
 function ensureA(){
+ if(!gameView)return Promise.resolve();
  if(okA)return Promise.resolve();
  if(loadingA)return loadingA;
  publishRuntimeStatus('ea','A：Engine WebGLを読み込み中…');
  loadingA=(async()=>{
   const instance=await createRenderer('A',{profile:'mesh'});
-  await instance.initialize({canvas:$('a')});
+  await instance.initialize({canvas:gameView.canvasA});
   rendererA=instance;okA=true;publishRuntimeStatus('ea','');
   publishRuntimeStatus('renderer-status','🎨 Engine Renderer A準備OK'+(okB?' / B準備OK':''));
   publishRuntimeStatus('status','Renderer A描画準備完了');
@@ -824,16 +858,18 @@ function ensureA(){
  return loadingA;
 }
 function ensureB(){
+ if(!gameView)return Promise.resolve();
  if(okB)return Promise.resolve();
  if(loadingB)return loadingB;
  publishRuntimeStatus('eb','B：Engine Three.jsを読み込み中…');
  loadingB=(async()=>{
   const instance=await createRenderer('B',{profile:'mesh'});
-  await instance.initialize({canvas:$('b')});
+  await instance.initialize({canvas:gameView.canvasB});
   rendererB=instance;okB=true;publishRuntimeStatus('eb','');
   publishRuntimeStatus('renderer-status','🎨 Engine Renderer B準備OK'+(okA?' / A準備OK':''));
   publishRuntimeStatus('status','Renderer B描画準備完了');
-  document.getElementById('launch-diagnostic').textContent='診断：Engine Input・Camera・Renderer準備完了';
+  const diagnostic=document.getElementById('launch-diagnostic');
+  if(diagnostic)diagnostic.textContent='診断：Engine Input・Camera・Renderer準備完了';
  })().catch(error=>{
   loadingB=null;publishRuntimeStatus('eb','B初期化エラー：'+String(error.message||error));
   publishRuntimeStatus('renderer-status','🎨 Renderer B初期化失敗');
@@ -845,13 +881,10 @@ function setRenderMode(mode){
  if(!['A','B','compare'].includes(mode))mode='B';
  renderMode=mode;
  const a=mode!=='B',b=mode!=='A';
- $('panel-a').classList.toggle('off',!a);
- $('panel-b').classList.toggle('off',!b);
- $('views').classList.toggle('single',mode!=='compare');
- $('play-surface').classList.toggle('ab-compare',mode==='compare');
+ gameView?.setRenderMode(mode);
  try{localStorage.setItem('komorebi3d-render-mode-dev',mode)}catch(e){}
- if(a&&!okA)ensureA();
- if(b&&!okB)ensureB();
+ if(gameView&&a&&!okA)ensureA();
+ if(gameView&&b&&!okB)ensureB();
  publishGameState();
 }
 let initialMode='B';
@@ -960,17 +993,19 @@ function frame(t){
  }
  publishRuntimeStatus('pos',`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`);
  publishRuntimeStatus('edge',(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内');
- try{
-  const snapshot=productRenderSnapshot();
-  if(renderMode!=='B'&&okA)rendererA.render(snapshot);
-  if(renderMode!=='A'&&okB)rendererB.render(snapshot);
-  const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
-  const b=renderMode!=='A'&&okB?rendererB.lastFrameId:'―';
-  publishRuntimeStatus('sync-status','共通Snapshot #'+snapshot.frameId+' / A:'+a+' / B:'+b+
-    (renderMode==='compare'&&okA&&okB?(a===b?' / 同期OK':' / 同期ずれ'):''));
- }catch(error){
-  publishRuntimeStatus('renderer-status','🎨 描画エラー：'+String(error.message||error));
-  console.error(error);
+ if(gameView){
+  try{
+   const snapshot=productRenderSnapshot();
+   if(renderMode!=='B'&&okA)rendererA.render(snapshot);
+   if(renderMode!=='A'&&okB)rendererB.render(snapshot);
+   const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
+   const b=renderMode!=='A'&&okB?rendererB.lastFrameId:'―';
+   publishRuntimeStatus('sync-status','共通Snapshot #'+snapshot.frameId+' / A:'+a+' / B:'+b+
+     (renderMode==='compare'&&okA&&okB?(a===b?' / 同期OK':' / 同期ずれ'):''));
+  }catch(error){
+   publishRuntimeStatus('renderer-status','🎨 描画エラー：'+String(error.message||error));
+   console.error(error);
+  }
  }
  frames++;
  if(t-start>1000){
