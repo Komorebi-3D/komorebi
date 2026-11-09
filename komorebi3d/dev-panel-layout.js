@@ -29,7 +29,8 @@ export function transitionPanelLayout(layout,action){
 }
 
 export function mountPanelLayoutEditor(doc,initialLayout){
- let layout={...initialLayout},armed=null,drag=null,menuSlot=null;
+ const LONG_PRESS_MS=450, HOLD_MOVE_TOLERANCE=12;
+ let layout={...initialLayout},pending=null,drag=null,menuSlot=null;
  const slots=new Map(SLOT_IDS.map(id=>[id,doc.querySelector('[data-panel-slot="'+id+'"]')]));
  const panels=new Map(PANEL_IDS.map(id=>[id,doc.querySelector('[data-panel-id="'+id+'"]')]));
  for(const [id,node] of [...slots,...panels])if(!node)throw new Error('Missing panel or slot: '+id);
@@ -61,20 +62,16 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   button.addEventListener('blur',()=>{focused.delete(id);refreshHelp();});
   button.addEventListener('keydown',event=>{
    if(event.key==='Escape'){cancel();event.preventDefault();}
-   if(event.key==='Enter'||event.key===' '){
-    event.preventDefault();
-    if(armed&&armed!==id)swapById(armed,id);
-    else{armed=armed===id?null:id;closeMenu();refreshHelp();}
-   }
   });
  }
  function slotFor(id){return SLOT_IDS.find(name=>layout[name]===id);}
  function refreshHelp(){
   for(const [id,{button,overlay,trash,hint}] of help){
-   const editing=armed===id||drag?.fromId===id;
-   overlay.hidden=!(editing||hovered.has(id)||focused.has(id));
+   const editing=drag?.fromId===id;
+   const showingInfo=editing||pending?.fromId===id||hovered.has(id)||focused.has(id);
+   overlay.hidden=!showingInfo;
    trash.hidden=!editing;hint.hidden=!editing;
-   panels.get(id).classList.toggle('panel-editor-armed',armed===id);
+   panels.get(id).classList.toggle('panel-editor-armed',editing);
    button.setAttribute('aria-expanded',String(!overlay.hidden));
   }
  }
@@ -102,7 +99,7 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   const next=transitionPanelLayout(layout,action);
   const previous=layout;
   const affected=SLOT_IDS.filter(name=>previous[name]!==next[name]);
-  closeMenu();clearTargets();armed=null;drag=null;
+  closeMenu();clearTargets();clearPending();drag=null;
   // Unmount only from the layout: never delete an existing panel node/canvas.
   for(const name of affected){
    const id=previous[name];
@@ -116,12 +113,11 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   }
   refreshSlotMeta();refreshHelp();
  }
- function swapById(first,second){
-  const from=slotFor(first),to=slotFor(second);
-  if(from&&to&&from!==to)commit({type:'swap',from,to});
+ function clearPending(){
+  if(pending){clearTimeout(pending.timer);pending=null;}
  }
  function openMenu(slotName){
-  closeMenu();armed=null;refreshHelp();
+  closeMenu();refreshHelp();
   const container=slots.get(slotName);
   if(!container||layout[slotName])return;
   const unused=PANEL_IDS.filter(id=>!Object.values(layout).includes(id));
@@ -161,32 +157,51 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   if(drag.target?.type==='remove')help.get(drag.fromId).trash.classList.add('panel-trash-hot');
  }
  function onGripDown(event,id,button){
-  if(drag||(event.pointerType==='mouse'&&event.button!==0))return;
+  if(pending||drag||(event.pointerType==='mouse'&&event.button!==0))return;
   event.preventDefault();
-  if(armed&&armed!==id){swapById(armed,id);return;}
-  closeMenu();armed=null;
-  drag={fromId:id,fromSlot:slotFor(id),pointerId:event.pointerId,
-   startX:event.clientX,startY:event.clientY,moved:false,target:null};
+  closeMenu();
+  const hold={fromId:id,fromSlot:slotFor(id),pointerId:event.pointerId,
+   startX:event.clientX,startY:event.clientY,timer:null};
+  pending=hold;
   try{button.setPointerCapture?.(event.pointerId);}catch(_){}
+  // Show the name immediately; reveal the trash after the hold only.
   refreshHelp();
+  hold.timer=setTimeout(()=>{
+   if(pending!==hold)return;
+   pending=null;
+   drag={fromId:id,fromSlot:hold.fromSlot,pointerId:hold.pointerId,
+    startX:hold.startX,startY:hold.startY,target:null};
+   refreshHelp();
+  },LONG_PRESS_MS);
  }
  function onMove(event){
+  if(pending?.pointerId===event.pointerId){
+   if(event.cancelable)event.preventDefault();
+   if(Math.hypot(event.clientX-pending.startX,event.clientY-pending.startY)>HOLD_MOVE_TOLERANCE){
+    clearPending();refreshHelp();
+   }
+   return;
+  }
   if(!drag||event.pointerId!==drag.pointerId)return;
   if(event.cancelable)event.preventDefault();
   updateDrag(event);
  }
  function onUp(event){
+  if(pending?.pointerId===event.pointerId){
+   if(event.cancelable)event.preventDefault();
+   clearPending();refreshHelp();
+   return;
+  }
   if(!drag||event.pointerId!==drag.pointerId)return;
   if(event.cancelable)event.preventDefault();
   updateDrag(event);
-  const current=drag;
-  if(current.target)commit(current.target);
+  const target=drag.target;
+  if(target)commit(target);
   else{
-   clearTargets();drag=null;armed=current.moved?null:current.fromId;
-   refreshHelp();
+   clearTargets();drag=null;refreshHelp();
   }
  }
- function cancel(){drag=null;armed=null;clearTargets();closeMenu();refreshHelp();}
+ function cancel(){clearPending();drag=null;clearTargets();closeMenu();refreshHelp();}
  function onClick(event){
   const choice=event.target.closest('[data-panel-add-option]');
   if(choice){
@@ -195,40 +210,26 @@ export function mountPanelLayoutEditor(doc,initialLayout){
    event.preventDefault();event.stopPropagation();return;
   }
   const plus=event.target.closest('[data-panel-add-button]');
-  if(plus&&armed===null){
+  if(plus){
    const name=plus.dataset.panelAddButton;
    if(menuSlot===name)closeMenu();else openMenu(name);
    event.preventDefault();event.stopPropagation();return;
   }
-  if(armed!==null){
-   const trash=event.target.closest('[data-panel-trash]');
-   if(trash&&trash.dataset.panelTrash===armed){
-    commit({type:'remove',from:slotFor(armed)});
-    event.preventDefault();event.stopPropagation();return;
-   }
-   const slot=event.target.closest('[data-panel-slot]');
-   if(slot){
-    const target=slot.dataset.panelSlot,origin=slotFor(armed);
-    if(target!==origin){
-     commit({type:'swap',from:origin,to:target});
-     event.preventDefault();event.stopPropagation();return;
-    }
-    if(!event.target.closest('.panel-help-button')){
-     armed=null;refreshHelp();event.preventDefault();event.stopPropagation();
-    }
-    return;
-   }
-   armed=null;refreshHelp();
-  }
+  // A quick tap is informational, never an editing action.
   if(menuSlot!==null&&!event.target.closest('.panel-add-menu'))closeMenu();
  }
- // Only pointer sequences starting on an info icon suppress normal page scrolling.
+ // Suppress scrolling only for pointer sequences that begin on an info icon.
  function onTouchMove(event){
-  if(drag&&event.cancelable)event.preventDefault();
+  if((pending||drag)&&event.cancelable)event.preventDefault();
  }
  doc.addEventListener('pointermove',onMove,true);
  doc.addEventListener('pointerup',onUp,true);
- doc.addEventListener('pointercancel',event=>{if(drag?.pointerId===event.pointerId)cancel();},true);
+ doc.addEventListener('pointercancel',event=>{
+  if(pending?.pointerId===event.pointerId||drag?.pointerId===event.pointerId)cancel();
+ },true);
+ doc.addEventListener('lostpointercapture',event=>{
+  if(pending?.pointerId===event.pointerId||drag?.pointerId===event.pointerId)cancel();
+ },true);
  doc.addEventListener('touchmove',onTouchMove,{passive:false,capture:true});
  doc.addEventListener('click',onClick,true);
  doc.addEventListener('keydown',event=>{if(event.key==='Escape')cancel();});
