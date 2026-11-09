@@ -1,0 +1,323 @@
+<style>/* Shared page and panel styles from canonical dev.html. */
+*{box-sizing:border-box}
+body{margin:0;padding:12px;background:#f2f0e4;color:#4d5540;font:12px system-ui}
+.shell{max-width:760px;margin:auto}
+.label{text-align:center;font-weight:700;margin:8px 0}
+button{flex:1;padding:12px 3px;border:1px solid #cbb48f;border-radius:9px;background:#fffaf0;color:#574934;font-weight:700;touch-action:none}
+.stats{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:11px;margin-top:9px}
+.note{padding:9px;background:#fffaf0;border-radius:9px;margin-top:8px}
+button.panel-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;padding:0;border:0;border-radius:9px;background:transparent;color:var(--help-button-color);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
+button.panel-help-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 12px/1 system-ui}
+button.panel-help-button:focus-visible{outline:var(--help-focus-outline);outline-offset:var(--help-focus-offset)}
+.panel-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;pointer-events:none;display:grid;place-items:center;padding:12px;background:var(--help-overlay-bg)}
+.panel-help-overlay[hidden]{display:none}
+.panel-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;font-size:16px;font-weight:750;text-align:center;background:var(--help-label-bg);color:var(--help-label-color);box-shadow:0 4px 18px rgba(0,0,0,.25);box-shadow:0 4px 18px color-mix(in srgb,currentColor 25%,transparent)}
+.test-panel-body{padding:10px 11px 11px}
+button.game-help-button{display:none}
+.game-help-overlay{display:none}
+.panel-slot{min-width:0;min-height:0}
+.panel-slot{position:relative}
+.panel-slot[data-panel="empty"]{display:block;min-height:110px}
+.panel-slot-top[data-panel="empty"]{min-height:70px}
+.panel-slot-main[data-panel="empty"]{min-height:220px}
+.panel-slot-bottom[data-panel="empty"]{min-height:130px}
+.panel-slot.panel-drop-target{outline:3px solid #438d61;outline-offset:2px;box-shadow:0 0 0 5px #53986930}
+button.panel-add-button{position:absolute;top:0;right:0;z-index:8;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;border:0;border-radius:9px;padding:0;background:transparent;color:#31563b;cursor:pointer;touch-action:manipulation}
+button.panel-add-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 15px/1 system-ui}
+button.panel-add-button:focus-visible{outline:2px solid #397452;outline-offset:-3px}
+.panel-add-menu{position:absolute;top:46px;right:0;min-width:177px;max-width:min(230px,90vw);z-index:20;padding:8px;border:1px solid #bcccaf;border-radius:9px;background:#fffdf7;box-shadow:0 6px 18px #0003;color:#395c44}
+.panel-add-menu-title{padding:4px 5px;font-size:11px;font-weight:750;color:#667664}
+.panel-add-menu button{display:block;width:100%;min-height:44px;flex:none;margin:3px 0;padding:9px 7px;border:0;border-radius:7px;background:#eaf1e5;color:#395c44;text-align:left;font:700 11px system-ui;touch-action:manipulation}
+.panel-add-menu button:focus-visible{outline:2px solid #397452}
+.panel-help-overlay:not([hidden]){display:flex;flex-direction:column;gap:15px;align-items:center;justify-content:center}
+button.panel-trash-target{display:grid;place-items:center;flex:none;width:52px;height:52px;min-width:52px;min-height:52px;padding:0;border:2px solid rgba(255,255,255,.94);border-radius:50%;background:rgba(255,255,255,.19);color:#fff;box-shadow:0 0 0 4px #ffffff2b;pointer-events:none;touch-action:none}
+button.panel-trash-target[hidden],.panel-edit-hint[hidden]{display:none}
+button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6px #e9aca288;transform:scale(1.08)}
+.panel-editor-armed button.panel-trash-target{pointer-events:auto;cursor:pointer}
+.panel-edit-hint{font-size:10px;font-weight:700;color:#fff;text-align:center}
+
+/* Fixed geometry follows the slot, not the panel being moved into it. */
+.panel-slot[data-slot-size-fixed]{overflow:hidden}
+.panel-slot[data-slot-size-fixed][data-panel="empty"]{overflow:visible}
+.panel-slot[data-slot-size-fixed]>[data-panel-id]{height:100%;max-height:100%;min-height:0;margin:0;overflow-y:auto}
+.panel-slot[data-slot-size-fixed]>.landscape-game{display:flex;align-items:center;justify-content:center;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;overflow:hidden}
+.panel-slot[data-slot-size-fixed]>.landscape-game .play-surface:not(.ab-compare){height:100%;max-width:100%;min-width:0;min-height:0;width:auto;aspect-ratio:3/4;flex:0 1 auto}
+
+/* Styles for build panel from canonical dev.html. */
+.build-info{margin:9px 0 12px;padding:10px 11px;border:1px solid #aec2a8;border-radius:9px;background:#e8f2e4;color:#31563b;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
+.build-info strong{font-size:12px}
+.build-info .build-line{display:block}
+.build-info{position:relative;--help-button-color:#31563b;--help-overlay-bg:rgba(29,52,35,.55);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:3px solid #397452;--help-focus-offset:2px}
+.build-info>strong{display:block;padding-right:43px;min-height:38px}
+.build-help-overlay{padding:14px}
+.build-help-label{padding:14px 20px}
+
+.landscape-game{position:relative;min-width:0;min-height:0;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;display:flex;align-items:center;justify-content:center;overflow:hidden;--help-button-color:#31563b;--help-overlay-bg:rgba(29,52,35,.42);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:2px solid #397452;--help-focus-offset:-4px}
+.landscape-game .play-surface{height:100%;max-width:100%;aspect-ratio:3/4;background:#000;border-radius:9px}
+.landscape-game button.game-help-button{display:block;z-index:4}
+.landscape-game .game-help-overlay:not([hidden]){display:flex}
+
+.mock-root{width:100%;max-width:100%;container-type:inline-size}
+.mock-root .mock-frame{width:100%;max-width:850px;margin:0 auto;padding:12px;background:#f2f0e4;border:6px solid #354038;border-radius:18px;color:#4d5540;font:12px system-ui}
+.mock-root .shell{width:100%;max-width:none;margin:0;min-width:0}
+.mock-root .landscape-hero{display:flex;flex-direction:column;gap:8px;min-height:0;height:auto;overflow:visible}
+.mock-root .site-heading{flex:0 0 auto;display:flex;justify-content:space-between;font-size:12px;color:#385c42}
+.mock-root .landscape-main{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;flex:none}
+.mock-root .panel-slot{min-width:0;min-height:0;position:relative}
+.mock-root .panel-slot-top{flex:0 0 auto;overflow:hidden}
+.mock-root .panel-slot-top[data-panel="empty"]{overflow:visible}
+.mock-root .panel-slot-top>.build-info{margin:0}
+.mock-root .panel-slot-top>[data-panel-id]:not(.build-info){height:100%;margin:0}
+.mock-root .landscape-main .panel-slot-main{min-width:0;min-height:0;overflow:hidden}
+.mock-root .landscape-main .panel-slot-main>[data-panel-id]{min-width:0;min-height:0;height:100%;margin:0}
+.mock-root .landscape-main .panel-slot-main>.landscape-game{height:440px}
+.mock-root .landscape-main .panel-slot-main[data-slot-size-fixed]>.landscape-game{height:100%}
+.mock-root .landscape-main .panel-slot-main>.build-info{overflow-y:auto}
+.mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:72px;min-height:72px;overflow:visible}
+.mock-root .panel-slot[data-panel="empty"]{display:block}
+@container (min-width:650px){
+ .mock-root .mock-frame{aspect-ratio:4/3;overflow:hidden}
+ .mock-root .shell{height:100%}
+ .mock-root .landscape-hero{height:100%;overflow:hidden}
+ .mock-root .landscape-main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .mock-root .landscape-main .panel-slot-main{height:100%;overflow:hidden}
+ .mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:100%;min-height:0;overflow:visible}
+ .mock-root .landscape-main .panel-slot-main>.landscape-game{height:100%}
+}</style><div class="mock-root"><div class="mock-frame"><div class="shell"><div class="landscape-hero"><div class="site-heading"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><div id="build-info" data-panel-id="build" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><div class="landscape-game" data-panel-id="game"><div class="play-surface" aria-label="ゲーム画面（描画なし）"></div><button type="button" id="game-help-button" class="panel-help-button game-help-button" aria-label="このエリアの名前：ゲーム画面" aria-describedby="game-help-overlay"><span>ⓘ</span></button><div id="game-help-overlay" class="panel-help-overlay game-help-overlay" role="tooltip" hidden><div class="panel-help-label game-help-label">🎮 ゲーム画面</div></div></div></div><div class="panel-slot panel-slot-main" data-panel-slot="right"></div></div></div></div></div></div><script>
+// Live four-slot editor for the development page. Never imports Engine or Game API.
+// Panels are retained as DOM nodes (including their canvases and event subscriptions).
+const PANEL_IDS=Object.freeze(['build','game','test','runtime']);
+const SLOT_IDS=Object.freeze(['top','left','right','bottom']);
+const LABELS=Object.freeze({
+ build:'🧪 開発情報パネル',game:'🎮 ゲーム画面',
+ test:'🧪 テスト操作パネル',runtime:'📊 実行ステータス'
+});
+
+function transitionPanelLayout(layout,action){
+ const next={...layout};
+ if(!SLOT_IDS.includes(action.from))throw new Error('Unknown source slot');
+ const fromId=next[action.from];
+ if(action.type==='remove'){
+  if(!fromId)throw new Error('Source slot is empty');
+  next[action.from]=null;
+ }else if(action.type==='swap'){
+  if(!SLOT_IDS.includes(action.to)||action.to===action.from||!fromId)
+   throw new Error('Invalid panel swap');
+  [next[action.from],next[action.to]]=[next[action.to],fromId];
+ }else if(action.type==='add'){
+  if(next[action.from]!=null||!PANEL_IDS.includes(action.panel)||Object.values(next).includes(action.panel))
+   throw new Error('Panel cannot be added here');
+  next[action.from]=action.panel;
+ }else throw new Error('Unknown layout action');
+ const values=Object.values(next).filter(Boolean);
+ if(new Set(values).size!==values.length)throw new Error('Duplicate panel');
+ return next;
+}
+
+function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false}={}){
+ let layout={...initialLayout},drag=null,menuSlot=null;
+ const slots=new Map(SLOT_IDS.map(id=>[id,doc.querySelector('[data-panel-slot="'+id+'"]')]).filter(([,node])=>node));
+ const panels=new Map(PANEL_IDS.map(id=>[id,doc.querySelector('[data-panel-id="'+id+'"]')]).filter(([,node])=>node));
+ // Optional components: only existing slots and panels participate.
+ for(const name of SLOT_IDS)if(!slots.has(name)||!panels.has(layout[name]))layout[name]=null;
+ if(!slots.size)return {getLayout:()=>({...layout})};
+ const parked=doc.createDocumentFragment();
+ const hovered=new Set(),focused=new Set();
+ const trashSVG='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2"/><path d="m19 6-1 14c-.08 1.14-.95 2-2 2H8c-1.05 0-1.92-.86-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+ const help=new Map();
+
+ for(const [id,panel] of panels){
+  const button=panel.querySelector('.panel-help-button');
+  const overlay=panel.querySelector('.panel-help-overlay');
+  if(!button||!overlay)continue;
+  const trash=doc.createElement('button');
+  trash.type='button';trash.className='panel-trash-target';
+  trash.dataset.panelTrash=id;trash.setAttribute('aria-label',LABELS[id]+'を削除');
+  trash.innerHTML=trashSVG;trash.hidden=true;
+  const hint=doc.createElement('span');
+  hint.className='panel-edit-hint';hint.textContent='ゴミ箱で離すと削除';hint.hidden=true;
+  overlay.append(trash,hint);
+  help.set(id,{button,overlay,trash,hint});
+  button.addEventListener('pointerdown',event=>onGripDown(event,id,button));
+  button.addEventListener('pointerenter',event=>{
+   if(event.pointerType==='mouse'){hovered.add(id);refreshHelp();}
+  });
+  button.addEventListener('pointerleave',event=>{
+   if(event.pointerType==='mouse'){hovered.delete(id);refreshHelp();}
+  });
+  button.addEventListener('focus',()=>{if(button.matches(':focus-visible'))focused.add(id);refreshHelp();});
+  button.addEventListener('blur',()=>{focused.delete(id);refreshHelp();});
+  button.addEventListener('keydown',event=>{
+   if(event.key==='Escape'){cancel();event.preventDefault();}
+  });
+ }
+ function slotFor(id){return SLOT_IDS.find(name=>layout[name]===id);}
+ function refreshHelp(){
+  for(const [id,{button,overlay,trash,hint}] of help){
+   const editing=drag?.fromId===id;
+   const showingInfo=editing||hovered.has(id)||focused.has(id);
+   overlay.hidden=!showingInfo;
+   trash.hidden=!editing;hint.hidden=!editing;
+   panels.get(id).classList.toggle('panel-editor-armed',editing);
+   button.setAttribute('aria-expanded',String(!overlay.hidden));
+  }
+ }
+ function clearTargets(){
+  for(const slot of slots.values())slot.classList.remove('panel-drop-target');
+  for(const {trash} of help.values())trash.classList.remove('panel-trash-hot');
+ }
+ function closeMenu(){
+  for(const slot of slots.values())slot.querySelector('.panel-add-menu')?.remove();
+  menuSlot=null;
+ }
+ function makePlus(name){
+  const button=doc.createElement('button');
+  button.type='button';button.className='panel-add-button';
+  button.dataset.panelAddButton=name;button.setAttribute('aria-label','パネルを追加');
+  const mark=doc.createElement('span');mark.textContent='＋';button.appendChild(mark);
+  return button;
+ }
+ function refreshSlotMeta(){
+  for(const [name,slot] of slots)slot.dataset.panel=layout[name]||'empty';
+  const main=doc.querySelector('.landscape-main');
+  if(main)main.dataset.visiblePanels=String(['left','right'].filter(name=>layout[name]).length);
+ }
+ function commit(action){
+  const next=transitionPanelLayout(layout,action);
+  const previous=layout;
+  const affected=SLOT_IDS.filter(name=>previous[name]!==next[name]);
+  closeMenu();clearTargets();drag=null;
+  // Unmount only from the layout: never delete an existing panel node/canvas.
+  for(const name of affected){
+   const id=previous[name];
+   if(id)parked.appendChild(panels.get(id));
+   slots.get(name).replaceChildren();
+  }
+  layout=next;
+  for(const name of affected){
+   const id=layout[name],slot=slots.get(name);
+   slot.appendChild(id?panels.get(id):makePlus(name));
+  }
+  refreshSlotMeta();refreshHelp();
+ }
+ function openMenu(slotName){
+  closeMenu();refreshHelp();
+  const container=slots.get(slotName);
+  if(!container||layout[slotName])return;
+  const unused=[...panels.keys()].filter(id=>!Object.values(layout).includes(id));
+  const menu=doc.createElement('div');
+  menu.className='panel-add-menu';menu.setAttribute('role','group');
+  menu.setAttribute('aria-label','追加するパネル');
+  const heading=doc.createElement('div');heading.className='panel-add-menu-title';
+  heading.textContent='追加するパネル';menu.appendChild(heading);
+  for(const id of unused){
+   const choice=doc.createElement('button');
+   choice.type='button';choice.dataset.panelAddOption=id;
+   choice.dataset.targetSlot=slotName;choice.textContent=LABELS[id];menu.appendChild(choice);
+  }
+  container.appendChild(menu);menuSlot=slotName;
+ }
+ function locateTarget(x,y){
+  if(!drag)return null;
+  const trash=help.get(drag.fromId).trash;
+  const rect=trash.getBoundingClientRect();
+  if(x>=rect.left-8&&x<=rect.right+8&&y>=rect.top-8&&y<=rect.bottom+8)
+   return {type:'remove',from:drag.fromSlot};
+  for(const [name,slot] of slots){
+   if(name===drag.fromSlot)continue;
+   const r=slot.getBoundingClientRect();
+   if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)
+    return {type:'swap',from:drag.fromSlot,to:name};
+  }
+  return null;
+ }
+ function updateDrag(event){
+  if(!drag||event.pointerId!==drag.pointerId)return;
+  const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
+  if(Math.hypot(dx,dy)>7)drag.moved=true;
+  drag.target=locateTarget(event.clientX,event.clientY);
+  clearTargets();
+  if(drag.target?.type==='swap')slots.get(drag.target.to).classList.add('panel-drop-target');
+  if(drag.target?.type==='remove')help.get(drag.fromId).trash.classList.add('panel-trash-hot');
+ }
+ function onGripDown(event,id,button){
+  if(drag||!slotFor(id)||(event.pointerType==='mouse'&&event.button!==0))return;
+  event.preventDefault();
+  closeMenu();
+  // Description and trash appear together while the info icon is held.
+  drag={fromId:id,fromSlot:slotFor(id),pointerId:event.pointerId,
+   startX:event.clientX,startY:event.clientY,target:null};
+  try{button.setPointerCapture?.(event.pointerId);}catch(_){}
+  refreshHelp();
+ }
+ function onMove(event){
+  if(!drag||event.pointerId!==drag.pointerId)return;
+  if(event.cancelable)event.preventDefault();
+  updateDrag(event);
+ }
+ function onUp(event){
+  if(!drag||event.pointerId!==drag.pointerId)return;
+  if(event.cancelable)event.preventDefault();
+  updateDrag(event);
+  const target=drag.target;
+  if(target)commit(target);
+  else{clearTargets();drag=null;refreshHelp();}
+ }
+ function cancel(){drag=null;clearTargets();closeMenu();refreshHelp();}
+ function onClick(event){
+  const choice=event.target.closest('[data-panel-add-option]');
+  if(choice){
+   const from=choice.dataset.targetSlot,id=choice.dataset.panelAddOption;
+   if(menuSlot===from)commit({type:'add',from,panel:id});
+   event.preventDefault();event.stopPropagation();return;
+  }
+  const plus=event.target.closest('[data-panel-add-button]');
+  if(plus){
+   const name=plus.dataset.panelAddButton;
+   if(menuSlot===name)closeMenu();else openMenu(name);
+   event.preventDefault();event.stopPropagation();return;
+  }
+  // A quick tap never leaves the trash visible after release.
+  if(menuSlot!==null&&!event.target.closest('.panel-add-menu'))closeMenu();
+ }
+ // Suppress scrolling only for pointer sequences that begin on an info icon.
+ function onTouchMove(event){
+  if(drag&&event.cancelable)event.preventDefault();
+ }
+ doc.addEventListener('pointermove',onMove,true);
+ doc.addEventListener('pointerup',onUp,true);
+ doc.addEventListener('pointercancel',event=>{
+  if(drag?.pointerId===event.pointerId)cancel();
+ },true);
+ doc.addEventListener('lostpointercapture',event=>{
+  if(drag?.pointerId===event.pointerId)cancel();
+ },true);
+ doc.addEventListener('touchmove',onTouchMove,{passive:false,capture:true});
+ doc.addEventListener('click',onClick,true);
+ doc.addEventListener('keydown',event=>{if(event.key==='Escape')cancel();});
+ doc.defaultView?.addEventListener('blur',cancel);
+ // When only some panels exist, empty slots may still offer the available components.
+ for(const [name,slot] of slots)if(!layout[name])slot.replaceChildren(makePlus(name));
+ refreshSlotMeta();refreshHelp();
+ if(preserveSlotSize){
+  // Snapshot original slot heights, independent of the panels placed later.
+  const heights=new Map([...slots].map(([name,slot])=>[name,Math.ceil(slot.getBoundingClientRect().height)]));
+  const main=doc.querySelector('.landscape-main');
+  function syncSizes(){
+   const grid=main&&doc.defaultView?.getComputedStyle(main).display==='grid';
+   for(const [name,slot] of slots){
+    const height=heights.get(name);
+    if(!height)continue;
+    const flexible=grid&&(name==='left'||name==='right');
+    slot.style.height=flexible?'100%':height+'px';
+    slot.style.minHeight=flexible?'0':height+'px';
+    slot.dataset.slotSizeFixed='';
+   }
+  }
+  syncSizes();
+  doc.defaultView?.addEventListener('resize',syncSizes);
+ }
+ return {getLayout:()=>({...layout})};
+}
+mountPanelLayoutEditor(document,{top:'build',left:'game',right:null,bottom:null},{preserveSlotSize:true});
+</script>
