@@ -44,9 +44,9 @@ button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-
 .test-panel #npc-stress-info,.test-panel #npc-render-warning{font-size:11px}
 .test-panel .test-locations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .test-panel .test-locations button{min-width:0}
-.test-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;background:rgba(69,50,28,.34);pointer-events:none}
+.test-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;background:rgba(69,50,28,.34);pointer-events:none;display:grid;place-items:center;padding:12px}
 .test-help-overlay[hidden]{display:none}
-.test-help-label{position:absolute;top:var(--test-help-top,160px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);padding:14px 19px;border-radius:13px;background:#fffdf8;color:#554a3f;font-size:16px;font-weight:750;text-align:center;box-shadow:0 4px 18px #0003}
+.test-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;background:#fffdf8;color:#554a3f;font-size:16px;font-weight:750;text-align:center;box-shadow:0 4px 18px #0003}
 
 
 /* Responsive iPad mini 5 landscape: whole first viewport = developer info + game/test split.
@@ -173,21 +173,12 @@ button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offse
  });
 })();
 
-// Show the test panel name near the NPC heading, not the tall panel's center.
+// Show the test panel's name centered over the entire panel (header and scrolling body).
 (function(){
- const panel=document.getElementById('test-ops-panel');
  const button=document.getElementById('test-help-button');
  const overlay=document.getElementById('test-help-overlay');
- const anchor=panel.querySelector('.npc-anchor');
  let pressed=false,hovered=false,keyboardPressed=false;
- function update(){
-  const show=pressed||hovered||keyboardPressed;
-  overlay.hidden=!show;
-  if(show){
-   const p=panel.getBoundingClientRect(),a=anchor.getBoundingClientRect();
-   overlay.style.setProperty('--test-help-top',Math.max(12,a.top-p.top-18)+'px');
-  }
- }
+ function update(){overlay.hidden=!(pressed||hovered||keyboardPressed);}
  button.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hovered=true;update();}});
  button.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'){hovered=false;update();}});
  button.addEventListener('pointerdown',event=>{
