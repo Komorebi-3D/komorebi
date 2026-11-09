@@ -188,6 +188,14 @@ import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1
 (function(){var d=document.getElementById("launch-diagnostic");if(d)d.textContent="診断：JavaScript実行OK / WebGL="+(function(){try{return !!document.createElement("canvas").getContext("webgl")}catch(e){return false}})()+" / Three.js読み込みを確認中";window.addEventListener("error",function(e){if(d)d.textContent="診断：JavaScriptエラー："+e.message});window.addEventListener("unhandledrejection",function(e){if(d)d.textContent="診断：読み込みエラー："+String(e.reason)});})();
 
 const $=id=>document.getElementById(id);
+// Game-to-panel boundary: status events are buffered even when no status panel is mounted.
+const runtimeStatusValues=new Map();
+const gameStateListeners=new Set();
+function publishRuntimeStatus(id,value){
+ const text=String(value);
+ runtimeStatusValues.set(id,text);
+ for(const listener of gameStateListeners)listener({type:'status',id,value:text});
+}
 // House/tree/cafe obstacles remain game data; Engine owns physics.
 // Cafe location is provisional; no new surrounding landscape elements.
 const CAFE_X=-25,CAFE_Z=-20;
@@ -227,7 +235,7 @@ const core=new CharacterMotionCore2D({
  initialState:{x:0,z:4.5,angle:.55,spin:0},
  tapRadians:.14,spinRadiansPerFrame:.025,moveUnitsPerFrame:.095,deadzone:.06
 });
-$('core-status').textContent='🧩 Engine main正式接続：Core・Collision・Input・Camera・Renderer';
+publishRuntimeStatus('core-status','🧩 Engine main正式接続：Core・Collision・Input・Camera・Renderer');
 const game=new Proxy({}, {get:(_,key)=>core.getState()[key]});
 // Lightweight outdoor NPC manager: shared collision map, 10Hz when on screen,
 // 1Hz when off screen. No per-NPC intervals, DOM handlers, or mesh allocations.
@@ -463,7 +471,7 @@ class InvisibleTouchAdapter {
 }
 const engineInputAdapter=new InvisibleTouchAdapter($('pad'),$('camera-pad'));
 const inputManager=new InputManager(engineInputAdapter);
-$('input-status').textContent='🎮 タッチ操作準備OK：左側で移動・右側スワイプで視点変更';
+publishRuntimeStatus('input-status','🎮 タッチ操作準備OK：左側で移動・右側スワイプで視点変更');
 function readEngineInput(){return inputManager.poll();}
 function releaseEngineInput(){inputManager.clear();}
 $('reset').addEventListener('click',()=>{
@@ -476,12 +484,12 @@ $('reset').addEventListener('click',()=>{
  setMiniMapVisible(false);
  setRenderMode('B');
  $('npc-render-warning').textContent='高い描画数はiPhoneに負荷がかかります。描画数の増加は段階的に反映します。';
- $('collision-status').textContent='衝突判定：待機中';
+ publishRuntimeStatus('collision-status','衝突判定：待機中');
 });
 // The game owns house/stair logic; Engine owns orbit yaw, pitch, distance and pose.
 let houseLevel=0,characterY=0,cafeInside=false;
 const cameraRig=new FollowCameraRig({yaw:0,pitch:35*Math.PI/180,horizontalDistance:19,targetY:2.7,yawSpeed:1.5,pitchSpeed:1.08,followRate:5.1});
-$('camera-status').textContent='📷 Engine Camera接続OK：右スワイプ・2指ピンチズーム・屋内外の追従';
+publishRuntimeStatus('camera-status','📷 Engine Camera接続OK：右スワイプ・2指ピンチズーム・屋内外の追従');
 function cameraDirection(){return cameraRig.snapshot().yaw;}
 
 
@@ -600,7 +608,7 @@ function setMiniMapVisible(value){
 $('map-toggle').addEventListener('click',()=>setMiniMapVisible(!miniMapVisible));
 const spots={front:[0,4.5],tree:[-8.4,-5],side:[-2.9,2],cafe:[CAFE_X,CAFE_Z+10.5],west:[-49.2,5],east:[49.2,6],north:[-8,-49.2],south:[0,49.2]};
 // Spot buttons act once; no persistent pressed/selected state.
-document.querySelectorAll('[data-spot]').forEach(b=>b.addEventListener('click',()=>{const [x,z]=spots[b.dataset.spot];if(collisionSystem.collides(x,z)){ $('collision-status').textContent='配置エラー：障害物内';return;}core.teleport(x,z);resetHouse();$('collision-status').textContent='テスト位置：'+b.textContent;}));
+document.querySelectorAll('[data-spot]').forEach(b=>b.addEventListener('click',()=>{const [x,z]=spots[b.dataset.spot];if(collisionSystem.collides(x,z)){ publishRuntimeStatus('collision-status','配置エラー：障害物内');return;}core.teleport(x,z);resetHouse();publishRuntimeStatus('collision-status','テスト位置：'+b.textContent);}));
 
 const parts=[];function part(name,offset=[0,0,0]){const m={p:[],n:[],c:[]};parts.push({name,m,offset});return m}function rgb(c){return[(c>>16&255)/255,(c>>8&255)/255,(c&255)/255]}function tri(m,a,b,c,col){const u=b.map((v,i)=>v-a[i]),v=c.map((w,i)=>w-a[i]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1;for(const p of [a,b,c]){m.p.push(...p);m.n.push(...n.map(v=>v/l));m.c.push(...rgb(col))}}function quad(m,a,b,c,d,col){tri(m,a,b,c,col);tri(m,a,c,d,col)}function cube(m,x,y,z,w,h,d,col){const l=x-w/2,r=x+w/2,f=z+d/2,b=z-d/2,t=y+h;quad(m,[l,y,f],[r,y,f],[r,t,f],[l,t,f],col);quad(m,[r,y,b],[l,y,b],[l,t,b],[r,t,b],col);quad(m,[l,y,b],[l,y,f],[l,t,f],[l,t,b],col);quad(m,[r,y,f],[r,y,b],[r,t,b],[r,t,f],col);quad(m,[l,t,f],[r,t,f],[r,t,b],[l,t,b],col);quad(m,[l,y,b],[r,y,b],[r,y,f],[l,y,f],col)}function ellipsoid(m,x,y,z,rx,ry,rz,col,lat=10,lon=14){const p=(a,b)=>[x+rx*Math.sin(a)*Math.cos(b),y+ry*Math.cos(a),z+rz*Math.sin(a)*Math.sin(b)];for(let i=0;i<lat;i++)for(let j=0;j<lon;j++){const a=p(i*Math.PI/lat,j*2*Math.PI/lon),b=p((i+1)*Math.PI/lat,j*2*Math.PI/lon),c=p(i*Math.PI/lat,(j+1)*2*Math.PI/lon),d=p((i+1)*Math.PI/lat,(j+1)*2*Math.PI/lon);tri(m,a,b,c,col);tri(m,c,b,d,col)}}function sphere(m,x,y,z,r,col){ellipsoid(m,x,y,z,r,r,r,col)}function slab(m,a,b,c,d,t,col){const down=p=>[p[0],p[1]-t,p[2]];quad(m,a,b,c,d,col);quad(m,down(d),down(c),down(b),down(a),0x49352e);for(const [u,v] of [[a,b],[b,c],[c,d],[d,a]])quad(m,u,v,down(v),down(u),0x49352e)}
 const floor=part('ground');cube(floor,ground.centerX,-.22,ground.centerZ,ground.width,.22,ground.depth,0x9fce8d);const tree=part('tree',[-7,0,-5]);cube(tree,0,0,0,.8,4.4,.8,0x97714d);for(const p of [[0,5,0,1.8],[-1,4.5,0,1.4],[1,4.5,0,1.4],[0,6,0,1.4]])sphere(tree,...p,0x78bb7c);
@@ -822,16 +830,16 @@ let last=0,start=0,frames=0;
 function ensureA(){
  if(okA)return Promise.resolve();
  if(loadingA)return loadingA;
- $('ea').textContent='A：Engine WebGLを読み込み中…';
+ publishRuntimeStatus('ea','A：Engine WebGLを読み込み中…');
  loadingA=(async()=>{
   const instance=await createRenderer('A',{profile:'mesh'});
   await instance.initialize({canvas:$('a')});
-  rendererA=instance;okA=true;$('ea').textContent='';
-  $('renderer-status').textContent='🎨 Engine Renderer A準備OK'+(okB?' / B準備OK':'');
-  $('status').textContent='Renderer A描画準備完了';
+  rendererA=instance;okA=true;publishRuntimeStatus('ea','');
+  publishRuntimeStatus('renderer-status','🎨 Engine Renderer A準備OK'+(okB?' / B準備OK':''));
+  publishRuntimeStatus('status','Renderer A描画準備完了');
  })().catch(error=>{
-  loadingA=null;$('ea').textContent='A初期化エラー：'+String(error.message||error);
-  $('renderer-status').textContent='🎨 Renderer A初期化失敗';
+  loadingA=null;publishRuntimeStatus('ea','A初期化エラー：'+String(error.message||error));
+  publishRuntimeStatus('renderer-status','🎨 Renderer A初期化失敗');
   if(renderMode==='A'||renderMode==='compare')setRenderMode('B');
  });
  return loadingA;
@@ -839,17 +847,17 @@ function ensureA(){
 function ensureB(){
  if(okB)return Promise.resolve();
  if(loadingB)return loadingB;
- $('eb').textContent='B：Engine Three.jsを読み込み中…';
+ publishRuntimeStatus('eb','B：Engine Three.jsを読み込み中…');
  loadingB=(async()=>{
   const instance=await createRenderer('B',{profile:'mesh'});
   await instance.initialize({canvas:$('b')});
-  rendererB=instance;okB=true;$('eb').textContent='';
-  $('renderer-status').textContent='🎨 Engine Renderer B準備OK'+(okA?' / A準備OK':'');
-  $('status').textContent='Renderer B描画準備完了';
+  rendererB=instance;okB=true;publishRuntimeStatus('eb','');
+  publishRuntimeStatus('renderer-status','🎨 Engine Renderer B準備OK'+(okA?' / A準備OK':''));
+  publishRuntimeStatus('status','Renderer B描画準備完了');
   document.getElementById('launch-diagnostic').textContent='診断：Engine Input・Camera・Renderer準備完了';
  })().catch(error=>{
-  loadingB=null;$('eb').textContent='B初期化エラー：'+String(error.message||error);
-  $('renderer-status').textContent='🎨 Renderer B初期化失敗';
+  loadingB=null;publishRuntimeStatus('eb','B初期化エラー：'+String(error.message||error));
+  publishRuntimeStatus('renderer-status','🎨 Renderer B初期化失敗');
   if(renderMode==='B'||renderMode==='compare')setRenderMode('A');
  });
  return loadingB;
@@ -876,6 +884,36 @@ for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']
 let initialMode='B';
 try{initialMode=localStorage.getItem('komorebi3d-render-mode-dev')||'B'}catch(e){}
 setRenderMode(initialMode);
+// Early Game API boundary: future controllers depend on this object, not panel DOM.
+const gameApi=Object.freeze({
+ getState(){
+  return {
+   ...core.getState(),houseLevel,renderMode,
+   npcCount:npcManager.agents.length,npcVisible:npcManager.visibleCount,
+   npcDrawn:npcManager.drawCount,npcRenderLimit:npcManager.maxDrawn,
+   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
+   status:Object.fromEntries(runtimeStatusValues)
+  };
+ },
+ subscribe(listener){
+  if(typeof listener!=='function')throw new TypeError('Game API listener must be a function');
+  gameStateListeners.add(listener);
+  return ()=>gameStateListeners.delete(listener);
+ }
+});
+// The view owns its elements. Detaching it only unsubscribes; game simulation keeps running.
+function mountRuntimeStatusPanel(root,api){
+ if(!root)return ()=>{};
+ const fields=new Map(Array.from(root.querySelectorAll('[id]'),node=>[node.id,node]));
+ const render=event=>{
+  if(event.type!=='status')return;
+  const field=fields.get(event.id);
+  if(field)field.textContent=event.value;
+ };
+ for(const [id,value] of runtimeStatusValues)render({type:'status',id,value});
+ return api.subscribe(render);
+}
+const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('.runtime-status'),gameApi);
 let slowRenderWindows=0;
 function frame(t){
  const dt=Math.min(2,(t-last)/16.67||1);last=t;
@@ -883,27 +921,27 @@ function frame(t){
  update(dt,commands);
  if(Math.hypot(commands.moveX,commands.moveY)>.06){
   const moved=Math.hypot(game.x-oldX,game.z-oldZ);
-  $('collision-status').textContent=moved<.001?'● 移動停止（障害物または地面端）':'● 移動中（壁沿い移動も確認）';
+  publishRuntimeStatus('collision-status',moved<.001?'● 移動停止（障害物または地面端）':'● 移動中（壁沿い移動も確認）');
  }
- $('pos').textContent=`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`;
- $('edge').textContent=(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内';
+ publishRuntimeStatus('pos',`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`);
+ publishRuntimeStatus('edge',(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内');
  try{
   const snapshot=productRenderSnapshot();
   if(renderMode!=='B'&&okA)rendererA.render(snapshot);
   if(renderMode!=='A'&&okB)rendererB.render(snapshot);
   const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
   const b=renderMode!=='A'&&okB?rendererB.lastFrameId:'―';
-  $('sync-status').textContent='共通Snapshot #'+snapshot.frameId+' / A:'+a+' / B:'+b+
-    (renderMode==='compare'&&okA&&okB?(a===b?' / 同期OK':' / 同期ずれ'):'');
+  publishRuntimeStatus('sync-status','共通Snapshot #'+snapshot.frameId+' / A:'+a+' / B:'+b+
+    (renderMode==='compare'&&okA&&okB?(a===b?' / 同期OK':' / 同期ずれ'):''));
  }catch(error){
-  $('renderer-status').textContent='🎨 描画エラー：'+String(error.message||error);
+  publishRuntimeStatus('renderer-status','🎨 描画エラー：'+String(error.message||error));
   console.error(error);
  }
  frames++;
  if(t-start>1000){
   const fps=Math.round(frames*1000/(t-start));
-  $('fps').textContent='FPS '+fps;
-  $('npc-status').textContent='🐹 全'+npcManager.agents.length+'匹 / 視界内'+npcManager.visibleCount+' / 距離内候補'+npcManager.candidatesInRange+' / 3D表示'+npcManager.drawCount+' / 上限'+npcManager.maxDrawn;
+  publishRuntimeStatus('fps','FPS '+fps);
+  publishRuntimeStatus('npc-status','🐹 全'+npcManager.agents.length+'匹 / 視界内'+npcManager.visibleCount+' / 距離内候補'+npcManager.candidatesInRange+' / 3D表示'+npcManager.drawCount+' / 上限'+npcManager.maxDrawn);
   // If a stress test becomes extremely slow, lower the requested rendering budget.
   slowRenderWindows=(npcManager.agents.length===1000&&npcManager.drawCount>65&&fps<12)?slowRenderWindows+1:0;
   if(slowRenderWindows>=2){
