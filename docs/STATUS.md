@@ -9,6 +9,7 @@
 
 - **開発フェーズ:** Development / Debug。開発入口は [`komorebi3d/dev.html`](https://shuma-fujita1012.github.io/komorebi/komorebi3d/dev.html)。テスト機能を残して開発を続ける。
 - **疎結合作戦:** **成功・正式完了（2026-11-09、ユーザー確認済み）。追加のコード整理・実機テストは不要。** Game API、ゲーム画面とパネルの表示分離、独立JSモジュール、4スロット配置の基盤が現行コードに存在する。
+- **チャット用自己完結モック（2026-11-10）:** `--mode=chat` を実装し、2パネルの `mock.chat.html` を生成。元の共通JSをビルド時に内蔵し、チャット表示時の追加import・再実装を不要にする。**生成結果の静的整合性チェックPASS（本番・Webモックの生成結果は変更なし）。新しいチャットでの無加工表示・ⓘ・交換・削除・再追加・高さ固定などの実操作PASSは未確認。** 今後の要件検討中はチャット内で自由に変更し、確定後の本番反映・検証完了時に再生成する。詳しくは [rules/mock.md](rules/mock.md)。
 - **公開ページの動作確認:** `632569e` の共通スロット高さ固定反映後、**Q49：2パネル `mock.html` の表示・入れ替え・削除・再追加・高さ固定すべてPASS**、**Q50：4パネル `dev.html` の高さ固定・ゲーム描画・操作すべてPASS**（2026-11-10、ユーザー報告）。個別のiPhone/iPad機種・Safari環境の内訳、および任意配置24通りの網羅検証は未確認。旧Q47・Q48も変更前にPASS。
 - **実機PASS済みの基準版:** v0.7（最新）とv0.6（前世代）。固定した既存の安定版として保持する。
 - **パネルエンハンス（公開ページ操作PASS済み・端末別詳細未確認）:** `dev-panel-layout.js` でⓘ押下中の説明とゴミ箱同時表示・スライド交換/削除・空き枠の＋再追加を提供。DOM・CanvasとGame APIを維持して移動。`preserveSlotSize:true` を本番・モック双方で有効化し、各枠の初期高さをパネル移動/削除/再追加後も保持する。幅変更時には左右枠が2列グリッドへ追従する。**Q49・Q50の基本操作PASS済み。iPhone/iPad個別・任意配置の詳細検証は必要に応じて行う**。
@@ -30,7 +31,7 @@
 ## 3. 現行コードと依存関係
 
 - **リポジトリ:** `shuma-fujita1012/komorebi` ／ 運用ブランチは `main` のみ。
-- **開発HTML:** `komorebi3d/dev.html`（4パネル本番開発ページ）。`komorebi3d/mock.html` は2パネルUIの軽量検証ページで、ゲームの安定版・アーカイブではない。`build-dev.mjs` は引数なし/`--mode=product` で本番、`--mode=mock` でモックを生成する。
+- **開発HTML:** `komorebi3d/dev.html`（4パネル本番開発ページ）。`komorebi3d/mock.html` は2パネルUIの軽量検証ページで、ゲームの安定版・アーカイブではない。`build-dev.mjs` は引数なし/`--mode=product` で本番、`--mode=mock` でWebモック、**`--mode=chat` で自己完結型チャット用HTML断片 `mock.chat.html`** を生成する。共通操作JSは引き続き `dev-panel-layout.js` が正本。
 - **パネル部品:** `komorebi3d/dev-panel-components.js`。`createGameView`、`mountTestControlsPanel`、`mountRuntimeStatusPanel` をエクスポート。ゲーム内部のDOMに依存せず、Game API経由で状態・命令を扱う。
 - **ライブ配置編集:** `komorebi3d/dev-panel-layout.js`（Engine非依存）。4スロットのDOMを保管しながら移動する。`preserveSlotSize:true` の場合、起動時の各スロットの高さを固定し、入れ替え・削除・再追加後も維持（本番とモックで有効）。
 - **ゲームAPI:** `getState()`、`subscribe()`、`reset()`、`setRenderMode()`、`setNpcCount()`、`setNpcRenderLimit()`、`setNpcRenderDistance()`、`setMapVisible()`、`teleport()`。状態変更通知の購読解除が可能。
