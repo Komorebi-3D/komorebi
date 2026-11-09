@@ -7,31 +7,25 @@
 .slider-row{display:flex;align-items:center;gap:9px}
 button.slider-step{flex:0 0 44px;width:44px;min-height:44px;padding:0;border-radius:14px;background:#e5f0df;border-color:#91af8e;color:#315c3f;font-size:25px;line-height:1;touch-action:manipulation}
 button.slider-step:active{background:#c4dec1}.debug-controls output{font-variant-numeric:tabular-nums;white-space:nowrap}.debug-map{position:absolute;top:8px;left:8px;z-index:3;width:min(47%,210px);padding:6px;border-radius:9px;background:rgba(17,35,29,.65);box-shadow:0 2px 12px #2133247a;pointer-events:none;color:#fff;user-select:none}.debug-map[hidden]{display:none}.debug-map canvas{width:100%;height:auto;aspect-ratio:1;background:transparent;border-radius:3px}.debug-map-title{font-size:10px;font-weight:700;margin-bottom:3px}.debug-map-legend{font-size:9px;display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
-.build-info{position:relative}.build-info>strong{display:block;padding-right:43px;min-height:38px}
+.build-info{position:relative;--help-button-color:#31563b;--help-overlay-bg:rgba(29,52,35,.55);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:3px solid #397452;--help-focus-offset:2px}.build-info>strong{display:block;padding-right:43px;min-height:38px}
 
-/* Shared panel-help interaction and centered overlays. Variants keep panel colors. */
-button.panel-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;padding:0;border:0;border-radius:9px;background:transparent;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
+/* Shared panel-help layout and theme variables. Shadow color follows each label's text color. */
+button.panel-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;padding:0;border:0;border-radius:9px;background:transparent;color:var(--help-button-color);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
 button.panel-help-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 12px/1 system-ui}
-button.panel-help-button:focus-visible{outline:2px solid #397452;outline-offset:-4px}
-.panel-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;pointer-events:none;display:grid;place-items:center;padding:12px}
+button.panel-help-button:focus-visible{outline:var(--help-focus-outline);outline-offset:var(--help-focus-offset)}
+.panel-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;pointer-events:none;display:grid;place-items:center;padding:12px;background:var(--help-overlay-bg)}
 .panel-help-overlay[hidden]{display:none}
-.panel-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;font-size:16px;font-weight:750;text-align:center}
-button.build-help-button{color:#31563b}
-
-button.build-help-button:focus-visible{outline:3px solid #397452;outline-offset:2px}
-.build-help-overlay{background:rgba(29,52,35,.55);padding:14px}
-
-.build-help-label{padding:14px 20px;background:#fffdf3;color:#30533b;box-shadow:0 4px 18px #15241855}
+.panel-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;font-size:16px;font-weight:750;text-align:center;background:var(--help-label-bg);color:var(--help-label-color);box-shadow:0 4px 18px rgba(0,0,0,.25);box-shadow:0 4px 18px color-mix(in srgb,currentColor 25%,transparent)}
+.build-help-overlay{padding:14px}
+.build-help-label{padding:14px 20px}
 
 
 /* Dedicated test controls: draft approved in the chat review. */
-.test-panel{position:relative;margin-top:8px;padding:0;border:1px solid #d5c8b6;border-radius:9px;background:#f5ede0;color:#554a3f;font-size:12px;line-height:1.65}
+.test-panel{position:relative;margin-top:8px;padding:0;border:1px solid #d5c8b6;border-radius:9px;background:#f5ede0;color:#554a3f;font-size:12px;line-height:1.65;--help-button-color:#554a3f;--help-overlay-bg:rgba(69,50,28,.34);--help-label-bg:#fffdf8;--help-label-color:#554a3f;--help-focus-outline:2px solid #8a6b4a;--help-focus-offset:-4px}
 .test-panel-header{position:relative;padding:10px 11px 9px;background:#f5ede0;border-bottom:1px solid #dccbb5;z-index:1}
 .test-panel-body{padding:10px 11px 11px}
 .test-panel-heading{display:block;min-height:38px;padding-right:43px;font-size:12px;font-weight:750}
-button.test-help-button{color:#554a3f}
 
-button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-4px}
 .test-panel button:not(.test-help-button){min-height:44px;padding:9px 7px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3;color:#554a3f;font:700 12px system-ui;cursor:pointer;touch-action:manipulation}
 .test-panel button.test-reset{display:block;width:100%;margin:0;background:#f6e5da;border-color:#d0a793;color:#8a4a38}
 .test-section-title{margin:3px 0 8px;font-weight:750}
@@ -52,22 +46,15 @@ button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-
 .test-panel #npc-stress-info,.test-panel #npc-render-warning{font-size:11px}
 .test-panel .test-locations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .test-panel .test-locations button{min-width:0}
-.test-help-overlay{background:rgba(69,50,28,.34)}
 
-.test-help-label{background:#fffdf8;color:#554a3f;box-shadow:0 4px 18px #0003}
 
 
 /* Responsive iPad mini 5 landscape: whole first viewport = developer info + game/test split.
    iPhone and portrait keep their current vertically stacked UI. */
 /* Runtime status uses the same press-and-hold info affordance as the other panels. */
-.runtime-status{position:relative}
+.runtime-status{position:relative;--help-button-color:#455a49;--help-overlay-bg:rgba(29,52,35,.42);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:2px solid #397452;--help-focus-offset:-4px}
 .runtime-status-heading{display:block;min-height:36px;margin:0 0 8px;padding-right:43px;font-size:13px}
-button.runtime-help-button{color:#455a49}
 
-
-.runtime-help-overlay{background:rgba(29,52,35,.42)}
-
-.runtime-help-label{background:#fffdf3;color:#30533b;box-shadow:0 4px 18px #15241855}
 @media (orientation:landscape) and (min-width:900px) and (min-height:600px){
  body{padding:12px}
  .shell{max-width:none;width:100%;margin:0}
