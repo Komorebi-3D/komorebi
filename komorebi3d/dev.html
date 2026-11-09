@@ -57,9 +57,9 @@ button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-
 button.runtime-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;border-radius:9px;background:transparent;color:#455a49;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
 button.runtime-help-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 12px/1 system-ui}
 button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offset:-4px}
-.runtime-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;background:rgba(29,52,35,.42);pointer-events:none}
+.runtime-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;background:rgba(29,52,35,.42);pointer-events:none;display:grid;place-items:center;padding:12px}
 .runtime-help-overlay[hidden]{display:none}
-.runtime-help-label{position:absolute;top:12px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;padding:14px 19px;border-radius:13px;background:#fffdf3;color:#30533b;font-size:16px;font-weight:750;text-align:center;box-shadow:0 4px 18px #15241855}
+.runtime-help-label{max-width:100%;width:max-content;padding:14px 19px;border-radius:13px;background:#fffdf3;color:#30533b;font-size:16px;font-weight:750;text-align:center;box-shadow:0 4px 18px #15241855}
 @media (orientation:landscape) and (min-width:900px) and (min-height:600px){
  body{padding:12px}
  .shell{max-width:none;width:100%;margin:0}
