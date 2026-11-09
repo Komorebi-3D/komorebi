@@ -30,9 +30,11 @@ export function transitionPanelLayout(layout,action){
 
 export function mountPanelLayoutEditor(doc,initialLayout){
  let layout={...initialLayout},drag=null,menuSlot=null;
- const slots=new Map(SLOT_IDS.map(id=>[id,doc.querySelector('[data-panel-slot="'+id+'"]')]));
- const panels=new Map(PANEL_IDS.map(id=>[id,doc.querySelector('[data-panel-id="'+id+'"]')]));
- for(const [id,node] of [...slots,...panels])if(!node)throw new Error('Missing panel or slot: '+id);
+ const slots=new Map(SLOT_IDS.map(id=>[id,doc.querySelector('[data-panel-slot="'+id+'"]')]).filter(([,node])=>node));
+ const panels=new Map(PANEL_IDS.map(id=>[id,doc.querySelector('[data-panel-id="'+id+'"]')]).filter(([,node])=>node));
+ // Optional components: only existing slots and panels participate.
+ for(const name of SLOT_IDS)if(!slots.has(name)||!panels.has(layout[name]))layout[name]=null;
+ if(!slots.size)return {getLayout:()=>({...layout})};
  const parked=doc.createDocumentFragment();
  const hovered=new Set(),focused=new Set();
  const trashSVG='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2"/><path d="m19 6-1 14c-.08 1.14-.95 2-2 2H8c-1.05 0-1.92-.86-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
@@ -41,7 +43,7 @@ export function mountPanelLayoutEditor(doc,initialLayout){
  for(const [id,panel] of panels){
   const button=panel.querySelector('.panel-help-button');
   const overlay=panel.querySelector('.panel-help-overlay');
-  if(!button||!overlay)throw new Error('Missing panel help: '+id);
+  if(!button||!overlay)continue;
   const trash=doc.createElement('button');
   trash.type='button';trash.className='panel-trash-target';
   trash.dataset.panelTrash=id;trash.setAttribute('aria-label',LABELS[id]+'を削除');
@@ -116,7 +118,7 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   closeMenu();refreshHelp();
   const container=slots.get(slotName);
   if(!container||layout[slotName])return;
-  const unused=PANEL_IDS.filter(id=>!Object.values(layout).includes(id));
+  const unused=[...panels.keys()].filter(id=>!Object.values(layout).includes(id));
   const menu=doc.createElement('div');
   menu.className='panel-add-menu';menu.setAttribute('role','group');
   menu.setAttribute('aria-label','追加するパネル');
@@ -153,7 +155,7 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   if(drag.target?.type==='remove')help.get(drag.fromId).trash.classList.add('panel-trash-hot');
  }
  function onGripDown(event,id,button){
-  if(drag||(event.pointerType==='mouse'&&event.button!==0))return;
+  if(drag||!slotFor(id)||(event.pointerType==='mouse'&&event.button!==0))return;
   event.preventDefault();
   closeMenu();
   // Description and trash appear together while the info icon is held.
@@ -208,6 +210,8 @@ export function mountPanelLayoutEditor(doc,initialLayout){
  doc.addEventListener('click',onClick,true);
  doc.addEventListener('keydown',event=>{if(event.key==='Escape')cancel();});
  doc.defaultView?.addEventListener('blur',cancel);
+ // When only some panels exist, empty slots may still offer the available components.
+ for(const [name,slot] of slots)if(!layout[name])slot.replaceChildren(makePlus(name));
  refreshSlotMeta();refreshHelp();
  return {getLayout:()=>({...layout})};
 }

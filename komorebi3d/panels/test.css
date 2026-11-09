@@ -1,0 +1,41 @@
+/* Styles for test panel from canonical dev.html. */
+.mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 4px}
+.mode-buttons button{min-width:0;padding:11px 3px}
+.mode-buttons button.selected{color:#fff;background:#4f8161;border-color:#4f8161}
+#mode-status{font-size:11px;color:#55725c;margin:4px 0 7px}
+.buttons{display:flex;gap:7px;margin-top:8px}
+.debug-controls{display:grid;gap:7px;margin-top:8px}
+.debug-controls label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700}
+.debug-controls input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;width:100%;height:48px;margin:0;padding:0;background:transparent;touch-action:pan-x;cursor:pointer}
+.debug-controls input[type=range]::-webkit-slider-runnable-track{height:12px;border-radius:99px;background:#b1cbb1;border:1px solid #7ca486}
+.debug-controls input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:38px;height:38px;margin-top:-14px;border-radius:50%;border:4px solid #fff;background:#4f8161;box-shadow:0 2px 7px #33543e77,0 0 0 2px #759c7e}
+.debug-controls input[type=range]::-moz-range-track{height:12px;border-radius:99px;background:#b1cbb1;border:1px solid #7ca486}
+.debug-controls input[type=range]::-moz-range-thumb{width:32px;height:32px;border-radius:50%;border:4px solid #fff;background:#4f8161;box-shadow:0 2px 7px #33543e77}
+.debug-controls input[type=range]:focus-visible{outline:2px solid #3b7f65;outline-offset:2px;border-radius:15px}
+.slider-row{display:flex;align-items:center;gap:9px}
+button.slider-step{flex:0 0 44px;width:44px;min-height:44px;padding:0;border-radius:14px;background:#e5f0df;border-color:#91af8e;color:#315c3f;font-size:25px;line-height:1;touch-action:manipulation}
+button.slider-step:active{background:#c4dec1}
+.debug-controls output{font-variant-numeric:tabular-nums;white-space:nowrap}
+.test-panel{position:relative;margin-top:8px;padding:0;border:1px solid #d5c8b6;border-radius:9px;background:#f5ede0;color:#554a3f;font-size:12px;line-height:1.65;--help-button-color:#554a3f;--help-overlay-bg:rgba(69,50,28,.34);--help-label-bg:#fffdf8;--help-label-color:#554a3f;--help-focus-outline:2px solid #8a6b4a;--help-focus-offset:-4px}
+.test-panel-header{position:relative;padding:10px 11px 9px;background:#f5ede0;border-bottom:1px solid #dccbb5;z-index:1}
+.test-panel-heading{display:block;min-height:38px;padding-right:43px;font-size:12px;font-weight:750}
+.test-panel button:not(.test-help-button){min-height:44px;padding:9px 7px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3;color:#554a3f;font:700 12px system-ui;cursor:pointer;touch-action:manipulation}
+.test-panel button.test-reset{display:block;width:100%;margin:0;background:#f6e5da;border-color:#d0a793;color:#8a4a38}
+.test-section-title{margin:3px 0 8px;font-weight:750}
+.test-panel .mode-buttons{margin:0;grid-template-columns:repeat(3,minmax(0,1fr))}
+.test-panel .mode-buttons button{min-width:0}
+.test-panel .mode-buttons button.selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
+.test-panel #mode-status{margin-top:5px;margin-bottom:0;font-size:11px;color:#81715f}
+.test-separator{height:1px;background:#d9c9b4;margin:15px 0 11px}
+.test-panel .buttons{margin-top:8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.test-panel .buttons button{min-width:0}
+.test-panel .debug-controls{gap:7px;margin-top:10px}
+.test-panel .debug-controls label{font-size:12px}
+.test-panel .debug-controls input[type=range]::-webkit-slider-runnable-track{background:#dbc8b3;border-color:#c2ab8f}
+.test-panel .debug-controls input[type=range]::-webkit-slider-thumb{background:#8f7355;box-shadow:0 2px 7px #0003}
+.test-panel .debug-controls input[type=range]::-moz-range-track{background:#dbc8b3;border-color:#c2ab8f}
+.test-panel .debug-controls input[type=range]::-moz-range-thumb{background:#8f7355}
+.test-panel button.slider-step{flex:0 0 44px;min-width:44px;width:44px;min-height:44px;padding:0;border-radius:14px;background:#efe2d1;border-color:#c8b39a;color:#5a4d3e;font-size:25px;line-height:1}
+.test-panel #npc-stress-info,.test-panel #npc-render-warning{font-size:11px}
+.test-panel .test-locations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.test-panel .test-locations button{min-width:0}
