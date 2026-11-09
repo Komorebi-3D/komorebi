@@ -51,7 +51,15 @@ button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-
 
 /* Responsive iPad mini 5 landscape: whole first viewport = developer info + game/test split.
    iPhone and portrait keep their current vertically stacked UI. */
-.runtime-status-heading{display:none}
+/* Runtime status uses the same press-and-hold info affordance as the other panels. */
+.runtime-status{position:relative}
+.runtime-status-heading{display:block;min-height:36px;margin:0 0 8px;padding-right:43px;font-size:13px}
+button.runtime-help-button{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;border-radius:9px;background:transparent;color:#455a49;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
+button.runtime-help-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 12px/1 system-ui}
+button.runtime-help-button:focus-visible{outline:2px solid #397452;outline-offset:-4px}
+.runtime-help-overlay{position:absolute;inset:0;z-index:3;border-radius:9px;background:rgba(29,52,35,.42);pointer-events:none}
+.runtime-help-overlay[hidden]{display:none}
+.runtime-help-label{position:absolute;top:12px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;padding:14px 19px;border-radius:13px;background:#fffdf3;color:#30533b;font-size:16px;font-weight:750;text-align:center;box-shadow:0 4px 18px #15241855}
 @media (orientation:landscape) and (min-width:900px) and (min-height:600px){
  body{padding:12px}
  .shell{max-width:none;width:100%;margin:0}
@@ -100,7 +108,7 @@ button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-
 <div class="test-locations"><button type="button" data-spot="front">🏡 家の前</button><button type="button" data-spot="tree">🌳 木の近く</button><button type="button" data-spot="side">↔ 壁沿い</button><button type="button" data-spot="cafe">☕ カフェ前</button><button type="button" data-spot="west">西端</button><button type="button" data-spot="east">東端</button><button type="button" data-spot="north">奥端</button><button type="button" data-spot="south">手前端</button></div>
 <div style="margin-top:6px">各地点への移動は、建物・衝突・カメラ・マップ境界などの汎用テストに使えます。</div>
 </div>
-<div id="test-help-overlay" class="test-help-overlay" role="tooltip" hidden><div class="test-help-label">🧪 テスト操作パネル</div></div></section></div></div><section class="runtime-status" aria-label="実行ステータス"><h2 class="runtime-status-heading">📊 実行ステータス</h2><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span><span id="npc-status">🐹 お散歩AI準備中</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p></section></div><script>
+<div id="test-help-overlay" class="test-help-overlay" role="tooltip" hidden><div class="test-help-label">🧪 テスト操作パネル</div></div></section></div></div><section class="runtime-status" aria-label="実行ステータス"><h2 class="runtime-status-heading">📊 実行ステータス</h2><button type="button" id="runtime-help-button" class="runtime-help-button" aria-label="このエリアの名前：実行ステータス" aria-describedby="runtime-help-overlay"><span>ⓘ</span></button><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span><span id="npc-status">🐹 お散歩AI準備中</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p><div id="runtime-help-overlay" class="runtime-help-overlay" role="tooltip" hidden><div class="runtime-help-label">📊 実行ステータス</div></div></section></div><script>
 (function () {
   const hash = document.getElementById('github-commit');
   const time = document.getElementById('github-commit-time');
@@ -200,6 +208,41 @@ button.test-help-button:focus-visible{outline:2px solid #8a6b4a;outline-offset:-
   if(event.key==='Escape'){keyboardPressed=false;hovered=false;release();}
  });
  button.addEventListener('keyup',event=>{if(event.key==='Enter'||event.key===' '){keyboardPressed=false;update();}});
+ button.addEventListener('blur',()=>{keyboardPressed=false;hovered=false;release();});
+})();
+
+// Runtime status: match the other panel info buttons (hold / hover / keyboard).
+(function(){
+ const button=document.getElementById('runtime-help-button');
+ const overlay=document.getElementById('runtime-help-overlay');
+ let pressed=false,hovered=false,keyboardPressed=false;
+ const update=()=>{overlay.hidden=!(pressed||hovered||keyboardPressed);};
+ button.addEventListener('pointerenter',event=>{
+  if(event.pointerType==='mouse'){hovered=true;update();}
+ });
+ button.addEventListener('pointerleave',event=>{
+  if(event.pointerType==='mouse'){hovered=false;update();}
+ });
+ button.addEventListener('pointerdown',event=>{
+  if(event.button!==0)return;
+  pressed=true;update();
+  try{button.setPointerCapture?.(event.pointerId)}catch(_){}
+  event.preventDefault();
+ });
+ const release=()=>{pressed=false;update();};
+ button.addEventListener('pointerup',release);
+ button.addEventListener('pointercancel',release);
+ button.addEventListener('lostpointercapture',release);
+ button.addEventListener('keydown',event=>{
+  if(event.key==='Enter'||event.key===' '){
+   keyboardPressed=true;update();
+   if(event.key===' ')event.preventDefault();
+  }
+  if(event.key==='Escape'){keyboardPressed=false;hovered=false;release();}
+ });
+ button.addEventListener('keyup',event=>{
+  if(event.key==='Enter'||event.key===' '){keyboardPressed=false;update();}
+ });
  button.addEventListener('blur',()=>{keyboardPressed=false;hovered=false;release();});
 })();
 </script><script type="module">
