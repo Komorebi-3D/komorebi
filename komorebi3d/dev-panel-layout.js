@@ -214,15 +214,22 @@ export function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false
  for(const [name,slot] of slots)if(!layout[name])slot.replaceChildren(makePlus(name));
  refreshSlotMeta();refreshHelp();
  if(preserveSlotSize){
-  // Record the original geometry once, before any panel is moved or removed.
-  for(const slot of slots.values()){
-   const height=Math.ceil(slot.getBoundingClientRect().height);
-   if(height>0){
-    slot.style.height=height+'px';
-    slot.style.minHeight=height+'px';
+  // Snapshot original slot heights, independent of the panels placed later.
+  const heights=new Map([...slots].map(([name,slot])=>[name,Math.ceil(slot.getBoundingClientRect().height)]));
+  const main=doc.querySelector('.landscape-main');
+  function syncSizes(){
+   const grid=main&&doc.defaultView?.getComputedStyle(main).display==='grid';
+   for(const [name,slot] of slots){
+    const height=heights.get(name);
+    if(!height)continue;
+    const flexible=grid&&(name==='left'||name==='right');
+    slot.style.height=flexible?'100%':height+'px';
+    slot.style.minHeight=flexible?'0':height+'px';
     slot.dataset.slotSizeFixed='';
    }
   }
+  syncSizes();
+  doc.defaultView?.addEventListener('resize',syncSizes);
  }
  return {getLayout:()=>({...layout})};
 }
