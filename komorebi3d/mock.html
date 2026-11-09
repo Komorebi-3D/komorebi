@@ -36,6 +36,18 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .panel-editor-armed button.panel-trash-target{pointer-events:auto;cursor:pointer}
 .panel-edit-hint{font-size:10px;font-weight:700;color:#fff;text-align:center}
 
+/* Fixed geometry follows the slot, not the panel being moved into it. */
+.panel-slot[data-slot-size-fixed]{overflow:hidden}
+.panel-slot[data-slot-size-fixed][data-panel="empty"]{overflow:visible}
+.panel-slot[data-slot-size-fixed]>[data-panel-id]{height:100%;max-height:100%;min-height:0;margin:0;overflow-y:auto}
+.panel-slot[data-slot-size-fixed]>.landscape-game{display:flex;align-items:center;justify-content:center;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;overflow:hidden}
+.panel-slot[data-slot-size-fixed]>.landscape-game .play-surface:not(.ab-compare){height:100%;max-width:100%;min-width:0;min-height:0;width:auto;aspect-ratio:3/4;flex:0 1 auto}
+.panel-slot[data-slot-size-fixed]>.landscape-game .play-surface.ab-compare{width:100%;height:100%;aspect-ratio:auto;flex:1 1 auto}
+.panel-slot[data-slot-size-fixed]>.landscape-game .views{width:100%;height:100%;min-height:0}
+.panel-slot[data-slot-size-fixed]>.landscape-game .view-panel:not(.off){min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
+.panel-slot[data-slot-size-fixed]>.landscape-game .views.single canvas{display:block;width:100%;height:100%;max-width:100%;max-height:100%;aspect-ratio:3/4}
+.panel-slot[data-slot-size-fixed]>.landscape-game .views:not(.single) canvas{display:block;width:100%;height:auto;max-height:100%;aspect-ratio:3/4}
+
 /* Styles for build panel from canonical dev.html. */
 .build-info{margin:9px 0 12px;padding:10px 11px;border:1px solid #aec2a8;border-radius:9px;background:#e8f2e4;color:#31563b;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
 .build-info strong{font-size:12px}
@@ -64,6 +76,7 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .mock-root .landscape-main .panel-slot-main{min-width:0;min-height:0;overflow:hidden}
 .mock-root .landscape-main .panel-slot-main>[data-panel-id]{min-width:0;min-height:0;height:100%;margin:0}
 .mock-root .landscape-main .panel-slot-main>.landscape-game{height:440px}
+.mock-root .landscape-main .panel-slot-main[data-slot-size-fixed]>.landscape-game{height:100%}
 .mock-root .landscape-main .panel-slot-main>.build-info{overflow-y:auto}
 .mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:72px;min-height:72px;overflow:visible}
 .mock-root .panel-slot[data-panel="empty"]{display:block}
@@ -104,8 +117,6 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
  .panel-slot-bottom>.landscape-game{height:min(55svh,420px);margin-top:12px}
  .panel-slot-bottom>.test-panel,.panel-slot-bottom>.build-info{margin-top:12px}
 }</style></head><body><div class="mock-root"><div class="mock-frame"><div class="shell"><div class="landscape-hero"><div class="site-heading"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><div id="build-info" data-panel-id="build" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><div class="landscape-game" data-panel-id="game"><div class="play-surface" aria-label="ゲーム画面（描画なし）"></div><button type="button" id="game-help-button" class="panel-help-button game-help-button" aria-label="このエリアの名前：ゲーム画面" aria-describedby="game-help-overlay"><span>ⓘ</span></button><div id="game-help-overlay" class="panel-help-overlay game-help-overlay" role="tooltip" hidden><div class="panel-help-label game-help-label">🎮 ゲーム画面</div></div></div></div><div class="panel-slot panel-slot-main" data-panel-slot="right"></div></div></div></div></div></div><script type="module">
-import {mountPanelLayoutEditor} from './dev-panel-layout.js';
-const topSlot=document.querySelector('[data-panel-slot="top"]');
-if(topSlot)topSlot.style.height=Math.ceil(topSlot.getBoundingClientRect().height)+'px';
+import {mountPanelLayoutEditor} from './dev-panel-layout.js?v=slot-size-20261110';
 mountPanelLayoutEditor(document,{top:'build',left:'game',right:null,bottom:null},{preserveSlotSize:true});
 </script></body></html>
