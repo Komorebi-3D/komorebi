@@ -18,7 +18,9 @@ const split=css=>{
  return pos<0?[css.trim(),'']:[css.slice(0,pos).trim(),css.slice(pos).trim()];
 };
 const cssPath=name=>name==='common'?'common.css':name==='mock-layout'?'mock-layout.css':'panels/'+name+'.css';
-const pieces=names.map(name=>split(read(cssPath(name))));
+// Keep production CSS byte-for-byte identical while excluding dev styles from mocks.
+const commonCSS=read('common.css')+(mock?'':read('dev-layout.css'));
+const pieces=names.map(name=>split(name==='common'?commonCSS:read(cssPath(name))));
 const css=[...pieces.map(x=>x[0]),...pieces.map(x=>x[1])].filter(Boolean).join('\n\n');
 let html=read(mock?'mock.template.html':'dev.template.html');
 if(!html.includes('/* @component-styles */'))throw Error('Missing CSS placeholder');
