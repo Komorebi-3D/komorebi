@@ -36,6 +36,18 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .panel-editor-armed button.panel-trash-target{pointer-events:auto;cursor:pointer}
 .panel-edit-hint{font-size:10px;font-weight:700;color:#fff;text-align:center}
 
+/* Fixed geometry follows the slot, not the panel being moved into it. */
+.panel-slot[data-slot-size-fixed]{overflow:hidden}
+.panel-slot[data-slot-size-fixed][data-panel="empty"]{overflow:visible}
+.panel-slot[data-slot-size-fixed]>[data-panel-id]{height:100%;max-height:100%;min-height:0;margin:0;overflow-y:auto}
+.panel-slot[data-slot-size-fixed]>.landscape-game{display:flex;align-items:center;justify-content:center;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;overflow:hidden}
+.panel-slot[data-slot-size-fixed]>.landscape-game .play-surface:not(.ab-compare){height:100%;max-width:100%;min-width:0;min-height:0;width:auto;aspect-ratio:3/4;flex:0 1 auto}
+.panel-slot[data-slot-size-fixed]>.landscape-game .play-surface.ab-compare{width:100%;height:100%;aspect-ratio:auto;flex:1 1 auto}
+.panel-slot[data-slot-size-fixed]>.landscape-game .views{width:100%;height:100%;min-height:0}
+.panel-slot[data-slot-size-fixed]>.landscape-game .view-panel:not(.off){min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
+.panel-slot[data-slot-size-fixed]>.landscape-game .views.single canvas{display:block;width:100%;height:100%;max-width:100%;max-height:100%;aspect-ratio:3/4}
+.panel-slot[data-slot-size-fixed]>.landscape-game .views:not(.single) canvas{display:block;width:100%;height:auto;max-height:100%;aspect-ratio:3/4}
+
 /* Styles for build panel from canonical dev.html. */
 .build-info{margin:9px 0 12px;padding:10px 11px;border:1px solid #aec2a8;border-radius:9px;background:#e8f2e4;color:#31563b;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
 .build-info strong{font-size:12px}
@@ -245,7 +257,7 @@ import { GroundBounds } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komor
 import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/CollisionWorld2D.js";
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
 import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js";
-import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=press-together-20261109";
+import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=slot-size-20261110";
 (function(){var d=document.getElementById("launch-diagnostic");if(d)d.textContent="診断：JavaScript実行OK / WebGL="+(function(){try{return !!document.createElement("canvas").getContext("webgl")}catch(e){return false}})()+" / Three.js読み込みを確認中";window.addEventListener("error",function(e){if(d)d.textContent="診断：JavaScriptエラー："+e.message});window.addEventListener("unhandledrejection",function(e){if(d)d.textContent="診断：読み込みエラー："+String(e.reason)});})();
 
 const $=id=>document.getElementById(id);
@@ -924,7 +936,7 @@ const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('
 
 const unmountTestControlsPanel=mountTestControlsPanel(document.querySelector('#test-ops-panel'),gameApi);
 // Reparent existing nodes only; Game API subscriptions and canvases survive edits.
-mountPanelLayoutEditor(document,PANEL_LAYOUT);
+mountPanelLayoutEditor(document,PANEL_LAYOUT,{preserveSlotSize:true});
 let slowRenderWindows=0;
 function frame(t){
  const dt=Math.min(2,(t-last)/16.67||1);last=t;
