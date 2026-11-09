@@ -231,61 +231,11 @@ import { createMeshGeometry, createMeshRenderSnapshot } from "https://cdn.jsdeli
 import { GroundBounds } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/GroundBounds.js";
 import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/CollisionWorld2D.js";
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
+import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js";
 (function(){var d=document.getElementById("launch-diagnostic");if(d)d.textContent="診断：JavaScript実行OK / WebGL="+(function(){try{return !!document.createElement("canvas").getContext("webgl")}catch(e){return false}})()+" / Three.js読み込みを確認中";window.addEventListener("error",function(e){if(d)d.textContent="診断：JavaScriptエラー："+e.message});window.addEventListener("unhandledrejection",function(e){if(d)d.textContent="診断：読み込みエラー："+String(e.reason)});})();
 
 const $=id=>document.getElementById(id);
-// Game view owns all game-panel DOM. A missing panel is a valid headless state.
-function createGameView(root){
- if(!root)return null;
- const get=id=>root.querySelector('#'+id);
- const elements={
-  movePad:get('pad'),cameraPad:get('camera-pad'),
-  canvasA:get('a'),canvasB:get('b'),
-  panelA:get('panel-a'),panelB:get('panel-b'),
-  views:get('views'),surface:get('play-surface'),
-  map:get('debug-map'),mapCanvas:get('debug-map-canvas')
- };
- if(Object.values(elements).some(el=>!el))throw new Error('Game view elements incomplete');
- const ctx=elements.mapCanvas.getContext('2d');
- return {
-  movePad:elements.movePad,cameraPad:elements.cameraPad,
-  canvasA:elements.canvasA,canvasB:elements.canvasB,
-  setRenderMode(mode){
-   const showA=mode!=='B',showB=mode!=='A';
-   elements.panelA.classList.toggle('off',!showA);
-   elements.panelB.classList.toggle('off',!showB);
-   elements.views.classList.toggle('single',mode!=='compare');
-   elements.surface.classList.toggle('ab-compare',mode==='compare');
-  },
-  setMapVisible(visible){
-   elements.map.hidden=!visible;
-   elements.map.setAttribute('aria-hidden',String(!visible));
-  },
-  paintMap(agents,playerX,playerZ,cafeX,cafeZ){
-   if(!ctx)return;
-   const w=elements.mapCanvas.width,h=elements.mapCanvas.height;
-   const wx=x=>(x+50)*w/100,wz=z=>(z+50)*h/100;
-   ctx.clearRect(0,0,w,h);
-   ctx.fillStyle='rgba(15,36,27,.74)';ctx.fillRect(0,0,w,h);
-   ctx.strokeStyle='rgba(225,248,228,.20)';ctx.lineWidth=1;
-   for(let n=0;n<=4;n++){
-    const v=n*w/4;ctx.beginPath();ctx.moveTo(v,0);ctx.lineTo(v,h);
-    ctx.moveTo(0,v);ctx.lineTo(w,v);ctx.stroke();
-   }
-   ctx.fillStyle='rgba(230,216,174,.38)';
-   ctx.fillRect(wx(-2.5),wz(-9.5),14*w/100,10*h/100);
-   ctx.fillStyle='rgba(228,163,111,.47)';
-   ctx.fillRect(wx(cafeX-7),wz(cafeZ-5),14*w/100,10*h/100);
-   ctx.fillStyle='#7cb78b';ctx.beginPath();ctx.arc(wx(-7),wz(-5),3,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle='#ffe04c';
-   for(const a of agents)ctx.fillRect(wx(a.x)-1.2,wz(a.z)-1.2,2.4,2.4);
-   ctx.fillStyle='#fb4343';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.3;
-   ctx.beginPath();ctx.arc(wx(playerX),wz(playerZ),4,0,Math.PI*2);ctx.fill();ctx.stroke();
-   ctx.font='bold 11px system-ui';ctx.fillStyle='rgba(255,255,255,.88)';
-   ctx.fillText('N',w/2-4,12);
-  }
- };
-}
+// Panel display logic is imported; game simulation remains here.
 const gameView=createGameView(document.querySelector('.landscape-game'));
 
 // Game-to-panel boundary: status events are buffered even when no status panel is mounted.
@@ -955,78 +905,9 @@ const gameApi=Object.freeze({
  reset:resetGameForTest,setRenderMode,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
  setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot
 });
-// The view owns its elements. Detaching it only unsubscribes; game simulation keeps running.
-function mountRuntimeStatusPanel(root,api){
- if(!root)return ()=>{};
- const fields=new Map(Array.from(root.querySelectorAll('[id]'),node=>[node.id,node]));
- const render=event=>{
-  if(event.type!=='status')return;
-  const field=fields.get(event.id);
-  if(field)field.textContent=event.value;
- };
- for(const [id,value] of runtimeStatusValues)render({type:'status',id,value});
- return api.subscribe(render);
-}
+// Panel views subscribe to Game API without controlling each other.
 const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('.runtime-status'),gameApi);
-// Optional test view: all interactions use Game API and local panel elements.
-function mountTestControlsPanel(root,api){
- if(!root)return ()=>{};
- const find=id=>root.querySelector('#'+id), cleanups=[];
- const bind=(el,event,fn)=>{if(!el)return;el.addEventListener(event,fn);cleanups.push(()=>el.removeEventListener(event,fn));};
- const write=(id,value)=>{const el=find(id);if(el)el.textContent=value;};
- const render=()=>{
-  const s=api.getState(),stress=s.npcCount===1000;
-  const limit=find('npc-render-limit'),distance=find('npc-render-distance');
-  if(limit)limit.value=String(s.npcRenderLimit);
-  if(distance)distance.value=String(s.npcRenderDistance);
-  write('npc-render-limit-value',s.npcRenderLimit+'匹');
-  write('npc-render-distance-value',s.npcRenderDistance+'m');
-  const stressButton=find('npc-stress-toggle');
-  if(stressButton){
-   stressButton.textContent=stress?'🐹 1匹に戻す':'🐹 ハムスター ×1000';
-   stressButton.setAttribute('aria-pressed',String(stress));
-  }
-  write('npc-stress-info',stress?
-   '1,000匹が移動計算中。3D表示は表示距離・同時描画上限スライダーで調整できます。1匹に戻すことも可能。':
-   '通常1匹。×1000で1,000匹に増やし、表示距離と同時描画上限を調節できます。');
-  const mapButton=find('map-toggle');
-  if(mapButton){
-   mapButton.textContent=s.mapVisible?'🗺️ マップを閉じる':'🗺️ マップ表示';
-   mapButton.setAttribute('aria-pressed',String(s.mapVisible));
-  }
-  for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']]){
-   const button=find(id);if(!button)continue;
-   const selected=s.renderMode===mode;
-   button.classList.toggle('selected',selected);
-   button.setAttribute('aria-pressed',String(selected));
-  }
-  write('mode-status',s.renderMode==='A'?'描画モード：Engine A（WebGL）':s.renderMode==='B'?'描画モード：Engine B（Three.js）':'描画モード：Engine A/B比較・共通Snapshot');
-  write('npc-render-warning',s.testWarning);
- };
- bind(find('reset'),'click',()=>api.reset());
- for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']])
-  bind(find(id),'click',()=>api.setRenderMode(mode));
- bind(find('npc-render-limit'),'input',e=>api.setNpcRenderLimit(e.currentTarget.value));
- bind(find('npc-render-distance'),'input',e=>api.setNpcRenderDistance(e.currentTarget.value));
- for(const button of root.querySelectorAll('[data-step-target]')){
-  bind(button,'click',()=>{
-   const target=find(button.dataset.stepTarget);if(!target)return;
-   const delta=Number(button.dataset.stepAmount);if(!Number.isFinite(delta))return;
-   const value=Math.max(Number(target.min),Math.min(Number(target.max),Number(target.value)+delta));
-   if(button.dataset.stepTarget==='npc-render-limit')api.setNpcRenderLimit(value);
-   else if(button.dataset.stepTarget==='npc-render-distance')api.setNpcRenderDistance(value);
-  });
- }
- bind(find('npc-stress-toggle'),'click',()=>{
-  try{api.setNpcCount(api.getState().npcCount===1000?1:1000);}
-  catch(error){write('npc-stress-info','NPC負荷テストエラー：'+String(error.message||error));}
- });
- bind(find('map-toggle'),'click',()=>api.setMapVisible(!api.getState().mapVisible));
- for(const button of root.querySelectorAll('[data-spot]'))
-  bind(button,'click',()=>api.teleport(button.dataset.spot));
- const unsubscribe=api.subscribe(e=>{if(e.type==='state')render();});
- render();return ()=>{unsubscribe();for(const off of cleanups)off();};
-}
+
 const unmountTestControlsPanel=mountTestControlsPanel(document.querySelector('#test-ops-panel'),gameApi);
 let slowRenderWindows=0;
 function frame(t){
