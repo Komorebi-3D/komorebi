@@ -100,13 +100,6 @@ export function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false
   const next=transitionPanelLayout(layout,action);
   const previous=layout;
   const affected=SLOT_IDS.filter(name=>previous[name]!==next[name]);
-  if(preserveSlotSize){
-   for(const name of affected){
-    const slot=slots.get(name);
-    if(previous[name]&&!next[name])slot.style.minHeight=Math.ceil(slot.getBoundingClientRect().height)+'px';
-    else if(next[name])slot.style.minHeight='';
-   }
-  }
   closeMenu();clearTargets();drag=null;
   // Unmount only from the layout: never delete an existing panel node/canvas.
   for(const name of affected){
@@ -220,5 +213,23 @@ export function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false
  // When only some panels exist, empty slots may still offer the available components.
  for(const [name,slot] of slots)if(!layout[name])slot.replaceChildren(makePlus(name));
  refreshSlotMeta();refreshHelp();
+ if(preserveSlotSize){
+  // Snapshot original slot heights, independent of the panels placed later.
+  const heights=new Map([...slots].map(([name,slot])=>[name,Math.ceil(slot.getBoundingClientRect().height)]));
+  const main=doc.querySelector('.landscape-main');
+  function syncSizes(){
+   const grid=main&&doc.defaultView?.getComputedStyle(main).display==='grid';
+   for(const [name,slot] of slots){
+    const height=heights.get(name);
+    if(!height)continue;
+    const flexible=grid&&(name==='left'||name==='right');
+    slot.style.height=flexible?'100%':height+'px';
+    slot.style.minHeight=flexible?'0':height+'px';
+    slot.dataset.slotSizeFixed='';
+   }
+  }
+  syncSizes();
+  doc.defaultView?.addEventListener('resize',syncSizes);
+ }
  return {getLayout:()=>({...layout})};
 }
