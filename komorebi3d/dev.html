@@ -196,6 +196,7 @@ function publishRuntimeStatus(id,value){
  runtimeStatusValues.set(id,text);
  for(const listener of gameStateListeners)listener({type:'status',id,value:text});
 }
+function publishGameState(){for(const listener of gameStateListeners)listener({type:'state'});}
 // House/tree/cafe obstacles remain game data; Engine owns physics.
 // Cafe location is provisional; no new surrounding landscape elements.
 const CAFE_X=-25,CAFE_Z=-20;
@@ -474,18 +475,13 @@ const inputManager=new InputManager(engineInputAdapter);
 publishRuntimeStatus('input-status','🎮 タッチ操作準備OK：左側で移動・右側スワイプで視点変更');
 function readEngineInput(){return inputManager.poll();}
 function releaseEngineInput(){inputManager.clear();}
-$('reset').addEventListener('click',()=>{
- // Reinitialize both the game and every test-panel setting without a completion notice.
+function resetGameForTest(){
  core.reset();resetHouse();engineInputAdapter.resetZoom();
- npcManager.setPopulation(1);
- npcRenderLimit.value='65';npcRenderDistance.value='70';updateNpcRenderControls();
- npcManager.actualLimit=65;slowRenderWindows=0;
- updateNpcStressUi();
- setMiniMapVisible(false);
- setRenderMode('B');
- $('npc-render-warning').textContent='高い描画数はiPhoneに負荷がかかります。描画数の増加は段階的に反映します。';
- publishRuntimeStatus('collision-status','衝突判定：待機中');
-});
+ npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
+ npcManager.actualLimit=65;slowRenderWindows=0;testWarning=defaultTestWarning;
+ setMiniMapVisible(false);setRenderMode('B');
+ publishRuntimeStatus('collision-status','衝突判定：待機中');publishGameState();
+}
 // The game owns house/stair logic; Engine owns orbit yaw, pitch, distance and pose.
 let houseLevel=0,characterY=0,cafeInside=false;
 const cameraRig=new FollowCameraRig({yaw:0,pitch:35*Math.PI/180,horizontalDistance:19,targetY:2.7,yawSpeed:1.5,pitchSpeed:1.08,followRate:5.1});
@@ -536,40 +532,19 @@ function update(dt,commands){
 }
 function resetHouse(){releaseEngineInput();cameraRig.reset();wallFade=1;cafeWallFade=1;houseLevel=0;cafeInside=false;characterY=0;}
 
-const npcRenderLimit=$('npc-render-limit'),npcRenderDistance=$('npc-render-distance');
-function updateNpcRenderControls(){
- npcManager.maxDrawn=Number(npcRenderLimit.value);
- npcManager.maxDrawDistance=Number(npcRenderDistance.value);
- $('npc-render-limit-value').textContent=npcManager.maxDrawn+'匹';
- $('npc-render-distance-value').textContent=npcManager.maxDrawDistance+'m';
+// Defaults are game state, not values read from the optional test panel.
+npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
+const defaultTestWarning='高い描画数はiPhoneに負荷がかかります。描画数の増加は段階的に反映します。';
+let testWarning=defaultTestWarning;
+function setNpcRenderLimit(v){
+ const n=Number(v);if(!Number.isFinite(n))return;
+ npcManager.maxDrawn=Math.max(1,Math.min(1000,Math.round(n)));publishGameState();
 }
-npcRenderLimit.addEventListener('input',updateNpcRenderControls);
-npcRenderDistance.addEventListener('input',updateNpcRenderControls);
-// Large touch-friendly +/- controls also support accurate adjustments on iPhone.
-for(const button of document.querySelectorAll('[data-step-target]')){
- button.addEventListener('click',()=>{
-  const target=$(button.dataset.stepTarget);
-  const lower=Number(target.min),upper=Number(target.max),delta=Number(button.dataset.stepAmount);
-  if(!target||!Number.isFinite(delta))return;
-  const value=Math.max(lower,Math.min(upper,Number(target.value)+delta));
-  target.value=String(value);
-  updateNpcRenderControls();
- });
+function setNpcRenderDistance(v){
+ const n=Number(v);if(!Number.isFinite(n))return;
+ npcManager.maxDrawDistance=Math.max(5,Math.min(150,n));publishGameState();
 }
-updateNpcRenderControls();
-function updateNpcStressUi(){
- const stress=npcManager.agents.length===1000;
- $('npc-stress-toggle').textContent=stress?'🐹 1匹に戻す':'🐹 ハムスター ×1000';
- $('npc-stress-toggle').setAttribute('aria-pressed',String(stress));
- $('npc-stress-info').textContent=stress?
-  '1,000匹が移動計算中。3D表示は表示距離・同時描画上限スライダーで調整できます。1匹に戻すことも可能。':
-  '通常1匹。×1000で1,000匹に増やし、表示距離と同時描画上限を調節できます。';
-}
-$('npc-stress-toggle').addEventListener('click',()=>{
- try{npcManager.setPopulation(npcManager.agents.length===1000?1:1000);updateNpcStressUi();}
- catch(error){$('npc-stress-info').textContent='NPC負荷テストエラー：'+String(error.message||error);}
-});
-updateNpcStressUi();
+function setNpcCount(v){npcManager.setPopulation(v);publishGameState();}
 // Semi-transparent game overlay: draw every simulated NPC, including hidden 3D meshes.
 // 5Hz canvas redraw is decoupled from the 3D renderer, with pointer-events disabled.
 const miniMap=$('debug-map'),miniMapCanvas=$('debug-map-canvas');
@@ -601,15 +576,19 @@ function paintDebugMap(){
 function setMiniMapVisible(value){
  miniMapVisible=Boolean(value);miniMap.hidden=!miniMapVisible;
  miniMap.setAttribute('aria-hidden',String(!miniMapVisible));
- $('map-toggle').textContent=miniMapVisible?'🗺️ マップを閉じる':'🗺️ マップ表示';
- $('map-toggle').setAttribute('aria-pressed',String(miniMapVisible));
- if(miniMapVisible)paintDebugMap();
+ if(miniMapVisible)paintDebugMap();publishGameState();
 }
-$('map-toggle').addEventListener('click',()=>setMiniMapVisible(!miniMapVisible));
 const spots={front:[0,4.5],tree:[-8.4,-5],side:[-2.9,2],cafe:[CAFE_X,CAFE_Z+10.5],west:[-49.2,5],east:[49.2,6],north:[-8,-49.2],south:[0,49.2]};
-// Spot buttons act once; no persistent pressed/selected state.
-document.querySelectorAll('[data-spot]').forEach(b=>b.addEventListener('click',()=>{const [x,z]=spots[b.dataset.spot];if(collisionSystem.collides(x,z)){ publishRuntimeStatus('collision-status','配置エラー：障害物内');return;}core.teleport(x,z);resetHouse();publishRuntimeStatus('collision-status','テスト位置：'+b.textContent);}));
-
+const spotNames={front:'🏡 家の前',tree:'🌳 木の近く',side:'↔ 壁沿い',cafe:'☕ カフェ前',west:'西端',east:'東端',north:'奥端',south:'手前端'};
+function teleportToTestSpot(name){
+ const point=spots[name];if(!point)return false;
+ if(collisionSystem.collides(...point)){
+  publishRuntimeStatus('collision-status','配置エラー：障害物内');return false;
+ }
+ core.teleport(...point);resetHouse();
+ publishRuntimeStatus('collision-status','テスト位置：'+spotNames[name]);
+ publishGameState();return true;
+}
 const parts=[];function part(name,offset=[0,0,0]){const m={p:[],n:[],c:[]};parts.push({name,m,offset});return m}function rgb(c){return[(c>>16&255)/255,(c>>8&255)/255,(c&255)/255]}function tri(m,a,b,c,col){const u=b.map((v,i)=>v-a[i]),v=c.map((w,i)=>w-a[i]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1;for(const p of [a,b,c]){m.p.push(...p);m.n.push(...n.map(v=>v/l));m.c.push(...rgb(col))}}function quad(m,a,b,c,d,col){tri(m,a,b,c,col);tri(m,a,c,d,col)}function cube(m,x,y,z,w,h,d,col){const l=x-w/2,r=x+w/2,f=z+d/2,b=z-d/2,t=y+h;quad(m,[l,y,f],[r,y,f],[r,t,f],[l,t,f],col);quad(m,[r,y,b],[l,y,b],[l,t,b],[r,t,b],col);quad(m,[l,y,b],[l,y,f],[l,t,f],[l,t,b],col);quad(m,[r,y,f],[r,y,b],[r,t,b],[r,t,f],col);quad(m,[l,t,f],[r,t,f],[r,t,b],[l,t,b],col);quad(m,[l,y,b],[r,y,b],[r,y,f],[l,y,f],col)}function ellipsoid(m,x,y,z,rx,ry,rz,col,lat=10,lon=14){const p=(a,b)=>[x+rx*Math.sin(a)*Math.cos(b),y+ry*Math.cos(a),z+rz*Math.sin(a)*Math.sin(b)];for(let i=0;i<lat;i++)for(let j=0;j<lon;j++){const a=p(i*Math.PI/lat,j*2*Math.PI/lon),b=p((i+1)*Math.PI/lat,j*2*Math.PI/lon),c=p(i*Math.PI/lat,(j+1)*2*Math.PI/lon),d=p((i+1)*Math.PI/lat,(j+1)*2*Math.PI/lon);tri(m,a,b,c,col);tri(m,c,b,d,col)}}function sphere(m,x,y,z,r,col){ellipsoid(m,x,y,z,r,r,r,col)}function slab(m,a,b,c,d,t,col){const down=p=>[p[0],p[1]-t,p[2]];quad(m,a,b,c,d,col);quad(m,down(d),down(c),down(b),down(a),0x49352e);for(const [u,v] of [[a,b],[b,c],[c,d],[d,a]])quad(m,u,v,down(v),down(u),0x49352e)}
 const floor=part('ground');cube(floor,ground.centerX,-.22,ground.centerZ,ground.width,.22,ground.depth,0x9fce8d);const tree=part('tree',[-7,0,-5]);cube(tree,0,0,0,.8,4.4,.8,0x97714d);for(const p of [[0,5,0,1.8],[-1,4.5,0,1.4],[1,4.5,0,1.4],[0,6,0,1.4]])sphere(tree,...p,0x78bb7c);
 const avatar=part('avatar');cube(avatar,0,0,0,.7,1.25,.55,0xe6a97e);sphere(avatar,0,1.57,0,.47,0xf1d0a8);cube(avatar,0,1.92,-.06,.84,.2,.73,0x79543c);for(const x of [-.17,.17])sphere(avatar,x,1.6,-.42,.065,0x2c2a25);sphere(avatar,0,1.4,-.47,.08,0xc77c72);
@@ -870,17 +849,11 @@ function setRenderMode(mode){
  $('panel-b').classList.toggle('off',!b);
  $('views').classList.toggle('single',mode!=='compare');
  $('play-surface').classList.toggle('ab-compare',mode==='compare');
- for(const [id,key] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']]){
-  const active=key===mode;$(id).classList.toggle('selected',active);
-  $(id).setAttribute('aria-pressed',String(active));
- }
- $('mode-status').textContent=mode==='A'?'描画モード：Engine A（WebGL）':mode==='B'?'描画モード：Engine B（Three.js）':'描画モード：Engine A/B比較・共通Snapshot';
  try{localStorage.setItem('komorebi3d-render-mode-dev',mode)}catch(e){}
  if(a&&!okA)ensureA();
  if(b&&!okB)ensureB();
+ publishGameState();
 }
-for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']])
- $(id).addEventListener('click',()=>setRenderMode(mode));
 let initialMode='B';
 try{initialMode=localStorage.getItem('komorebi3d-render-mode-dev')||'B'}catch(e){}
 setRenderMode(initialMode);
@@ -892,14 +865,16 @@ const gameApi=Object.freeze({
    npcCount:npcManager.agents.length,npcVisible:npcManager.visibleCount,
    npcDrawn:npcManager.drawCount,npcRenderLimit:npcManager.maxDrawn,
    npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
-   status:Object.fromEntries(runtimeStatusValues)
+   testWarning,status:Object.fromEntries(runtimeStatusValues)
   };
  },
  subscribe(listener){
   if(typeof listener!=='function')throw new TypeError('Game API listener must be a function');
   gameStateListeners.add(listener);
   return ()=>gameStateListeners.delete(listener);
- }
+ },
+ reset:resetGameForTest,setRenderMode,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
+ setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot
 });
 // The view owns its elements. Detaching it only unsubscribes; game simulation keeps running.
 function mountRuntimeStatusPanel(root,api){
@@ -914,6 +889,66 @@ function mountRuntimeStatusPanel(root,api){
  return api.subscribe(render);
 }
 const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('.runtime-status'),gameApi);
+// Optional test view: all interactions use Game API and local panel elements.
+function mountTestControlsPanel(root,api){
+ if(!root)return ()=>{};
+ const find=id=>root.querySelector('#'+id), cleanups=[];
+ const bind=(el,event,fn)=>{if(!el)return;el.addEventListener(event,fn);cleanups.push(()=>el.removeEventListener(event,fn));};
+ const write=(id,value)=>{const el=find(id);if(el)el.textContent=value;};
+ const render=()=>{
+  const s=api.getState(),stress=s.npcCount===1000;
+  const limit=find('npc-render-limit'),distance=find('npc-render-distance');
+  if(limit)limit.value=String(s.npcRenderLimit);
+  if(distance)distance.value=String(s.npcRenderDistance);
+  write('npc-render-limit-value',s.npcRenderLimit+'匹');
+  write('npc-render-distance-value',s.npcRenderDistance+'m');
+  const stressButton=find('npc-stress-toggle');
+  if(stressButton){
+   stressButton.textContent=stress?'🐹 1匹に戻す':'🐹 ハムスター ×1000';
+   stressButton.setAttribute('aria-pressed',String(stress));
+  }
+  write('npc-stress-info',stress?
+   '1,000匹が移動計算中。3D表示は表示距離・同時描画上限スライダーで調整できます。1匹に戻すことも可能。':
+   '通常1匹。×1000で1,000匹に増やし、表示距離と同時描画上限を調節できます。');
+  const mapButton=find('map-toggle');
+  if(mapButton){
+   mapButton.textContent=s.mapVisible?'🗺️ マップを閉じる':'🗺️ マップ表示';
+   mapButton.setAttribute('aria-pressed',String(s.mapVisible));
+  }
+  for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']]){
+   const button=find(id);if(!button)continue;
+   const selected=s.renderMode===mode;
+   button.classList.toggle('selected',selected);
+   button.setAttribute('aria-pressed',String(selected));
+  }
+  write('mode-status',s.renderMode==='A'?'描画モード：Engine A（WebGL）':s.renderMode==='B'?'描画モード：Engine B（Three.js）':'描画モード：Engine A/B比較・共通Snapshot');
+  write('npc-render-warning',s.testWarning);
+ };
+ bind(find('reset'),'click',()=>api.reset());
+ for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']])
+  bind(find(id),'click',()=>api.setRenderMode(mode));
+ bind(find('npc-render-limit'),'input',e=>api.setNpcRenderLimit(e.currentTarget.value));
+ bind(find('npc-render-distance'),'input',e=>api.setNpcRenderDistance(e.currentTarget.value));
+ for(const button of root.querySelectorAll('[data-step-target]')){
+  bind(button,'click',()=>{
+   const target=find(button.dataset.stepTarget);if(!target)return;
+   const delta=Number(button.dataset.stepAmount);if(!Number.isFinite(delta))return;
+   const value=Math.max(Number(target.min),Math.min(Number(target.max),Number(target.value)+delta));
+   if(button.dataset.stepTarget==='npc-render-limit')api.setNpcRenderLimit(value);
+   else if(button.dataset.stepTarget==='npc-render-distance')api.setNpcRenderDistance(value);
+  });
+ }
+ bind(find('npc-stress-toggle'),'click',()=>{
+  try{api.setNpcCount(api.getState().npcCount===1000?1:1000);}
+  catch(error){write('npc-stress-info','NPC負荷テストエラー：'+String(error.message||error));}
+ });
+ bind(find('map-toggle'),'click',()=>api.setMapVisible(!api.getState().mapVisible));
+ for(const button of root.querySelectorAll('[data-spot]'))
+  bind(button,'click',()=>api.teleport(button.dataset.spot));
+ const unsubscribe=api.subscribe(e=>{if(e.type==='state')render();});
+ render();return ()=>{unsubscribe();for(const off of cleanups)off();};
+}
+const unmountTestControlsPanel=mountTestControlsPanel(document.querySelector('#test-ops-panel'),gameApi);
 let slowRenderWindows=0;
 function frame(t){
  const dt=Math.min(2,(t-last)/16.67||1);last=t;
@@ -946,8 +981,9 @@ function frame(t){
   slowRenderWindows=(npcManager.agents.length===1000&&npcManager.drawCount>65&&fps<12)?slowRenderWindows+1:0;
   if(slowRenderWindows>=2){
    const safe=Math.max(65,Math.floor(npcManager.drawCount*.60));
-   npcRenderLimit.value=String(safe);updateNpcRenderControls();
-   $('npc-render-warning').textContent='⚠️ '+fps+'FPSが続いたため、描画上限を'+safe+'匹に自動調整しました。';
+   npcManager.maxDrawn=safe;
+   testWarning='⚠️ '+fps+'FPSが続いたため、描画上限を'+safe+'匹に自動調整しました。';
+   publishGameState();
    slowRenderWindows=0;
   }
   start=t;frames=0;
