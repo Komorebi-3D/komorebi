@@ -6,7 +6,14 @@
 .debug-controls input[type=range]:focus-visible{outline:2px solid #3b7f65;outline-offset:2px;border-radius:15px}
 .slider-row{display:flex;align-items:center;gap:9px}
 button.slider-step{flex:0 0 44px;width:44px;min-height:44px;padding:0;border-radius:14px;background:#e5f0df;border-color:#91af8e;color:#315c3f;font-size:25px;line-height:1;touch-action:manipulation}
-button.slider-step:active{background:#c4dec1}.debug-controls output{font-variant-numeric:tabular-nums;white-space:nowrap}.debug-map{position:absolute;top:8px;left:8px;z-index:3;width:min(47%,210px);padding:6px;border-radius:9px;background:rgba(17,35,29,.65);box-shadow:0 2px 12px #2133247a;pointer-events:none;color:#fff;user-select:none}.debug-map[hidden]{display:none}.debug-map canvas{width:100%;height:auto;aspect-ratio:1;background:transparent;border-radius:3px}.debug-map-title{font-size:10px;font-weight:700;margin-bottom:3px}.debug-map-legend{font-size:9px;display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div id="build-info" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><span class="build-note">※main最新情報と、現在表示中のPages配信内容は反映待ちで異なる場合があります。</span></div><div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div><div class="play-surface" id="play-surface"><div class="debug-map" id="debug-map" hidden aria-hidden="true"><div class="debug-map-title">🗺️ 100m × 100m / 全NPC位置</div><canvas id="debug-map-canvas" width="256" height="256" role="img" aria-label="主人公が赤い点、全ハムスターが黄色い点のデバッグマップ"></canvas><div class="debug-map-legend"><span>🔴 主人公</span><span>🟡 ハム全員（3D非表示も）</span></div></div><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div class="buttons"><button id="reset">⌂ リセット（開発用）</button></div><div class="note"><strong>🧪 テスト操作（開発用）</strong>
+button.slider-step:active{background:#c4dec1}.debug-controls output{font-variant-numeric:tabular-nums;white-space:nowrap}.debug-map{position:absolute;top:8px;left:8px;z-index:3;width:min(47%,210px);padding:6px;border-radius:9px;background:rgba(17,35,29,.65);box-shadow:0 2px 12px #2133247a;pointer-events:none;color:#fff;user-select:none}.debug-map[hidden]{display:none}.debug-map canvas{width:100%;height:auto;aspect-ratio:1;background:transparent;border-radius:3px}.debug-map-title{font-size:10px;font-weight:700;margin-bottom:3px}.debug-map-legend{font-size:9px;display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.build-info{position:relative}.build-info>strong{display:block;padding-right:50px;min-height:38px}
+button.build-help-button{position:absolute;top:9px;right:9px;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;padding:0;border:2px solid #6f9673;border-radius:50%;background:#f9fff5;color:#376344;font-size:23px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;z-index:2}
+button.build-help-button:focus-visible{outline:3px solid #397452;outline-offset:2px}
+.build-help-overlay{position:absolute;inset:0;z-index:3;display:flex;justify-content:center;align-items:center;padding:14px;background:rgba(29,52,35,.55);border-radius:9px;pointer-events:none}
+.build-help-overlay[hidden]{display:none}
+.build-help-label{padding:14px 20px;border-radius:13px;background:#fffdf3;color:#30533b;font-size:16px;font-weight:750;box-shadow:0 4px 18px #15241855;text-align:center}
+</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div id="build-info" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><span class="build-note">※main最新情報と、現在表示中のPages配信内容は反映待ちで異なる場合があります。</span><button id="build-help-button" class="build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay">?</button><div id="build-help-overlay" class="build-help-overlay" role="tooltip" hidden><div class="build-help-label">🧪 開発情報パネル</div></div></div><div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div><div class="play-surface" id="play-surface"><div class="debug-map" id="debug-map" hidden aria-hidden="true"><div class="debug-map-title">🗺️ 100m × 100m / 全NPC位置</div><canvas id="debug-map-canvas" width="256" height="256" role="img" aria-label="主人公が赤い点、全ハムスターが黄色い点のデバッグマップ"></canvas><div class="debug-map-legend"><span>🔴 主人公</span><span>🟡 ハム全員（3D非表示も）</span></div></div><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div class="buttons"><button id="reset">⌂ リセット（開発用）</button></div><div class="note"><strong>🧪 テスト操作（開発用）</strong>
 <div style="margin-top:10px;font-weight:700">🐹 NPC負荷・表示テスト</div>
 <div class="buttons"><button type="button" id="npc-stress-toggle" aria-pressed="false">🐹 ハムスター ×1000</button><button type="button" id="map-toggle" aria-pressed="false">🗺️ マップ表示</button></div>
 <div class="debug-controls">
@@ -46,6 +53,44 @@ button.slider-step:active{background:#c4dec1}.debug-controls output{font-variant
       time.textContent = '最終コミット：取得できません';
     })
     .finally(() => clearTimeout(timeout));
+})();
+
+// Hold the (?) button to reveal the panel's name; release to hide it.
+// Mouse hover also works on desktop. Keyboard Enter/Space shows the label while held.
+(function () {
+ const button=document.getElementById('build-help-button');
+ const label=document.getElementById('build-help-overlay');
+ let pressed=false,hovered=false,keyboardPressed=false;
+ const update=()=>{label.hidden=!(pressed||hovered||keyboardPressed);};
+ button.addEventListener('pointerenter',event=>{
+  if(event.pointerType==='mouse'){hovered=true;update();}
+ });
+ button.addEventListener('pointerleave',event=>{
+  if(event.pointerType==='mouse'){hovered=false;update();}
+ });
+ button.addEventListener('pointerdown',event=>{
+  if(event.button!==0)return;
+  pressed=true;update();
+  if(button.setPointerCapture)button.setPointerCapture(event.pointerId);
+  event.preventDefault();
+ });
+ const release=()=>{pressed=false;update();};
+ button.addEventListener('pointerup',release);
+ button.addEventListener('pointercancel',release);
+ button.addEventListener('lostpointercapture',release);
+ button.addEventListener('keydown',event=>{
+  if(event.key===' '||event.key==='Enter'){
+   keyboardPressed=true;update();
+   if(event.key===' ')event.preventDefault();
+  }
+  if(event.key==='Escape'){keyboardPressed=false;release();}
+ });
+ button.addEventListener('keyup',event=>{
+  if(event.key===' '||event.key==='Enter'){keyboardPressed=false;update();}
+ });
+ button.addEventListener('blur',()=>{
+  keyboardPressed=false;hovered=false;release();
+ });
 })();
 </script><script type="module">
 import { InputManager } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/input/InputManager.js";
