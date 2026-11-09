@@ -69,8 +69,32 @@ export function mountTestControlsPanel(root,api){
  const find=id=>root.querySelector('#'+id), cleanups=[];
  const bind=(el,event,fn)=>{if(!el)return;el.addEventListener(event,fn);cleanups.push(()=>el.removeEventListener(event,fn));};
  const write=(id,value)=>{const el=find(id);if(el)el.textContent=value;};
+ // When no Game API is supplied, operate this same UI locally.
+ // Defaults come from the canonical HTML controls, not a second game model.
+ const initial=Object.freeze({
+  npcCount:1,
+  npcRenderLimit:Number(find('npc-render-limit')?.defaultValue ?? 65),
+  npcRenderDistance:Number(find('npc-render-distance')?.defaultValue ?? 70),
+  renderMode:find('mode-a')?.getAttribute('aria-pressed')==='true'?'A':
+   find('mode-compare')?.getAttribute('aria-pressed')==='true'?'compare':'B',
+  mapVisible:find('map-toggle')?.getAttribute('aria-pressed')==='true',
+  testWarning:find('npc-render-warning')?.textContent ?? ''
+ });
+ let localState={...initial};
+ const readState=()=>api?api.getState():localState;
+ const act=(method,value)=>{
+  if(api)return api[method](value);
+  if(method==='reset')localState={...initial};
+  else if(method==='setRenderMode')localState.renderMode=value;
+  else if(method==='setNpcCount')localState.npcCount=value;
+  else if(method==='setNpcRenderLimit')localState.npcRenderLimit=Number(value);
+  else if(method==='setNpcRenderDistance')localState.npcRenderDistance=Number(value);
+  else if(method==='setMapVisible')localState.mapVisible=Boolean(value);
+  // A location button has no game world to teleport in standalone mode.
+  render();
+ };
  const render=()=>{
-  const s=api.getState(),stress=s.npcCount===1000;
+  const s=readState(),stress=s.npcCount===1000;
   const limit=find('npc-render-limit'),distance=find('npc-render-distance');
   if(limit)limit.value=String(s.npcRenderLimit);
   if(distance)distance.value=String(s.npcRenderDistance);
@@ -98,27 +122,27 @@ export function mountTestControlsPanel(root,api){
   write('mode-status',s.renderMode==='A'?'描画モード：Engine A（WebGL）':s.renderMode==='B'?'描画モード：Engine B（Three.js）':'描画モード：Engine A/B比較・共通Snapshot');
   write('npc-render-warning',s.testWarning);
  };
- bind(find('reset'),'click',()=>api.reset());
+ bind(find('reset'),'click',()=>act('reset',));
  for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']])
-  bind(find(id),'click',()=>api.setRenderMode(mode));
- bind(find('npc-render-limit'),'input',e=>api.setNpcRenderLimit(e.currentTarget.value));
- bind(find('npc-render-distance'),'input',e=>api.setNpcRenderDistance(e.currentTarget.value));
+  bind(find(id),'click',()=>act('setRenderMode',mode));
+ bind(find('npc-render-limit'),'input',e=>act('setNpcRenderLimit',e.currentTarget.value));
+ bind(find('npc-render-distance'),'input',e=>act('setNpcRenderDistance',e.currentTarget.value));
  for(const button of root.querySelectorAll('[data-step-target]')){
   bind(button,'click',()=>{
    const target=find(button.dataset.stepTarget);if(!target)return;
    const delta=Number(button.dataset.stepAmount);if(!Number.isFinite(delta))return;
    const value=Math.max(Number(target.min),Math.min(Number(target.max),Number(target.value)+delta));
-   if(button.dataset.stepTarget==='npc-render-limit')api.setNpcRenderLimit(value);
-   else if(button.dataset.stepTarget==='npc-render-distance')api.setNpcRenderDistance(value);
+   if(button.dataset.stepTarget==='npc-render-limit')act('setNpcRenderLimit',value);
+   else if(button.dataset.stepTarget==='npc-render-distance')act('setNpcRenderDistance',value);
   });
  }
  bind(find('npc-stress-toggle'),'click',()=>{
-  try{api.setNpcCount(api.getState().npcCount===1000?1:1000);}
+  try{act('setNpcCount',readState().npcCount===1000?1:1000);}
   catch(error){write('npc-stress-info','NPC負荷テストエラー：'+String(error.message||error));}
  });
- bind(find('map-toggle'),'click',()=>api.setMapVisible(!api.getState().mapVisible));
+ bind(find('map-toggle'),'click',()=>act('setMapVisible',!readState().mapVisible));
  for(const button of root.querySelectorAll('[data-spot]'))
-  bind(button,'click',()=>api.teleport(button.dataset.spot));
- const unsubscribe=api.subscribe(e=>{if(e.type==='state')render();});
+  bind(button,'click',()=>act('teleport',button.dataset.spot));
+ const unsubscribe=api?api.subscribe(e=>{if(e.type==='state')render();}):()=>{};
  render();return ()=>{unsubscribe();for(const off of cleanups)off();};
 }

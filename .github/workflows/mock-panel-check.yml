@@ -1,0 +1,24 @@
+name: Check generated mock panel
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'komorebi3d/dev.html'
+      - 'komorebi3d/dev-panel-components.js'
+      - 'komorebi3d/dev-panel-layout.js'
+      - 'komorebi3d/build-mock-panel.mjs'
+      - 'komorebi3d/mock-panel.html'
+      - '.github/workflows/mock-panel-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generated-file-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node komorebi3d/build-mock-panel.mjs --check
