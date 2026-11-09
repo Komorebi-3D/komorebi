@@ -1,0 +1,4 @@
+.landscape-game{position:relative;min-width:0;min-height:0;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;display:flex;align-items:center;justify-content:center;overflow:hidden;--help-button-color:#31563b;--help-overlay-bg:rgba(29,52,35,.42);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:2px solid #397452;--help-focus-offset:-4px}
+.landscape-game .play-surface{height:100%;max-width:100%;aspect-ratio:3/4;background:#000;border-radius:9px}
+.landscape-game button.game-help-button{display:block;z-index:4}
+.landscape-game .game-help-overlay:not([hidden]){display:flex}
