@@ -28,7 +28,7 @@ export function transitionPanelLayout(layout,action){
  return next;
 }
 
-export function mountPanelLayoutEditor(doc,initialLayout){
+export function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false}={}){
  let layout={...initialLayout},drag=null,menuSlot=null;
  const slots=new Map(SLOT_IDS.map(id=>[id,doc.querySelector('[data-panel-slot="'+id+'"]')]).filter(([,node])=>node));
  const panels=new Map(PANEL_IDS.map(id=>[id,doc.querySelector('[data-panel-id="'+id+'"]')]).filter(([,node])=>node));
@@ -100,6 +100,13 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   const next=transitionPanelLayout(layout,action);
   const previous=layout;
   const affected=SLOT_IDS.filter(name=>previous[name]!==next[name]);
+  if(preserveSlotSize){
+   for(const name of affected){
+    const slot=slots.get(name);
+    if(previous[name]&&!next[name])slot.style.minHeight=Math.ceil(slot.getBoundingClientRect().height)+'px';
+    else if(next[name])slot.style.minHeight='';
+   }
+  }
   closeMenu();clearTargets();drag=null;
   // Unmount only from the layout: never delete an existing panel node/canvas.
   for(const name of affected){
