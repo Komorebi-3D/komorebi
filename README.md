@@ -27,6 +27,7 @@ komorebi/
 ```
 
 - **[📍最新の開発状況・次タスク・チャット引き継ぎ](docs/STATUS.md)**
+- **[📘チャット質問形式・軽量モックの作り方・開発運用ルール](docs/WORKFLOW.md)**
 - [Engineの仕様](engine/README.md)
 - [ゲーム版と確認手順](komorebi3d/README.md)
 
