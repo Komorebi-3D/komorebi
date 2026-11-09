@@ -13,7 +13,7 @@ button.slider-step:active{background:#c4dec1}.debug-controls output{font-variant
 <label for="npc-render-limit">同時描画上限 <output id="npc-render-limit-value" for="npc-render-limit">65匹</output></label>
 <div class="slider-row"><button class="slider-step" type="button" data-step-target="npc-render-limit" data-step-amount="-25" aria-label="同時描画上限を25匹減らす">−</button><input id="npc-render-limit" type="range" min="1" max="1000" step="1" value="65" aria-label="ハムスターの3D同時描画上限"><button class="slider-step" type="button" data-step-target="npc-render-limit" data-step-amount="25" aria-label="同時描画上限を25匹増やす">＋</button></div>
 <label for="npc-render-distance">表示距離（主人公から） <output id="npc-render-distance-value" for="npc-render-distance">70m</output></label>
-<div class="slider-row"><button class="slider-step" type="button" data-step-target="npc-render-distance" data-step-amount="-5" aria-label="表示距離を5m短くする">−</button><input id="npc-render-distance" type="range" min="5" max="100" step="5" value="70" aria-label="ハムスターの3D表示距離"><button class="slider-step" type="button" data-step-target="npc-render-distance" data-step-amount="5" aria-label="表示距離を5m長くする">＋</button></div>
+<div class="slider-row"><button class="slider-step" type="button" data-step-target="npc-render-distance" data-step-amount="-5" aria-label="表示距離を5m短くする">−</button><input id="npc-render-distance" type="range" min="5" max="150" step="5" value="70" aria-label="ハムスターの3D表示距離"><button class="slider-step" type="button" data-step-target="npc-render-distance" data-step-amount="5" aria-label="表示距離を5m長くする">＋</button></div>
 </div>
 <div id="npc-stress-info" aria-live="polite" style="margin-top:6px">通常1匹。×1000で移動計算数を増やし、スライダーで表示負荷を調整。マップでは全員表示します。</div>
 <div id="npc-render-warning" aria-live="polite" style="margin-top:5px;color:#9b5224">高い描画数はiPhoneに負荷がかかります。描画数の増加は段階的に反映します。</div>
@@ -672,7 +672,7 @@ function productRenderSnapshot(){
  }
  return createMeshRenderSnapshot({
   frameId:++renderFrameId,
-  camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:150},
+  camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:220},
   objects
  });
 }
