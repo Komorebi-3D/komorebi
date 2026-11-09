@@ -56,7 +56,29 @@ button.game-help-button{display:none}
 
 /* Panel identity is independent from placement. */
 .panel-slot{min-width:0;min-height:0}
-.panel-slot[data-panel="empty"]{display:none}
+/* A removed panel leaves a visible, reusable slot. */
+.panel-slot{position:relative}
+.panel-slot[data-panel="empty"]{display:block;min-height:110px}
+.panel-slot-top[data-panel="empty"]{min-height:70px}
+.panel-slot-main[data-panel="empty"]{min-height:220px}
+.panel-slot-bottom[data-panel="empty"]{min-height:130px}
+.panel-slot.panel-drop-target{outline:3px solid #438d61;outline-offset:2px;box-shadow:0 0 0 5px #53986930}
+button.panel-add-button{position:absolute;top:0;right:0;z-index:8;width:44px;height:44px;min-width:44px;min-height:44px;flex:none;border:0;border-radius:9px;padding:0;background:transparent;color:#31563b;cursor:pointer;touch-action:manipulation}
+button.panel-add-button span{position:absolute;top:8px;right:8px;width:14px;height:14px;display:grid;place-items:center;font:700 15px/1 system-ui}
+button.panel-add-button:focus-visible{outline:2px solid #397452;outline-offset:-3px}
+.panel-add-menu{position:absolute;top:46px;right:0;min-width:177px;max-width:min(230px,90vw);z-index:20;padding:8px;border:1px solid #bcccaf;border-radius:9px;background:#fffdf7;box-shadow:0 6px 18px #0003;color:#395c44}
+.panel-add-menu-title{padding:4px 5px;font-size:11px;font-weight:750;color:#667664}
+.panel-add-menu button{display:block;width:100%;min-height:44px;flex:none;margin:3px 0;padding:9px 7px;border:0;border-radius:7px;background:#eaf1e5;color:#395c44;text-align:left;font:700 11px system-ui;touch-action:manipulation}
+.panel-add-menu button:focus-visible{outline:2px solid #397452}
+.panel-help-overlay:not([hidden]){display:flex;flex-direction:column;gap:15px;align-items:center;justify-content:center}
+button.panel-trash-target{display:grid;place-items:center;flex:none;width:52px;height:52px;min-width:52px;min-height:52px;padding:0;border:2px solid rgba(255,255,255,.94);border-radius:50%;background:rgba(255,255,255,.19);color:#fff;box-shadow:0 0 0 4px #ffffff2b;pointer-events:none;touch-action:none}
+button.panel-trash-target[hidden],.panel-edit-hint[hidden]{display:none}
+button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6px #e9aca288;transform:scale(1.08)}
+.panel-editor-armed button.panel-trash-target{pointer-events:auto;cursor:pointer}
+.panel-edit-hint{font-size:10px;font-weight:700;color:#fff;text-align:center}
+.landscape-game button.game-help-button{display:block;z-index:4}
+.landscape-game .game-help-overlay:not([hidden]){display:flex}
+
 
 /* Responsive iPad mini 5 landscape: whole first viewport = developer info + game/test split.
    iPhone and portrait keep their current vertically stacked UI. */
@@ -76,13 +98,17 @@ button.game-help-button{display:none}
  .landscape-hero .panel-slot-top>[data-panel-id]:not(.build-info){height:100%;margin:0;min-height:0}
  .landscape-hero .panel-slot-top>.runtime-status{overflow-y:auto}
  .landscape-main{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
- .landscape-main[data-visible-panels="1"]{grid-template-columns:minmax(0,1fr)}
+ /* Keep both columns: an empty one still needs its + button. */
+ .landscape-main[data-visible-panels="1"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .landscape-hero .panel-slot-top[data-panel="empty"]{min-height:70px;z-index:6}
+ .landscape-main .panel-slot-main[data-panel="empty"]{overflow:visible;min-height:0}
+ .panel-slot-bottom[data-panel="empty"]{min-height:130px}
  .landscape-main .panel-slot-main{min-width:0;min-height:0;height:100%;overflow:hidden}
  .landscape-main .panel-slot-main>[data-panel-id]{min-width:0;min-height:0;height:100%;margin:0}
  .landscape-main .panel-slot-main>.build-info,.landscape-main .panel-slot-main>.runtime-status{overflow-y:auto}
  .landscape-game{min-height:0;min-width:0;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;display:flex;align-items:center;justify-content:center;overflow:hidden}
  .landscape-game button.game-help-button{display:block;z-index:4}
- .landscape-game .game-help-overlay:not([hidden]){display:grid}
+ .landscape-game .game-help-overlay:not([hidden]){display:flex}
  .landscape-game .play-surface{height:100%;width:auto;max-width:100%;min-width:0;min-height:0;aspect-ratio:3/4;flex:0 1 auto}
  /* Comparison only: the combined A/B surface can fill the full left pane.
     Each renderer canvas still keeps its own 3:4 ratio. */
@@ -183,45 +209,7 @@ applyPanelLayout(PANEL_LAYOUT);
     .finally(() => clearTimeout(timeout));
 })();
 
-// Shared explanation controller for all three panels; aria-describedby pairs button and label.
-function setupPanelHelp(button){
- const overlay=document.getElementById(button.getAttribute('aria-describedby'));
- if(!overlay)throw new Error('Info overlay missing for '+button.id);
- let pressed=false,hovered=false,keyboardPressed=false;
- const update=()=>{overlay.hidden=!(pressed||hovered||keyboardPressed);};
- const release=()=>{pressed=false;update();};
- button.addEventListener('pointerenter',event=>{
-  if(event.pointerType==='mouse'){hovered=true;update();}
- });
- button.addEventListener('pointerleave',event=>{
-  if(event.pointerType==='mouse'){hovered=false;update();}
- });
- button.addEventListener('pointerdown',event=>{
-  if(event.button!==0)return;
-  pressed=true;update();
-  try{button.setPointerCapture?.(event.pointerId)}catch(_){}
-  event.preventDefault();
- });
- button.addEventListener('pointerup',release);
- button.addEventListener('pointercancel',release);
- button.addEventListener('lostpointercapture',release);
- button.addEventListener('keydown',event=>{
-  if(event.key==='Enter'||event.key===' '){
-   keyboardPressed=true;update();
-   if(event.key===' ')event.preventDefault();
-  }
-  if(event.key==='Escape'){
-   pressed=false;hovered=false;keyboardPressed=false;update();
-  }
- });
- button.addEventListener('keyup',event=>{
-  if(event.key==='Enter'||event.key===' '){keyboardPressed=false;update();}
- });
- button.addEventListener('blur',()=>{
-  pressed=false;hovered=false;keyboardPressed=false;update();
- });
-}
-document.querySelectorAll('.panel-help-button').forEach(setupPanelHelp);
+// Live panel help/gestures are initialized after the Game API mounts.
 </script><script type="module">
 import { InputManager } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/input/InputManager.js";
 import { TouchStick } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/input/TouchStick.js";
@@ -232,6 +220,7 @@ import { GroundBounds } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komor
 import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/CollisionWorld2D.js";
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
 import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js";
+import {mountPanelLayoutEditor} from "./dev-panel-layout.js";
 (function(){var d=document.getElementById("launch-diagnostic");if(d)d.textContent="診断：JavaScript実行OK / WebGL="+(function(){try{return !!document.createElement("canvas").getContext("webgl")}catch(e){return false}})()+" / Three.js読み込みを確認中";window.addEventListener("error",function(e){if(d)d.textContent="診断：JavaScriptエラー："+e.message});window.addEventListener("unhandledrejection",function(e){if(d)d.textContent="診断：読み込みエラー："+String(e.reason)});})();
 
 const $=id=>document.getElementById(id);
@@ -909,6 +898,8 @@ const gameApi=Object.freeze({
 const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('.runtime-status'),gameApi);
 
 const unmountTestControlsPanel=mountTestControlsPanel(document.querySelector('#test-ops-panel'),gameApi);
+// Reparent existing nodes only; Game API subscriptions and canvases survive edits.
+mountPanelLayoutEditor(document,PANEL_LAYOUT);
 let slowRenderWindows=0;
 function frame(t){
  const dt=Math.min(2,(t-last)/16.67||1);last=t;
@@ -920,7 +911,8 @@ function frame(t){
  }
  publishRuntimeStatus('pos',`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`);
  publishRuntimeStatus('edge',(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内');
- if(gameView){
+ // When the game panel is removed, keep simulation state but pause GPU drawing.
+ if(gameView?.canvasB.isConnected){
   try{
    const snapshot=productRenderSnapshot();
    if(renderMode!=='B'&&okA)rendererA.render(snapshot);
