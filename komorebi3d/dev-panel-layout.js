@@ -29,8 +29,7 @@ export function transitionPanelLayout(layout,action){
 }
 
 export function mountPanelLayoutEditor(doc,initialLayout){
- const LONG_PRESS_MS=450, HOLD_MOVE_TOLERANCE=12;
- let layout={...initialLayout},pending=null,drag=null,menuSlot=null;
+ let layout={...initialLayout},drag=null,menuSlot=null;
  const slots=new Map(SLOT_IDS.map(id=>[id,doc.querySelector('[data-panel-slot="'+id+'"]')]));
  const panels=new Map(PANEL_IDS.map(id=>[id,doc.querySelector('[data-panel-id="'+id+'"]')]));
  for(const [id,node] of [...slots,...panels])if(!node)throw new Error('Missing panel or slot: '+id);
@@ -58,7 +57,7 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   button.addEventListener('pointerleave',event=>{
    if(event.pointerType==='mouse'){hovered.delete(id);refreshHelp();}
   });
-  button.addEventListener('focus',()=>{focused.add(id);refreshHelp();});
+  button.addEventListener('focus',()=>{if(button.matches(':focus-visible'))focused.add(id);refreshHelp();});
   button.addEventListener('blur',()=>{focused.delete(id);refreshHelp();});
   button.addEventListener('keydown',event=>{
    if(event.key==='Escape'){cancel();event.preventDefault();}
@@ -68,7 +67,7 @@ export function mountPanelLayoutEditor(doc,initialLayout){
  function refreshHelp(){
   for(const [id,{button,overlay,trash,hint}] of help){
    const editing=drag?.fromId===id;
-   const showingInfo=editing||pending?.fromId===id||hovered.has(id)||focused.has(id);
+   const showingInfo=editing||hovered.has(id)||focused.has(id);
    overlay.hidden=!showingInfo;
    trash.hidden=!editing;hint.hidden=!editing;
    panels.get(id).classList.toggle('panel-editor-armed',editing);
@@ -99,7 +98,7 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   const next=transitionPanelLayout(layout,action);
   const previous=layout;
   const affected=SLOT_IDS.filter(name=>previous[name]!==next[name]);
-  closeMenu();clearTargets();clearPending();drag=null;
+  closeMenu();clearTargets();drag=null;
   // Unmount only from the layout: never delete an existing panel node/canvas.
   for(const name of affected){
    const id=previous[name];
@@ -112,9 +111,6 @@ export function mountPanelLayoutEditor(doc,initialLayout){
    slot.appendChild(id?panels.get(id):makePlus(name));
   }
   refreshSlotMeta();refreshHelp();
- }
- function clearPending(){
-  if(pending){clearTimeout(pending.timer);pending=null;}
  }
  function openMenu(slotName){
   closeMenu();refreshHelp();
@@ -157,51 +153,29 @@ export function mountPanelLayoutEditor(doc,initialLayout){
   if(drag.target?.type==='remove')help.get(drag.fromId).trash.classList.add('panel-trash-hot');
  }
  function onGripDown(event,id,button){
-  if(pending||drag||(event.pointerType==='mouse'&&event.button!==0))return;
+  if(drag||(event.pointerType==='mouse'&&event.button!==0))return;
   event.preventDefault();
   closeMenu();
-  const hold={fromId:id,fromSlot:slotFor(id),pointerId:event.pointerId,
-   startX:event.clientX,startY:event.clientY,timer:null};
-  pending=hold;
+  // Description and trash appear together while the info icon is held.
+  drag={fromId:id,fromSlot:slotFor(id),pointerId:event.pointerId,
+   startX:event.clientX,startY:event.clientY,target:null};
   try{button.setPointerCapture?.(event.pointerId);}catch(_){}
-  // Show the name immediately; reveal the trash after the hold only.
   refreshHelp();
-  hold.timer=setTimeout(()=>{
-   if(pending!==hold)return;
-   pending=null;
-   drag={fromId:id,fromSlot:hold.fromSlot,pointerId:hold.pointerId,
-    startX:hold.startX,startY:hold.startY,target:null};
-   refreshHelp();
-  },LONG_PRESS_MS);
  }
  function onMove(event){
-  if(pending?.pointerId===event.pointerId){
-   if(event.cancelable)event.preventDefault();
-   if(Math.hypot(event.clientX-pending.startX,event.clientY-pending.startY)>HOLD_MOVE_TOLERANCE){
-    clearPending();refreshHelp();
-   }
-   return;
-  }
   if(!drag||event.pointerId!==drag.pointerId)return;
   if(event.cancelable)event.preventDefault();
   updateDrag(event);
  }
  function onUp(event){
-  if(pending?.pointerId===event.pointerId){
-   if(event.cancelable)event.preventDefault();
-   clearPending();refreshHelp();
-   return;
-  }
   if(!drag||event.pointerId!==drag.pointerId)return;
   if(event.cancelable)event.preventDefault();
   updateDrag(event);
   const target=drag.target;
   if(target)commit(target);
-  else{
-   clearTargets();drag=null;refreshHelp();
-  }
+  else{clearTargets();drag=null;refreshHelp();}
  }
- function cancel(){clearPending();drag=null;clearTargets();closeMenu();refreshHelp();}
+ function cancel(){drag=null;clearTargets();closeMenu();refreshHelp();}
  function onClick(event){
   const choice=event.target.closest('[data-panel-add-option]');
   if(choice){
@@ -215,20 +189,20 @@ export function mountPanelLayoutEditor(doc,initialLayout){
    if(menuSlot===name)closeMenu();else openMenu(name);
    event.preventDefault();event.stopPropagation();return;
   }
-  // A quick tap is informational, never an editing action.
+  // A quick tap never leaves the trash visible after release.
   if(menuSlot!==null&&!event.target.closest('.panel-add-menu'))closeMenu();
  }
  // Suppress scrolling only for pointer sequences that begin on an info icon.
  function onTouchMove(event){
-  if((pending||drag)&&event.cancelable)event.preventDefault();
+  if(drag&&event.cancelable)event.preventDefault();
  }
  doc.addEventListener('pointermove',onMove,true);
  doc.addEventListener('pointerup',onUp,true);
  doc.addEventListener('pointercancel',event=>{
-  if(pending?.pointerId===event.pointerId||drag?.pointerId===event.pointerId)cancel();
+  if(drag?.pointerId===event.pointerId)cancel();
  },true);
  doc.addEventListener('lostpointercapture',event=>{
-  if(pending?.pointerId===event.pointerId||drag?.pointerId===event.pointerId)cancel();
+  if(drag?.pointerId===event.pointerId)cancel();
  },true);
  doc.addEventListener('touchmove',onTouchMove,{passive:false,capture:true});
  doc.addEventListener('click',onClick,true);
