@@ -94,7 +94,7 @@ class OutdoorNpcManager {
   this.agents=[];
   this.ids=new Set();
   this.drawCandidates=[];this.visibleCount=0;this.drawCount=0;
-  this.maxDrawn=65;this.actualLimit=65;this.maxDrawDistance=70;this.candidatesInRange=0;
+  this.maxDrawn=65;this.actualLimit=65;this.maxDrawDistance=70;this.candidatesInRange=0;this.primaryDrawn=1;
   this.visibleTicks=0;
   this.offscreenTicks=0;
  }
@@ -139,7 +139,7 @@ class OutdoorNpcManager {
    a.accumulated=0;a.visible=true;a.seed=a.initialSeed;
   }
   this.visibleTicks=0;this.offscreenTicks=0;
-  this.visibleCount=0;this.drawCount=0;this.candidatesInRange=0;this.drawCandidates.length=0;
+  this.visibleCount=0;this.drawCount=0;this.candidatesInRange=0;this.primaryDrawn=1;this.drawCandidates.length=0;
  }
  isVisible(a,view){
   // Conservative perspective-frustum check. A margin prevents rapid LOD flipping.
@@ -212,9 +212,13 @@ class OutdoorNpcManager {
     a.drawX=a.x;a.drawZ=a.z;a.drawYaw=a.yaw;
    }
   }
+  const primary=this.agents[0];
+  this.primaryDrawn=primary.visible&&
+   (primary.x-view.playerX)**2+(primary.z-view.playerZ)**2<=this.maxDrawDistance*this.maxDrawDistance?1:0;
   this.drawCandidates.sort((a,b)=>a.score-b.score);
-  if(this.drawCandidates.length>this.actualLimit-1)this.drawCandidates.length=Math.max(0,this.actualLimit-1);
-  this.drawCount=this.drawCandidates.length+1;
+  const extraLimit=Math.max(0,this.actualLimit-this.primaryDrawn);
+  if(this.drawCandidates.length>extraLimit)this.drawCandidates.length=extraLimit;
+  this.drawCount=this.drawCandidates.length+this.primaryDrawn;
  }
 }
 const npcManager=new OutdoorNpcManager({collision:npcCollisionWorld,ground:groundSystem});
@@ -625,7 +629,7 @@ function productRenderSnapshot(){
    id:p.name+":"+i,geometry:engineMeshes[i],
    position:p.name==='avatar'?[game.x,characterY,game.z]:p.name==='hamster'?[hamsterNpc.drawX,0,hamsterNpc.drawZ]:p.offset,
    yaw:p.name==='avatar'?game.angle:p.name==='hamster'?hamsterNpc.drawYaw:0,
-   opacity:wallOpacity(p.name),visible:!hiddenPart(p.name)
+   opacity:wallOpacity(p.name),visible:p.name==='hamster'?npcManager.primaryDrawn===1:!hiddenPart(p.name)
  }));
  // Only nearby visible extras, limited by the draw-count slider, reach Renderer A or B.
  for(const a of npcManager.drawCandidates){
@@ -697,6 +701,7 @@ for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']
 let initialMode='B';
 try{initialMode=localStorage.getItem('komorebi3d-render-mode-dev')||'B'}catch(e){}
 setRenderMode(initialMode);
+let slowRenderWindows=0;
 function frame(t){
  const dt=Math.min(2,(t-last)/16.67||1);last=t;
  const commands=readEngineInput(),oldX=game.x,oldZ=game.z;
@@ -720,7 +725,20 @@ function frame(t){
   console.error(error);
  }
  frames++;
- if(t-start>1000){const fps=Math.round(frames*1000/(t-start));$('fps').textContent='FPS '+fps;$('npc-status').textContent='🐹 総数'+npcManager.agents.length+'匹 / 視界内'+npcManager.visibleCount+' / 範囲内候補'+npcManager.candidatesInRange+' / 3D表示'+npcManager.drawCount+' / 上限'+npcManager.maxDrawn;start=t;frames=0}
+ if(t-start>1000){
+  const fps=Math.round(frames*1000/(t-start));
+  $('fps').textContent='FPS '+fps;
+  $('npc-status').textContent='🐹 全'+npcManager.agents.length+'匹 / 視界内'+npcManager.visibleCount+' / 距離内候補'+npcManager.candidatesInRange+' / 3D表示'+npcManager.drawCount+' / 上限'+npcManager.maxDrawn;
+  // If a stress test becomes extremely slow, lower the requested rendering budget.
+  slowRenderWindows=(npcManager.agents.length===1000&&npcManager.drawCount>65&&fps<12)?slowRenderWindows+1:0;
+  if(slowRenderWindows>=2){
+   const safe=Math.max(65,Math.floor(npcManager.drawCount*.60));
+   npcRenderLimit.value=String(safe);updateNpcRenderControls();
+   $('npc-render-warning').textContent='⚠️ '+fps+'FPSが続いたため、描画上限を'+safe+'匹に自動調整しました。';
+   slowRenderWindows=0;
+  }
+  start=t;frames=0;
+ }
  if(miniMapVisible&&t-lastMiniMapFrame>=200){paintDebugMap();lastMiniMapFrame=t;}
  requestAnimationFrame(frame);
 }
