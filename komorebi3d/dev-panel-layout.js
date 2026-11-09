@@ -100,13 +100,6 @@ export function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false
   const next=transitionPanelLayout(layout,action);
   const previous=layout;
   const affected=SLOT_IDS.filter(name=>previous[name]!==next[name]);
-  if(preserveSlotSize){
-   for(const name of affected){
-    const slot=slots.get(name);
-    if(previous[name]&&!next[name])slot.style.minHeight=Math.ceil(slot.getBoundingClientRect().height)+'px';
-    else if(next[name])slot.style.minHeight='';
-   }
-  }
   closeMenu();clearTargets();drag=null;
   // Unmount only from the layout: never delete an existing panel node/canvas.
   for(const name of affected){
@@ -220,5 +213,16 @@ export function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false
  // When only some panels exist, empty slots may still offer the available components.
  for(const [name,slot] of slots)if(!layout[name])slot.replaceChildren(makePlus(name));
  refreshSlotMeta();refreshHelp();
+ if(preserveSlotSize){
+  // Record the original geometry once, before any panel is moved or removed.
+  for(const slot of slots.values()){
+   const height=Math.ceil(slot.getBoundingClientRect().height);
+   if(height>0){
+    slot.style.height=height+'px';
+    slot.style.minHeight=height+'px';
+    slot.dataset.slotSizeFixed='';
+   }
+  }
+ }
  return {getLayout:()=>({...layout})};
 }
