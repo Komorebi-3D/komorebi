@@ -1,0 +1,803 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Komorebi 3D DEV｜NPC表示限界テスト</title><style>/* @component-styles */</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div class="landscape-hero"><div class="site-heading" style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><!-- @panel:build --></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><!-- @panel:game --></div><div class="panel-slot panel-slot-main" data-panel-slot="right"><!-- @panel:test --></div></div></div><div class="panel-slot panel-slot-bottom" data-panel-slot="bottom"><!-- @panel:runtime --></div></div><script>
+// Only this mapping controls which panel is displayed in each slot.
+// Set a slot to null to omit the panel. Removed panel markup is also safe.
+const PANEL_LAYOUT=Object.freeze({top:'build',left:'game',right:'test',bottom:'runtime'});
+function applyPanelLayout(layout){
+ const slotNames=['top','left','right','bottom'];
+ const slots=new Map(Array.from(document.querySelectorAll('[data-panel-slot]'),el=>[el.dataset.panelSlot,el]));
+ const panels=new Map(Array.from(document.querySelectorAll('[data-panel-id]'),el=>[el.dataset.panelId,el]));
+ const used=new Set();
+ for(const slotName of slotNames){
+  if(!slots.has(slotName))throw new Error('Missing panel slot: '+slotName);
+  const key=layout[slotName];
+  if(key==null)continue;
+  if(!['build','game','test','runtime'].includes(key)||used.has(key))
+   throw new Error('Unknown or repeated panel: '+key);
+  used.add(key);
+ }
+ // Must run before module initialization: moving a live WebGL canvas is avoided.
+ for(const slot of slots.values())slot.replaceChildren();
+ for(const slotName of slotNames){
+  const key=layout[slotName],slot=slots.get(slotName),panel=panels.get(key);
+  slot.dataset.panel=panel?key:'empty';
+  if(panel)slot.appendChild(panel);
+ }
+ for(const [key,panel] of panels)if(!used.has(key))panel.remove();
+ const main=document.querySelector('.landscape-main');
+ if(main)main.dataset.visiblePanels=String(['left','right'].filter(s=>slots.get(s).dataset.panel!=='empty').length);
+}
+applyPanelLayout(PANEL_LAYOUT);
+
+(function () {
+  const hash = document.getElementById('github-commit');
+  const time = document.getElementById('github-commit-time');
+  if (!hash || !time) return;
+  const url = 'https://api.github.com/repos/shuma-fujita1012/komorebi/commits/main';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+  fetch(url, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store', signal: controller.signal })
+    .then(response => { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
+    .then(commit => {
+      const sha = typeof commit.sha === 'string' ? commit.sha.slice(0, 7) : null;
+      const iso = commit.commit && (commit.commit.committer?.date || commit.commit.author?.date);
+      if (!sha || !iso || Number.isNaN(new Date(iso).getTime())) throw new Error('コミット情報なし');
+      const jst = new Intl.DateTimeFormat('ja-JP', {
+        timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit',
+        day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+      }).format(new Date(iso));
+      hash.textContent = 'GitHub main最新：' + sha;
+      time.textContent = '最終コミット：' + jst + ' JST';
+    })
+    .catch(() => {
+      hash.textContent = 'GitHub main最新：取得できません';
+      time.textContent = '最終コミット：取得できません';
+    })
+    .finally(() => clearTimeout(timeout));
+})();
+
+// Live panel help/gestures are initialized after the Game API mounts.
+</script><script type="module">
+import { InputManager } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/input/InputManager.js";
+import { TouchStick } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/input/TouchStick.js";
+import { FollowCameraRig } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/camera/FollowCameraRig.js";
+import { createRenderer } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/renderer/RendererFactory.js";
+import { createMeshGeometry, createMeshRenderSnapshot } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/renderer/MeshRenderSnapshot.js";
+import { GroundBounds } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/GroundBounds.js";
+import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/CollisionWorld2D.js";
+import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
+import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js";
+import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=press-together-20261109";
+(function(){var d=document.getElementById("launch-diagnostic");if(d)d.textContent="診断：JavaScript実行OK / WebGL="+(function(){try{return !!document.createElement("canvas").getContext("webgl")}catch(e){return false}})()+" / Three.js読み込みを確認中";window.addEventListener("error",function(e){if(d)d.textContent="診断：JavaScriptエラー："+e.message});window.addEventListener("unhandledrejection",function(e){if(d)d.textContent="診断：読み込みエラー："+String(e.reason)});})();
+
+const $=id=>document.getElementById(id);
+// Panel display logic is imported; game simulation remains here.
+const gameView=createGameView(document.querySelector('.landscape-game'));
+
+// Game-to-panel boundary: status events are buffered even when no status panel is mounted.
+const runtimeStatusValues=new Map();
+const gameStateListeners=new Set();
+function publishRuntimeStatus(id,value){
+ const text=String(value);
+ runtimeStatusValues.set(id,text);
+ for(const listener of gameStateListeners)listener({type:'status',id,value:text});
+}
+function publishGameState(){for(const listener of gameStateListeners)listener({type:'state'});}
+// House/tree/cafe obstacles remain game data; Engine owns physics.
+// Cafe location is provisional; no new surrounding landscape elements.
+const CAFE_X=-25,CAFE_Z=-20;
+const cafeRect=(id,x,z,width,depth)=>({id:'cafe-'+id,type:'rect',centerX:CAFE_X+x,centerZ:CAFE_Z+z,width,depth,enabled:true});
+const GAME_COLLISION_OBSTACLES = [
+  // The house foundation in v12 is centered at (4.5,-4.5), 14 x 10.
+  // House shell is four walls; front wall has a 2.1m open doorway.
+  {id:'house-back',type:'rect',centerX:4.5,centerZ:-9.45,width:14,depth:.24,enabled:true},
+  {id:'house-left',type:'rect',centerX:-2.45,centerZ:-4.5,width:.24,depth:10,enabled:true},
+  {id:'house-right',type:'rect',centerX:11.45,centerZ:-4.5,width:.24,depth:10,enabled:true},
+  {id:'house-front-left',type:'rect',centerX:.55,centerZ:.45,width:6.1,depth:.24,enabled:true},
+  {id:'house-front-right',type:'rect',centerX:8.45,centerZ:.45,width:6.1,depth:.24,enabled:true},
+  // Tree trunk is 0.8 x 0.8; this radius is a gameplay approximation.
+  {id:'tree',type:'circle',centerX:-7,centerZ:-5,radius:0.65,enabled:true,role:'tree'}
+];
+// The cafe has four walls with a 3m opening, and solid counter/table furniture.
+GAME_COLLISION_OBSTACLES.push(
+ cafeRect('back',0,-4.94,14,.22),
+ cafeRect('left',-6.94,0,.22,10),
+ cafeRect('right',6.94,0,.22,10),
+ cafeRect('front-left',-4.25,4.94,5.5,.22),
+ cafeRect('front-right',4.25,4.94,5.5,.22),
+ cafeRect('service-counter',4.25,.5,1.15,5),
+ cafeRect('window-counter',-1.65,-3.88,7.7,.7),
+ cafeRect('showcase',3.83,-2.27,1.3,1.25),
+ ...[-1.2,1.8].flatMap(z=>[-3.15,1.75].map(x=>cafeRect('table-'+x+'-'+z,x,z,1.45,1.2))),
+ cafeRect('deck-table-left',-3.1,7.05,1.4,1.3),
+ cafeRect('deck-table-right',3.1,7.05,1.4,1.3)
+);
+const groundSystem=new GroundBounds({centerX:0,centerZ:0,width:100,depth:100});
+const ground=groundSystem.getGround();
+const collisionSystem=new CollisionWorld2D({
+ obstacles:GAME_COLLISION_OBSTACLES,characterRadius:.35,maxStep:.12
+});
+const core=new CharacterMotionCore2D({
+ ground:groundSystem,collision:collisionSystem,
+ initialState:{x:0,z:4.5,angle:.55,spin:0},
+ tapRadians:.14,spinRadiansPerFrame:.025,moveUnitsPerFrame:.095,deadzone:.06
+});
+publishRuntimeStatus('core-status','🧩 Engine main正式接続：Core・Collision・Input・Camera・Renderer');
+const game=new Proxy({}, {get:(_,key)=>core.getState()[key]});
+// Lightweight outdoor NPC manager: shared collision map, 10Hz when on screen,
+// 1Hz when off screen. No per-NPC intervals, DOM handlers, or mesh allocations.
+const npcCollisionWorld=new CollisionWorld2D({
+ obstacles:[
+  ...GAME_COLLISION_OBSTACLES,
+  {id:'npc-no-house-interior',type:'rect',centerX:4.5,centerZ:-4.5,width:14,depth:10},
+  {id:'npc-no-cafe-interior',type:'rect',centerX:CAFE_X,centerZ:CAFE_Z,width:14,depth:10}
+ ],
+ characterRadius:.78,maxStep:.12
+});
+class OutdoorNpcManager {
+ constructor({collision,ground}){
+  this.collision=collision;
+  this.ground=ground;
+  this.agents=[];
+  this.ids=new Set();
+  this.drawCandidates=[];this.visibleCount=0;this.drawCount=0;
+  this.maxDrawn=65;this.actualLimit=65;this.maxDrawDistance=70;this.candidatesInRange=0;this.primaryDrawn=1;
+  this.visibleTicks=0;
+  this.offscreenTicks=0;
+ }
+ add(id,x,z){
+  if(this.ids.has(id)||this.collision.collides(x,z))throw new Error('Invalid NPC start: '+id);
+  const initialSeed=(0x7a4b91ce ^ Math.imul(this.agents.length+1,0x9e3779b9))>>>0;
+  const a={id,startX:x,startZ:z,x,z,drawX:x,drawZ:z,yaw:0,drawYaw:0,
+   moving:true,speed:.63,remaining:2.8,accumulated:0,visible:true,score:0,seed:initialSeed,initialSeed};
+  this.agents.push(a);this.ids.add(id);
+  return a;
+ }
+ setPopulation(target){
+  if(target!==1&&target!==1000)throw new RangeError('NPC count must be 1 or 1000');
+  if(target===1){
+   this.agents.length=1;this.ids.clear();this.ids.add(this.agents[0].id);
+   this.reset();return 1;
+  }
+  if(this.agents.length===1000)return 1000;
+  const base=this.agents[0],cell=92/35,total=36*36;
+  // Deterministically shuffle grid positions to distribute NPCs over the whole map.
+  for(let i=0;i<total&&this.agents.length<1000;i++){
+   const j=(i*325+217)%total;
+   const x=-46+(j%36)*cell,z=-46+Math.floor(j/36)*cell;
+   if(this.collision.collides(x,z)||Math.hypot(x-base.x,z-base.z)<1.8)continue;
+   const a=this.add('stress-'+i,x,z);
+   a.yaw=a.drawYaw=(a.initialSeed/4294967296)*Math.PI*2;
+   a.remaining=.6+((a.initialSeed>>>8)%350)/100;
+   a.accumulated=(a.initialSeed%1000)/1000;
+  }
+  if(this.agents.length!==1000)throw new Error('No 1000 safe spawn points');
+  return this.agents.length;
+ }
+ random(a){
+  // Fast per-agent deterministic generator; no repeated random object allocation.
+  a.seed=(Math.imul(1664525,a.seed)+1013904223)>>>0;
+  return a.seed/4294967296;
+ }
+ reset(){
+  for(const a of this.agents){
+   a.x=a.drawX=a.startX;a.z=a.drawZ=a.startZ;
+   a.yaw=a.drawYaw=0;a.moving=true;a.speed=.63;a.remaining=2.8;
+   a.accumulated=0;a.visible=true;a.seed=a.initialSeed;
+  }
+  this.visibleTicks=0;this.offscreenTicks=0;
+  this.visibleCount=0;this.drawCount=0;this.candidatesInRange=0;this.primaryDrawn=1;this.drawCandidates.length=0;
+ }
+ isVisible(a,view){
+  // Conservative perspective-frustum check. A margin prevents rapid LOD flipping.
+  const [ex,ey,ez]=view.eye,[tx,ty,tz]=view.target;
+  let fx=tx-ex,fy=ty-ey,fz=tz-ez;
+  const length=Math.hypot(fx,fy,fz)||1;
+  fx/=length;fy/=length;fz/=length;
+  const horizontal=Math.hypot(fx,fz)||1;
+  const rx=-fz/horizontal,rz=fx/horizontal;
+  const ux=-rz*fy,uy=rz*fx-rx*fz,uz=rx*fy;
+  const vx=a.x-ex,vy=1.15-ey,vz=a.z-ez;
+  const depth=vx*fx+vy*fy+vz*fz;
+  if(depth<-.8)return false;
+  const side=vx*rx+vz*rz,up=vx*ux+vy*uy+vz*uz;
+  const halfHeight=Math.max(0,depth)*.41421356+1.8;
+  const visible=Math.abs(up)<=halfHeight&&Math.abs(side)<=halfHeight*.75+1.0;
+  if(visible)a.score=vx*vx+vy*vy+vz*vz;
+  return visible;
+ }
+ chooseNext(a){
+  if(this.random(a)<.25){
+   a.moving=false;a.remaining=.9+this.random(a)*1.8;
+  }else{
+   a.moving=true;a.yaw=this.random(a)*Math.PI*2;
+   a.speed=.46+this.random(a)*.30;
+   a.remaining=2.0+this.random(a)*3.2;
+  }
+ }
+ step(a,elapsed){
+  let left=elapsed;
+  while(left>1e-6){
+   if(a.remaining<=1e-6)this.chooseNext(a);
+   const span=Math.min(left,.24,a.remaining);
+   if(a.moving){
+    const dx=Math.sin(a.yaw)*a.speed*span,dz=Math.cos(a.yaw)*a.speed*span;
+    const prevX=a.x,prevZ=a.z;
+    this.collision.move(a,dx,dz,this.ground);
+    // Wall or tree encountered: turn away, never enter building interiors.
+    if(Math.hypot(a.x-prevX,a.z-prevZ)<Math.hypot(dx,dz)*.65){
+     a.yaw+=Math.PI*.6+this.random(a)*Math.PI*.8;
+     a.remaining=Math.min(a.remaining,1.1);
+    }
+   }
+   a.remaining-=span;left-=span;
+  }
+ }
+ update(dt,view){
+  const seconds=Math.max(0,Math.min(.05,dt));
+  if(this.actualLimit>this.maxDrawn)this.actualLimit=this.maxDrawn;
+  else if(this.actualLimit<this.maxDrawn)this.actualLimit=Math.min(this.maxDrawn,this.actualLimit+8);
+  this.visibleCount=0;this.candidatesInRange=0;this.drawCandidates.length=0;
+  for(const a of this.agents){
+   a.visible=this.isVisible(a,view);
+   const cadence=a.visible?.1:1.0;
+   a.accumulated+=seconds;
+   if(a.accumulated>=cadence){
+    const elapsed=a.accumulated;a.accumulated=0;
+    this.step(a,elapsed);
+    if(a.visible)this.visibleTicks++;else this.offscreenTicks++;
+   }
+   if(a.visible){
+    this.visibleCount++;
+    if(a!==this.agents[0]&&(a.x-view.playerX)**2+(a.z-view.playerZ)**2<=this.maxDrawDistance*this.maxDrawDistance){this.drawCandidates.push(a);this.candidatesInRange++;}
+    const blend=Math.min(1,seconds*12);
+    a.drawX+=(a.x-a.drawX)*blend;
+    a.drawZ+=(a.z-a.drawZ)*blend;
+    const delta=Math.atan2(Math.sin(a.yaw-a.drawYaw),Math.cos(a.yaw-a.drawYaw));
+    a.drawYaw+=Math.max(-3*seconds,Math.min(3*seconds,delta));
+   }else{
+    a.drawX=a.x;a.drawZ=a.z;a.drawYaw=a.yaw;
+   }
+  }
+  const primary=this.agents[0];
+  this.primaryDrawn=primary.visible&&
+   (primary.x-view.playerX)**2+(primary.z-view.playerZ)**2<=this.maxDrawDistance*this.maxDrawDistance?1:0;
+  this.drawCandidates.sort((a,b)=>a.score-b.score);
+  const extraLimit=Math.max(0,this.actualLimit-this.primaryDrawn);
+  if(this.drawCandidates.length>extraLimit)this.drawCandidates.length=extraLimit;
+  this.drawCount=this.drawCandidates.length+this.primaryDrawn;
+ }
+}
+const npcManager=new OutdoorNpcManager({collision:npcCollisionWorld,ground:groundSystem});
+const hamsterNpc=npcManager.add('hamster',4.5,3);
+
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+// Invisible floating movement (Engine TouchStick) and right-side swipe delta.
+// Keep the existing Engine InputManager contract and multi-pointer capture.
+// One relative distance factor works indoors and outdoors without abrupt zoom changes.
+// Shared safe ranges: outdoor approx 11..26m; indoor approx 3.6..8.5m.
+const MIN_ZOOM_FACTOR=Math.max(11/19,3.5/6.2);
+const MAX_ZOOM_FACTOR=Math.min(27/19,8.5/6.2);
+class InvisibleTouchAdapter {
+ constructor(movePad,cameraPad){
+  this.movement=new TouchStick({pad:movePad,radius:64,deadzone:.08});
+  this.cameraPad=cameraPad;this.active=true;
+  this.cameraPointers=new Map();this.pinchDistance=0;this.zoomFactor=1;
+  this.dragX=0;this.dragY=0;
+  this.listeners=[
+   ['pointerdown',e=>{
+    if(!this.active||this.cameraPointers.has(e.pointerId)||this.cameraPointers.size>=2)return;
+    e.preventDefault();
+    this.cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(this.cameraPointers.size===2){
+     this.dragX=0;this.dragY=0;
+     this.pinchDistance=this.measurePinch();
+    }
+    try{cameraPad.setPointerCapture?.(e.pointerId)}catch(_){}
+   }],
+   ['pointermove',e=>{
+    const prev=this.cameraPointers.get(e.pointerId);
+    if(!this.active||!prev)return;
+    e.preventDefault();
+    if(this.cameraPointers.size===1){
+     this.dragX+=e.clientX-prev.x;this.dragY+=e.clientY-prev.y;
+    }
+    this.cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(this.cameraPointers.size===2){
+     const distance=this.measurePinch();
+     if(this.pinchDistance>4&&distance>4){
+      this.zoomFactor=clamp(this.zoomFactor*this.pinchDistance/distance,MIN_ZOOM_FACTOR,MAX_ZOOM_FACTOR);
+     }
+     this.pinchDistance=distance;
+    }
+   }],
+   ['pointerup',e=>this.endCameraPointer(e)],
+   ['pointercancel',e=>this.endCameraPointer(e)],
+   ['lostpointercapture',e=>this.endCameraPointer(e)]
+  ];
+  cameraPad.style.touchAction='none';
+  for(const [name,handler] of this.listeners)cameraPad.addEventListener(name,handler);
+ }
+ measurePinch(){
+  if(this.cameraPointers.size!==2)return 0;
+  const [a,b]=[...this.cameraPointers.values()];
+  return Math.hypot(a.x-b.x,a.y-b.y);
+ }
+ endCameraPointer(e){
+  if(!this.cameraPointers.has(e.pointerId))return;
+  this.cameraPointers.delete(e.pointerId);
+  // Do not replay leftover swipe movement when returning to one finger.
+  this.dragX=0;this.dragY=0;this.pinchDistance=0;
+  try{if(this.cameraPad.hasPointerCapture?.(e.pointerId))this.cameraPad.releasePointerCapture(e.pointerId)}catch(_){}
+ }
+ poll(){
+  const move=this.movement.poll();
+  return {moveX:move.x,moveY:move.y,cameraX:0,cameraY:0,reset:false};
+ }
+ takeCameraDrag(){
+  const drag={x:this.dragX,y:this.dragY};
+  this.dragX=0;this.dragY=0;return drag;
+ }
+ resetZoom(){this.zoomFactor=1;}
+ clear(){
+  this.movement.clear();
+  const ids=[...this.cameraPointers.keys()];
+  this.cameraPointers.clear();
+  this.dragX=0;this.dragY=0;this.pinchDistance=0;
+  for(const id of ids){
+   try{if(this.cameraPad.hasPointerCapture?.(id))this.cameraPad.releasePointerCapture(id)}catch(_){}
+  }
+ }
+ pause(){this.active=false;this.movement.pause();this.clear();}
+ resume(){this.movement.resume();this.active=true;}
+ dispose(){
+  this.pause();this.movement.dispose();
+  for(const [name,handler] of this.listeners)this.cameraPad.removeEventListener(name,handler);
+  this.listeners=[];
+ }
+}
+const engineInputAdapter=gameView?new InvisibleTouchAdapter(gameView.movePad,gameView.cameraPad):null;
+const inputManager=new InputManager(engineInputAdapter);
+publishRuntimeStatus('input-status','🎮 タッチ操作準備OK：左側で移動・右側スワイプで視点変更');
+function readEngineInput(){return inputManager.poll();}
+function releaseEngineInput(){inputManager.clear();}
+function resetGameForTest(){
+ core.reset();resetHouse();engineInputAdapter?.resetZoom();
+ npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
+ npcManager.actualLimit=65;slowRenderWindows=0;testWarning=defaultTestWarning;
+ setMiniMapVisible(false);setRenderMode('B');
+ publishRuntimeStatus('collision-status','衝突判定：待機中');publishGameState();
+}
+// The game owns house/stair logic; Engine owns orbit yaw, pitch, distance and pose.
+let houseLevel=0,characterY=0,cafeInside=false;
+const cameraRig=new FollowCameraRig({yaw:0,pitch:35*Math.PI/180,horizontalDistance:19,targetY:2.7,yawSpeed:1.5,pitchSpeed:1.08,followRate:5.1});
+publishRuntimeStatus('camera-status','📷 Engine Camera接続OK：右スワイプ・2指ピンチズーム・屋内外の追従');
+function cameraDirection(){return cameraRig.snapshot().yaw;}
+
+
+const insideHouse=(x,z)=>x>-2.25&&x<11.25&&z>-9.25&&z<.3;
+const insideCafe=(x,z)=>x>CAFE_X-6.82&&x<CAFE_X+6.82&&z>CAFE_Z-4.82&&z<CAFE_Z+4.82;
+const onStairs=(x,z)=>x>8.25&&x<10.65&&z>-8.25&&z<-.6;
+const stairHeight=z=>Math.max(0,Math.min(3.35,(-z-.6)/7.65*3.35));
+function update(dt,commands){
+ const before=core.getState(),wasStair=onStairs(before.x,before.z);
+ // Camera movement is derived from pixel deltas, not how long the finger is held.
+ const drag=engineInputAdapter?.takeCameraDrag()??{x:0,y:0};
+ cameraRig.state.applyInput(drag.x,drag.y,.0055);
+ // Left-stick displacement defines speed; heading is relative to the free camera.
+ const stickX=commands.moveX,stickY=commands.moveY,yaw=cameraRig.snapshot().yaw;
+ const worldX=stickX*Math.cos(yaw)+stickY*Math.sin(yaw);
+ const worldZ=-stickX*Math.sin(yaw)+stickY*Math.cos(yaw);
+ if(Math.hypot(stickX,stickY)>.08){
+  const targetAngle=Math.atan2(-worldX,-worldZ);
+  const diff=Math.atan2(Math.sin(targetAngle-game.angle),Math.cos(targetAngle-game.angle));
+  const turn=clamp(diff,-.14*dt,.14*dt);
+  if(Math.abs(turn)>1e-5)core.rotate({direction:turn/.14,phase:'down'});
+  core.rotate({direction:0,phase:'hold'});
+ }
+ // Undo Core's actor-relative basis so travel stays camera-relative while turning.
+ const facing=core.getState().angle,co=Math.cos(facing),si=Math.sin(facing);
+ core.update(dt,{x:worldX*co-worldZ*si,y:worldX*si+worldZ*co});
+ const now=core.getState(),isStair=onStairs(now.x,now.z);
+ if(isStair){characterY=stairHeight(now.z);houseLevel=characterY>1.75?2:1;}
+ else if(wasStair&&insideHouse(now.x,now.z)){houseLevel=characterY>1.75?2:1;characterY=houseLevel===2?3.35:0;}
+ else if(!insideHouse(now.x,now.z)){houseLevel=0;characterY=0;}
+ else {if(houseLevel===0)houseLevel=1;characterY=houseLevel===2?3.35:0;}
+ cafeInside=insideCafe(now.x,now.z);
+ const indoor=houseLevel!==0||cafeInside;
+ // Legacy input commands use old frame units; Engine camera uses real seconds.
+ cameraRig.update(commands,dt/60,{
+   horizontalDistance:(indoor?6.2:19)*(engineInputAdapter?.zoomFactor??1),
+   targetY:indoor?characterY+1.45:2.7
+ });
+ npcManager.update(dt/60,{...cameraRig.getPose({x:now.x,z:now.z},0),playerX:now.x,playerZ:now.z});
+ wallFade+=(wallTarget()-wallFade)*Math.min(1,.16*dt);
+ cafeWallFade+=(cafeWallTarget()-cafeWallFade)*Math.min(1,.16*dt);
+ if(Math.abs(cafeWallFade-cafeWallTarget())<.005)cafeWallFade=cafeWallTarget();
+ if(Math.abs(wallFade-wallTarget())<.005)wallFade=wallTarget();
+}
+function resetHouse(){releaseEngineInput();cameraRig.reset();wallFade=1;cafeWallFade=1;houseLevel=0;cafeInside=false;characterY=0;}
+
+// Defaults are game state, not values read from the optional test panel.
+npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
+const defaultTestWarning='高い描画数はiPhoneに負荷がかかります。描画数の増加は段階的に反映します。';
+let testWarning=defaultTestWarning;
+function setNpcRenderLimit(v){
+ const n=Number(v);if(!Number.isFinite(n))return;
+ npcManager.maxDrawn=Math.max(1,Math.min(1000,Math.round(n)));publishGameState();
+}
+function setNpcRenderDistance(v){
+ const n=Number(v);if(!Number.isFinite(n))return;
+ npcManager.maxDrawDistance=Math.max(5,Math.min(150,n));publishGameState();
+}
+function setNpcCount(v){npcManager.setPopulation(v);publishGameState();}
+// Semi-transparent game overlay: draw every simulated NPC, including hidden 3D meshes.
+// 5Hz canvas redraw is decoupled from the 3D renderer, with pointer-events disabled.
+let miniMapVisible=false,lastMiniMapFrame=-1000;
+function paintDebugMap(){
+ if(!miniMapVisible||!gameView)return;
+ gameView.paintMap(npcManager.agents,game.x,game.z,CAFE_X,CAFE_Z);
+}
+function setMiniMapVisible(value){
+ miniMapVisible=Boolean(value);
+ gameView?.setMapVisible(miniMapVisible);
+ if(miniMapVisible)paintDebugMap();publishGameState();
+}
+const spots={front:[0,4.5],tree:[-8.4,-5],side:[-2.9,2],cafe:[CAFE_X,CAFE_Z+10.5],west:[-49.2,5],east:[49.2,6],north:[-8,-49.2],south:[0,49.2]};
+const spotNames={front:'🏡 家の前',tree:'🌳 木の近く',side:'↔ 壁沿い',cafe:'☕ カフェ前',west:'西端',east:'東端',north:'奥端',south:'手前端'};
+function teleportToTestSpot(name){
+ const point=spots[name];if(!point)return false;
+ if(collisionSystem.collides(...point)){
+  publishRuntimeStatus('collision-status','配置エラー：障害物内');return false;
+ }
+ core.teleport(...point);resetHouse();
+ publishRuntimeStatus('collision-status','テスト位置：'+spotNames[name]);
+ publishGameState();return true;
+}
+const parts=[];function part(name,offset=[0,0,0]){const m={p:[],n:[],c:[]};parts.push({name,m,offset});return m}function rgb(c){return[(c>>16&255)/255,(c>>8&255)/255,(c&255)/255]}function tri(m,a,b,c,col){const u=b.map((v,i)=>v-a[i]),v=c.map((w,i)=>w-a[i]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1;for(const p of [a,b,c]){m.p.push(...p);m.n.push(...n.map(v=>v/l));m.c.push(...rgb(col))}}function quad(m,a,b,c,d,col){tri(m,a,b,c,col);tri(m,a,c,d,col)}function cube(m,x,y,z,w,h,d,col){const l=x-w/2,r=x+w/2,f=z+d/2,b=z-d/2,t=y+h;quad(m,[l,y,f],[r,y,f],[r,t,f],[l,t,f],col);quad(m,[r,y,b],[l,y,b],[l,t,b],[r,t,b],col);quad(m,[l,y,b],[l,y,f],[l,t,f],[l,t,b],col);quad(m,[r,y,f],[r,y,b],[r,t,b],[r,t,f],col);quad(m,[l,t,f],[r,t,f],[r,t,b],[l,t,b],col);quad(m,[l,y,b],[r,y,b],[r,y,f],[l,y,f],col)}function ellipsoid(m,x,y,z,rx,ry,rz,col,lat=10,lon=14){const p=(a,b)=>[x+rx*Math.sin(a)*Math.cos(b),y+ry*Math.cos(a),z+rz*Math.sin(a)*Math.sin(b)];for(let i=0;i<lat;i++)for(let j=0;j<lon;j++){const a=p(i*Math.PI/lat,j*2*Math.PI/lon),b=p((i+1)*Math.PI/lat,j*2*Math.PI/lon),c=p(i*Math.PI/lat,(j+1)*2*Math.PI/lon),d=p((i+1)*Math.PI/lat,(j+1)*2*Math.PI/lon);tri(m,a,b,c,col);tri(m,c,b,d,col)}}function sphere(m,x,y,z,r,col){ellipsoid(m,x,y,z,r,r,r,col)}function slab(m,a,b,c,d,t,col){const down=p=>[p[0],p[1]-t,p[2]];quad(m,a,b,c,d,col);quad(m,down(d),down(c),down(b),down(a),0x49352e);for(const [u,v] of [[a,b],[b,c],[c,d],[d,a]])quad(m,u,v,down(v),down(u),0x49352e)}
+const floor=part('ground');cube(floor,ground.centerX,-.22,ground.centerZ,ground.width,.22,ground.depth,0x9fce8d);const tree=part('tree',[-7,0,-5]);cube(tree,0,0,0,.8,4.4,.8,0x97714d);for(const p of [[0,5,0,1.8],[-1,4.5,0,1.4],[1,4.5,0,1.4],[0,6,0,1.4]])sphere(tree,...p,0x78bb7c);
+const avatar=part('avatar');cube(avatar,0,0,0,.7,1.25,.55,0xe6a97e);sphere(avatar,0,1.57,0,.47,0xf1d0a8);cube(avatar,0,1.92,-.06,.84,.2,.73,0x79543c);for(const x of [-.17,.17])sphere(avatar,x,1.6,-.42,.065,0x2c2a25);sphere(avatar,0,1.4,-.47,.08,0xc77c72);
+const ham=part('hamster',[4.5,0,3]),brown=0xbd854c,cream=0xf7e6c7;ellipsoid(ham,0,.77,0,.79,.84,.66,brown,12,16);ellipsoid(ham,0,.66,.43,.59,.66,.29,cream);ellipsoid(ham,0,1.67,.07,.72,.65,.63,brown);for(const x of [-.43,.43])ellipsoid(ham,x,1.47,.52,.33,.32,.22,cream);ellipsoid(ham,0,1.28,.63,.27,.18,.17,cream);for(const x of [-.51,.51]){ellipsoid(ham,x,2.19,.03,.22,.28,.14,brown);ellipsoid(ham,x,2.19,.16,.145,.19,.045,0xd99099)}for(const x of [-.29,.29])sphere(ham,x,1.76,.63,.105,0x161419);ellipsoid(ham,0,1.45,.82,.11,.075,.085,0xf09aaa);for(const x of [-.7,.7])ellipsoid(ham,x,.87,.29,.18,.29,.2,brown);for(const x of [-.46,.46])ellipsoid(ham,x,.13,.3,.27,.15,.37,cream);
+const origin=[4.5,0,-4.5],base=part('foundation',origin),walls=part('walls',origin),frontWall=part('front-wall',origin),siding=part('siding',origin),roof=part('roof',origin),windows=part('windows',origin),door=part('door',origin),porch=part('porch',origin),chimney=part('chimney',origin),floors=part('floorBase',origin),timber=0xb98a5b,dark=0x654832,glass=0x83b8c1,stone=0x96938b;cube(base,0,-.3,0,14,.35,10,stone);cube(floors,0,-.09,0,13.6,.16,9.6,0xa17b53);for(const x of [-3.95,3.95])cube(frontWall,x,0,4.9,6.1,6.2,.2,timber);cube(frontWall,0,2.6,4.9,1.8,3.6,.2,timber);cube(walls,0,0,-4.9,14,6.2,.2,timber);for(const x of [-6.9,6.9])cube(walls,x,0,0,.2,6.2,10,timber);for(let i=0;i<20;i++){const y=.15+i*.3,c=[0xc59a6b,0xb88a59,0xc39868,0xb08252][i%4];cube(siding,0,y,-5.07,14,.245,.04,c);for(const x of [-7.04,7.04])cube(siding,x,y,0,.04,.245,10,c);if(y>=2.6)cube(frontWall,0,y,5.07,14,.245,.04,c);else for(const x of [-3.95,3.95])cube(frontWall,x,y,5.07,6.1,.245,.04,c)}for(const x of [-7,7])for(const z of [-5,5])cube(siding,x,0,z,.24,6.2,.24,dark);slab(roof,[-7.6,6.2,5.6],[0,8.8,5.6],[0,8.8,-5.6],[-7.6,6.2,-5.6],.3,0x795144);slab(roof,[0,8.8,5.6],[7.6,6.2,5.6],[7.6,6.2,-5.6],[0,8.8,-5.6],.3,0x795144);tri(roof,[-7,6.2,5],[7,6.2,5],[0,8.8,5],0x946a46);tri(roof,[7,6.2,-5],[-7,6.2,-5],[0,8.8,-5],0x946a46);for(let i=1;i<9;i++){const t=i/9;for(const s of [-1,1])cube(roof,s*7.6*(1-t),6.2+2.6*t+.015,0,.055,.04,11.2,0x503b35)}function windowFront(x,y,z,w,h){cube(windows,x,y,z,w,h,.08,0x45646a);cube(windows,x,y+.05,z+.065,w-.22,h-.22,.055,glass);for(const xx of [x-w/2,x+w/2])cube(windows,xx,y,z+.14,.16,h+.22,.2,dark);for(const yy of [y,y+h])cube(windows,x,yy,z+.14,w+.22,.16,.2,dark);cube(windows,x,y+h/2,z+.2,w,.09,.1,0xd4a774);cube(windows,x,y,z+.2,.09,h,.1,0xd4a774);cube(windows,x,y-.14,z+.2,w+.4,.12,.3,stone)}for(const y of [1.25,4.35])for(const x of [-5.05,-2.6,2.6,5.05])windowFront(x,y,5.18,1.35,1.5);for(const y of [1.25,4.35])for(const x of [-4.5,0,4.5])windowFront(x,y,-5.18,1.6,1.5);// Door stays open: the existing frame remains, the door leaf is omitted.for(const x of [-.95,.95])cube(door,x,0,5.12,.12,2.75,.16,dark);cube(door,0,2.67,5.13,2.12,.16,.16,dark);cube(porch,0,-.14,6.25,4.5,.22,2.5,stone);for(let i=0;i<10;i++)cube(porch,-2+i*.44,.1,6.25,.4,.1,2.25,0xa5794b);for(const x of [-2,2])cube(porch,x,.1,7.32,.19,3.15,.19,dark);cube(porch,0,3.25,6.25,4.7,.23,2.8,0x60463b);cube(porch,0,-.34,7.7,2.4,.22,.65,stone);cube(chimney,4.7,5.4,-2.8,1.4,3.4,1.4,stone);for(let i=0;i<9;i++){const y=5.5+i*.36;cube(chimney,4.7,y,-2.8,1.43,.045,1.43,0x696760);cube(chimney,4.7+(i%2?.28:-.28),y+.1,-2.07,.045,.22,.045,0x77746b)}cube(chimney,4.7,8.8,-2.8,1.7,.22,1.7,0x655f59);
+// Walkable two-storey interior, separate meshes so both renderers can hide upper levels.
+const secondFloor=part('interior-upper-floor',origin);
+cube(secondFloor,0,3.28,0,13.55,.16,9.55,0xc99a67);
+const staircase=part('interior-stairs',origin);
+for(let i=0;i<17;i++){const z=3.95-i*.45;cube(staircase,4.85, i*.197,z,2.05,.195,.46, i%2?0xb98a58:0xc69a67);}
+for(const x of [3.72,5.98])cube(staircase,x,.2,.45,.13,3.5,.13,0x6e4d35);
+const furniture=part('interior-furniture',origin);
+cube(furniture,-3.9,0,-1.8,2.7,.55,1.1,0x8c6247);
+cube(furniture,-3.9,.55,-1.8,2.7,.3,1.1,0xd9b89a);
+cube(furniture,-3.9,.55,-2.3,2.7,1,.25,0x94674d);
+cube(furniture,-1.15,0,-2.1,1.5,.8,.85,0xb68a5b);
+cube(furniture,-4.5,0,-4.25,3.1,.85,1.35,0x8a6545);
+cube(furniture,-4.5,.85,-4.25,3.1,.12,1.35,0xe8d6b1);
+cube(furniture,1.4,0,-4.15,2.3,.85,1.3,0xa67b4f);
+cube(furniture,1.4,.85,-4.15,2.3,.1,1.3,0xe4d0a6);
+const bedroom=part('interior-bedroom',origin);
+cube(bedroom,-3.8,3.44,-2.1,3.5,.45,4.25,0x8d644c);
+cube(bedroom,-3.8,3.9,-2.1,3.15,.35,3.85,0xf2e6d1);
+cube(bedroom,-3.8,4.25,-3.25,2.65,.18,1.05,0xf8f4e7);
+cube(bedroom,-3.8,4.25,-.8,3.0,.11,2.25,0xb6c6a1);
+cube(bedroom,-1.1,3.44,-3.3,.95,.65,.95,0x9e744f);
+cube(bedroom,1.35,3.44,-2.1,2.1,.85,.8,0xa47a54);
+cube(bedroom,1.35,4.29,-2.1,2.1,.09,.8,0xe0bd8b);
+const upperRug=part('interior-bedroom-rug',origin);
+cube(upperRug,-.3,3.45,1.5,3.4,.025,2.1,0xb9a7a1);
+// Komorebi Forest Cafe v1: shared Renderer A/B 3D geometry at provisional coordinates.
+const cafeOrigin=[CAFE_X,0,CAFE_Z];
+const cafeFoundation=part('cafe-foundation',cafeOrigin);
+const cafeFloor=part('cafe-floor',cafeOrigin);
+const cafeSideWalls=part('cafe-side-walls',cafeOrigin);
+const cafeBackWall=part('cafe-back-wall',cafeOrigin);
+const cafeFrontWall=part('cafe-front-wall',cafeOrigin);
+const cafeSideWindows=part('cafe-side-windows',cafeOrigin);
+const cafeBackWindows=part('cafe-back-windows',cafeOrigin);
+const cafeFrontGlass=part('cafe-front-glass',cafeOrigin);
+const cafeFrontTrim=part('cafe-front-trim',cafeOrigin);
+const cafeRoof=part('cafe-roof',cafeOrigin);
+const cafeDeck=part('cafe-deck',cafeOrigin);
+const cafeFurniture=part('cafe-furniture',cafeOrigin);
+const cafeCounter=part('cafe-counter',cafeOrigin);
+const cafeEquipment=part('cafe-equipment',cafeOrigin);
+const cafeSigns=part('cafe-sign',cafeOrigin);
+const woodLight=0xd2aa78,woodDeep=0x80563a,woodMedium=0xac7b50;
+const cafeGlass=0x91c9d0,frameWood=0x76533c;
+cube(cafeFoundation,0,-.14,0,14,.14,10,0xb6aea0);
+cube(cafeFloor,0,0,0,13.8,.13,9.8,0xbf945f);
+for(let i=0;i<21;i++)cube(cafeFloor,-6.55+i*.66,.13,0,.035,.012,9.76,0xa67d54);
+// Wide glass spans between floor-level timber sills and overhead wooden beams.
+for(const x of [-6.96,6.96]){
+ cube(cafeSideWalls,x,0,0,.19,1.05,10,woodLight);
+ cube(cafeSideWalls,x,2.98,0,.19,.7,10,woodLight);
+ for(const z of [-3.75,-1.25,1.25,3.75]){
+  cube(cafeSideWindows,x,1.05,z,.075,1.93,2.37,cafeGlass);
+  cube(cafeSideWalls,x,1.02,z-1.23,.25,2.01,.15,frameWood);
+ }
+ for(const z of [-5,0,5])cube(cafeSideWalls,x,0,z,.26,3.68,.27,frameWood);
+}
+cube(cafeBackWall,0,0,-4.96,14,.98,.18,woodLight);
+cube(cafeBackWall,0,3.03,-4.96,14,.65,.18,woodLight);
+for(const x of [-5.25,-1.75,1.75,5.25]){
+ cube(cafeBackWindows,x,.98,-4.96,3.37,2.05,.09,cafeGlass);
+ cube(cafeBackWall,x,1.96,-5.045,.06,2.04,.1,0xcbd6bd);
+}
+for(const x of [-7,-3.5,0,3.5,7])cube(cafeBackWall,x,0,-4.97,.21,3.68,.25,frameWood);
+// Front: two glazed wall sections flanking a genuinely open 3m wide entry.
+for(const x of [-4.25,4.25]){
+ cube(cafeFrontWall,x,0,4.96,5.5,.98,.2,woodLight);
+ cube(cafeFrontWall,x,3.0,4.96,5.5,.68,.2,woodLight);
+ cube(cafeFrontGlass,x,.98,4.97,5.18,2.02,.09,cafeGlass);
+ cube(cafeFrontTrim,x,1.97,5.08,.08,2.03,.16,0xe3d8b5);
+ for(const xx of [x-2.62,x+2.62])cube(cafeFrontTrim,xx,0,5.03,.2,3.67,.25,frameWood);
+}
+cube(cafeFrontWall,0,2.78,4.95,3,.9,.2,woodLight);
+for(const x of [-1.5,1.5])cube(cafeFrontTrim,x,0,5.06,.18,2.9,.3,frameWood);
+cube(cafeFrontTrim,0,2.86,5.07,3.25,.16,.3,frameWood);
+for(const x of [-7,7])for(const z of [-5,5])cube(cafeSideWalls,x,0,z,.28,3.7,.28,frameWood);
+// Gabled roof hidden when indoors; building remains fully visible outside.
+slab(cafeRoof,[-7.55,3.69,5.55],[0,5.95,5.55],[0,5.95,-5.55],[-7.55,3.69,-5.55],.24,0x6d5847);
+slab(cafeRoof,[0,5.95,5.55],[7.55,3.69,5.55],[7.55,3.69,-5.55],[0,5.95,-5.55],.24,0x6d5847);
+tri(cafeRoof,[-7,3.65,5],[7,3.65,5],[0,5.95,5],0xb78355);
+tri(cafeRoof,[7,3.65,-5],[-7,3.65,-5],[0,5.95,-5],0xb78355);
+cube(cafeRoof,0,5.92,0,.2,.14,11.2,0x453f37);
+// Coffee pictogram on a timber sign at the entrance.
+cube(cafeSigns,0,3.18,5.22,2.65,.55,.17,0x6a4a37);
+cube(cafeSigns,0,3.36,5.33,.73,.035,.025,0xf1e8ca);
+cube(cafeSigns,0,3.03,5.34,.62,.06,.035,0xf1e8ca);
+cube(cafeSigns,.42,3.12,5.35,.08,.17,.035,0xf1e8ca);
+for(const x of [-.2,0,.2])cube(cafeSigns,x,3.45,5.35,.035,.13,.035,0xf1e8ca);
+// 10x4m wood deck flush with the interior floor and free central walkway.
+cube(cafeDeck,0,0,7,10,.13,4,0xa7774f);
+for(let i=0;i<13;i++)cube(cafeDeck,0,.13,5.2+i*.29,9.78,.012,.025,i%2?0x926540:0xbd9160);
+for(const x of [-4.95,4.95])cube(cafeDeck,x,0,7,.14,.18,4,0x73543d);
+function makeCafeTable(m,x,z,w=1.45,d=1.2){
+ cube(m,x,.72,z,w,.12,d,0xb98656);
+ for(const dx of [-w*.35,w*.35])for(const dz of [-d*.34,d*.34])
+  cube(m,x+dx,.13,z+dz,.11,.59,.11,woodDeep);
+}
+function makeCafeChair(m,x,z){
+ cube(m,x,.39,z,.56,.09,.55,0xa87951);
+ for(const dx of [-.22,.22])cube(m,x+dx,.11,z,.075,.28,.08,woodDeep);
+ cube(m,x,.45,z+.27,.58,.58,.09,0xa87951);
+}
+// Four interior tables + window-facing seats.
+for(const z of [-1.2,1.8])for(const x of [-3.15,1.75]){
+ makeCafeTable(cafeFurniture,x,z);
+ makeCafeChair(cafeFurniture,x,z-1.05);
+ makeCafeChair(cafeFurniture,x,z+1.05);
+}
+// Service counter on the right, with open preparation area behind it.
+cube(cafeCounter,4.25,0,.5,1.15,1.08,5,woodMedium);
+cube(cafeCounter,4.25,1.08,.5,1.32,.12,5.13,0xe2c59b);
+cube(cafeCounter,5.8,0,.2,1.35,.85,4.8,0x96704c);
+cube(cafeCounter,5.8,.85,.2,1.48,.1,4.9,0xd8b98b);
+cube(cafeCounter,-1.65,0,-3.88,7.7,.89,.7,0x9e714b);
+cube(cafeCounter,-1.65,.89,-3.88,7.8,.1,.76,0xd0a377);
+for(const x of [-4.35,-1.85,.65])makeCafeChair(cafeFurniture,x,-2.85);
+cube(cafeCounter,3.83,0,-2.27,1.3,.86,1.25,woodMedium);
+cube(cafeEquipment,3.83,.86,-2.27,1.29,.46,1.24,0xa3cbd0);
+cube(cafeEquipment,3.83,1.32,-2.27,1.42,.08,1.35,0x66513a);
+for(const x of [3.5,3.82,4.12])ellipsoid(cafeEquipment,x,1.0,-2.28,.14,.075,.13,0xe9d6a4);
+cube(cafeEquipment,4.0,1.2,2.25,.55,.22,.47,0x4c5450);
+cube(cafeEquipment,4.0,1.43,2.25,.45,.13,.38,0xd9cfb3);
+cube(cafeEquipment,5.8,.95,.3,.77,.68,.65,0x5c625f);
+cube(cafeEquipment,5.8,1.54,.36,.69,.13,.5,0x3a4241);
+for(const x of [5.54,6.05])cube(cafeEquipment,x,1.35,.65,.13,.42,.1,0xd1d8cf);
+for(const y of [1.7,2.35])cube(cafeEquipment,6.58,y,.4,.42,.095,4.5,0x875d3b);
+for(const z of [-1.3,.4,1.8]){cube(cafeEquipment,6.4,1.8,z,.17,.38,.28,0xe9d8b2);cube(cafeEquipment,6.42,2.45,z,.15,.28,.26,0x71966c);}
+for(const z of [-1.8,.1,2.0]){cube(cafeEquipment,4.25,2.93,z,.06,.34,.06,0x74604d);ellipsoid(cafeEquipment,4.25,2.61,z,.4,.22,.4,0xe9cb97,6,8);}
+for(const x of [-3.8,0,2.5]){cube(cafeEquipment,x,3.25,.2,.055,.25,.055,0x7b6145);ellipsoid(cafeEquipment,x,2.95,.2,.37,.22,.37,0xe9d8b0,6,9);}
+// Outdoor tables leave direct open path to the 3m doorway.
+for(const x of [-3.1,3.1]){
+ makeCafeTable(cafeFurniture,x,7.05,1.4,1.3);
+ makeCafeChair(cafeFurniture,x,6.05);
+ makeCafeChair(cafeFurniture,x,8.1);
+}
+function hiddenPart(name){if(cafeInside&&name==='cafe-roof')return true;if(!houseLevel)return false;if(['roof','chimney'].includes(name))return true;return houseLevel===1&&['interior-upper-floor','interior-bedroom','interior-bedroom-rug'].includes(name);}
+let wallFade=1,cafeWallFade=1;
+function wallTarget(){if(!houseLevel)return 1;return Math.cos(cameraDirection())>0.025?0:1;}
+function cafeWallTarget(){if(!cafeInside)return 1;return Math.cos(cameraDirection())>0.025?0:1;}
+function wallOpacity(name){if(name==='front-wall')return wallFade;if(['cafe-front-wall','cafe-front-glass','cafe-front-trim','cafe-sign'].includes(name))return cafeWallFade;return 1;}
+// v0.4 visual-only wildflower meadow. No changes to Core or collision boundaries.
+const meadow=part('meadow');
+for(let i=0;i<46;i++){
+ const x=-9.1+(i*1.61803398875%1)*17.8;
+ const z=1.7+(i*.754877666%1)*7.0;
+ if(Math.hypot(x+7,z+5)<2.1||Math.hypot(x-4.5,z-3)<1.3||Math.hypot(x,z-4.5)<1.1)continue;
+ const h=.13+(i%4)*.045;
+ cube(meadow,x,0,z,.045,h,.045,0x568c53);
+ const petals=[0xf5e6b2,0xf0b9a8,0xe8d8f3,0xffffff][i%4];
+ sphere(meadow,x,h+.055,z,.095,petals);
+ sphere(meadow,x,h+.065,z,.035,0xe4b955);
+}
+const grass=part('grass-details');
+for(let i=0;i<64;i++){
+ const x=-9.2+(i*.61803398875%1)*18.4,z=1.4+(i*.41421356237%1)*7.4;
+ if(Math.hypot(x-4.5,z-3)<1.25||Math.hypot(x,z-4.5)<1)continue;
+ cube(grass,x,0,z,.09,.12+(i%3)*.06,.065,[0x7cb96c,0x83bc70,0x69aa61][i%3]);
+}
+// Legacy scene contains some optional EMPTY parts which never drew anything.
+// Keep the geometry validator strict, but exclude fully empty draw objects.
+// No nonempty geometry will be skipped or modified.
+const emptyParts=parts.filter(p=>p.m.p.length===0&&p.m.n.length===0&&p.m.c.length===0);
+const renderParts=parts.filter(p=>!emptyParts.includes(p));
+const engineMeshes=renderParts.map((p,i)=>{
+ try {
+  return createMeshGeometry({
+   id:"komorebi3d:"+p.name+":"+i,
+   positions:p.m.p,normals:p.m.n,colors:p.m.c
+  });
+ }catch(error){
+  throw new Error("描画パーツ "+p.name+" が不正: "+String(error.message||error)+
+   " (positions="+p.m.p.length+", normals="+p.m.n.length+", colors="+p.m.c.length+")");
+ }
+});
+console.info("[Komorebi v0.5.1] 空の描画パーツを除外:",emptyParts.map(p=>p.name));
+// Extra NPCs share one inexpensive mesh (the original hamster stays detailed).
+const hamsterLiteMesh={p:[],n:[],c:[]};
+ellipsoid(hamsterLiteMesh,0,.78,0,.78,.79,.66,0xbd854c,4,6);
+ellipsoid(hamsterLiteMesh,0,.64,.43,.57,.58,.25,0xf7e6c7,4,6);
+ellipsoid(hamsterLiteMesh,0,1.63,.06,.7,.65,.59,0xbd854c,4,6);
+for(const x of [-.46,.46])ellipsoid(hamsterLiteMesh,x,1.45,.52,.3,.29,.20,0xf7e6c7,4,6);
+for(const x of [-.5,.5])ellipsoid(hamsterLiteMesh,x,2.13,.12,.22,.27,.14,0xbd854c,4,6);
+for(const x of [-.28,.28])ellipsoid(hamsterLiteMesh,x,1.75,.63,.11,.11,.10,0x161419,4,6);
+ellipsoid(hamsterLiteMesh,0,1.45,.8,.13,.09,.11,0xf09aaa,4,6);
+const hamsterLiteGeometry=createMeshGeometry({
+ id:'komorebi3d:hamster-lite-shared',
+ positions:hamsterLiteMesh.p,normals:hamsterLiteMesh.n,colors:hamsterLiteMesh.c
+});
+
+let renderFrameId=0;
+function productRenderSnapshot(){
+ const pose=cameraRig.getPose({x:game.x,z:game.z},0);
+ const objects=renderParts.map((p,i)=>({
+   id:p.name+":"+i,geometry:engineMeshes[i],
+   position:p.name==='avatar'?[game.x,characterY,game.z]:p.name==='hamster'?[hamsterNpc.drawX,0,hamsterNpc.drawZ]:p.offset,
+   yaw:p.name==='avatar'?game.angle:p.name==='hamster'?hamsterNpc.drawYaw:0,
+   opacity:wallOpacity(p.name),visible:p.name==='hamster'?npcManager.primaryDrawn===1:!hiddenPart(p.name)
+ }));
+ // Only nearby visible extras, limited by the draw-count slider, reach Renderer A or B.
+ for(const a of npcManager.drawCandidates){
+  objects.push({id:'npc:'+a.id,geometry:hamsterLiteGeometry,
+   position:[a.drawX,0,a.drawZ],yaw:a.drawYaw,opacity:1,visible:true});
+ }
+ return createMeshRenderSnapshot({
+  frameId:++renderFrameId,
+  camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:220},
+  objects
+ });
+}
+let rendererA=null,rendererB=null,loadingA=null,loadingB=null;
+let okA=false,okB=false,renderMode='B';
+let last=0,start=0,frames=0;
+function ensureA(){
+ if(!gameView)return Promise.resolve();
+ if(okA)return Promise.resolve();
+ if(loadingA)return loadingA;
+ publishRuntimeStatus('ea','A：Engine WebGLを読み込み中…');
+ loadingA=(async()=>{
+  const instance=await createRenderer('A',{profile:'mesh'});
+  await instance.initialize({canvas:gameView.canvasA});
+  rendererA=instance;okA=true;publishRuntimeStatus('ea','');
+  publishRuntimeStatus('renderer-status','🎨 Engine Renderer A準備OK'+(okB?' / B準備OK':''));
+  publishRuntimeStatus('status','Renderer A描画準備完了');
+ })().catch(error=>{
+  loadingA=null;publishRuntimeStatus('ea','A初期化エラー：'+String(error.message||error));
+  publishRuntimeStatus('renderer-status','🎨 Renderer A初期化失敗');
+  if(renderMode==='A'||renderMode==='compare')setRenderMode('B');
+ });
+ return loadingA;
+}
+function ensureB(){
+ if(!gameView)return Promise.resolve();
+ if(okB)return Promise.resolve();
+ if(loadingB)return loadingB;
+ publishRuntimeStatus('eb','B：Engine Three.jsを読み込み中…');
+ loadingB=(async()=>{
+  const instance=await createRenderer('B',{profile:'mesh'});
+  await instance.initialize({canvas:gameView.canvasB});
+  rendererB=instance;okB=true;publishRuntimeStatus('eb','');
+  publishRuntimeStatus('renderer-status','🎨 Engine Renderer B準備OK'+(okA?' / A準備OK':''));
+  publishRuntimeStatus('status','Renderer B描画準備完了');
+  const diagnostic=document.getElementById('launch-diagnostic');
+  if(diagnostic)diagnostic.textContent='診断：Engine Input・Camera・Renderer準備完了';
+ })().catch(error=>{
+  loadingB=null;publishRuntimeStatus('eb','B初期化エラー：'+String(error.message||error));
+  publishRuntimeStatus('renderer-status','🎨 Renderer B初期化失敗');
+  if(renderMode==='B'||renderMode==='compare')setRenderMode('A');
+ });
+ return loadingB;
+}
+function setRenderMode(mode){
+ if(!['A','B','compare'].includes(mode))mode='B';
+ renderMode=mode;
+ const a=mode!=='B',b=mode!=='A';
+ gameView?.setRenderMode(mode);
+ try{localStorage.setItem('komorebi3d-render-mode-dev',mode)}catch(e){}
+ if(gameView&&a&&!okA)ensureA();
+ if(gameView&&b&&!okB)ensureB();
+ publishGameState();
+}
+let initialMode='B';
+try{initialMode=localStorage.getItem('komorebi3d-render-mode-dev')||'B'}catch(e){}
+setRenderMode(initialMode);
+// Early Game API boundary: future controllers depend on this object, not panel DOM.
+const gameApi=Object.freeze({
+ getState(){
+  return {
+   ...core.getState(),houseLevel,renderMode,
+   npcCount:npcManager.agents.length,npcVisible:npcManager.visibleCount,
+   npcDrawn:npcManager.drawCount,npcRenderLimit:npcManager.maxDrawn,
+   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
+   testWarning,status:Object.fromEntries(runtimeStatusValues)
+  };
+ },
+ subscribe(listener){
+  if(typeof listener!=='function')throw new TypeError('Game API listener must be a function');
+  gameStateListeners.add(listener);
+  return ()=>gameStateListeners.delete(listener);
+ },
+ reset:resetGameForTest,setRenderMode,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
+ setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot
+});
+// Panel views subscribe to Game API without controlling each other.
+const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('.runtime-status'),gameApi);
+
+const unmountTestControlsPanel=mountTestControlsPanel(document.querySelector('#test-ops-panel'),gameApi);
+// Reparent existing nodes only; Game API subscriptions and canvases survive edits.
+mountPanelLayoutEditor(document,PANEL_LAYOUT);
+let slowRenderWindows=0;
+function frame(t){
+ const dt=Math.min(2,(t-last)/16.67||1);last=t;
+ const commands=readEngineInput(),oldX=game.x,oldZ=game.z;
+ update(dt,commands);
+ if(Math.hypot(commands.moveX,commands.moveY)>.06){
+  const moved=Math.hypot(game.x-oldX,game.z-oldZ);
+  publishRuntimeStatus('collision-status',moved<.001?'● 移動停止（障害物または地面端）':'● 移動中（壁沿い移動も確認）');
+ }
+ publishRuntimeStatus('pos',`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`);
+ publishRuntimeStatus('edge',(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内');
+ // When the game panel is removed, keep simulation state but pause GPU drawing.
+ if(gameView?.canvasB.isConnected){
+  try{
+   const snapshot=productRenderSnapshot();
+   if(renderMode!=='B'&&okA)rendererA.render(snapshot);
+   if(renderMode!=='A'&&okB)rendererB.render(snapshot);
+   const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
+   const b=renderMode!=='A'&&okB?rendererB.lastFrameId:'―';
+   publishRuntimeStatus('sync-status','共通Snapshot #'+snapshot.frameId+' / A:'+a+' / B:'+b+
+     (renderMode==='compare'&&okA&&okB?(a===b?' / 同期OK':' / 同期ずれ'):''));
+  }catch(error){
+   publishRuntimeStatus('renderer-status','🎨 描画エラー：'+String(error.message||error));
+   console.error(error);
+  }
+ }
+ frames++;
+ if(t-start>1000){
+  const fps=Math.round(frames*1000/(t-start));
+  publishRuntimeStatus('fps','FPS '+fps);
+  publishRuntimeStatus('npc-status','🐹 全'+npcManager.agents.length+'匹 / 視界内'+npcManager.visibleCount+' / 距離内候補'+npcManager.candidatesInRange+' / 3D表示'+npcManager.drawCount+' / 上限'+npcManager.maxDrawn);
+  // If a stress test becomes extremely slow, lower the requested rendering budget.
+  slowRenderWindows=(npcManager.agents.length===1000&&npcManager.drawCount>65&&fps<12)?slowRenderWindows+1:0;
+  if(slowRenderWindows>=2){
+   const safe=Math.max(65,Math.floor(npcManager.drawCount*.60));
+   npcManager.maxDrawn=safe;
+   testWarning='⚠️ '+fps+'FPSが続いたため、描画上限を'+safe+'匹に自動調整しました。';
+   publishGameState();
+   slowRenderWindows=0;
+  }
+  start=t;frames=0;
+ }
+ if(miniMapVisible&&t-lastMiniMapFrame>=200){paintDebugMap();lastMiniMapFrame=t;}
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+function pauseProductInput(){inputManager.pause();core.rotate({direction:0,phase:'hold'});last=0;}
+function resumeProductInput(){inputManager.resume();last=0;}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseProductInput();else resumeProductInput();});
+window.addEventListener('blur',pauseProductInput);
+window.addEventListener('focus',()=>{if(!document.hidden)resumeProductInput();});
+// Keep initialized GL resources when Safari stores this page in its back/forward cache.
+window.addEventListener('pagehide',pauseProductInput);
+window.addEventListener('pageshow',()=>{if(!document.hidden)resumeProductInput();});
+</script></body></html>

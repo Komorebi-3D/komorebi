@@ -1,0 +1,9 @@
+/* Styles for runtime panel from canonical dev.html. */
+.runtime-status{position:relative;--help-button-color:#455a49;--help-overlay-bg:rgba(29,52,35,.42);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:2px solid #397452;--help-focus-offset:-4px}
+.runtime-status-heading{display:block;min-height:36px;margin:0 0 8px;padding-right:43px;font-size:13px}
+
+@media (orientation:landscape) and (min-width:900px) and (min-height:600px){
+ .runtime-status{margin-top:12px;padding:12px;background:#eff2ec;border:1px solid #c6d0c3;border-radius:9px;color:#455a49}
+ .runtime-status-heading{display:block;font-size:13px;margin:0 0 8px}
+ .runtime-status .stats{margin-top:8px}
+}

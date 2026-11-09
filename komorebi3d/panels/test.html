@@ -1,0 +1,25 @@
+<section id="test-ops-panel" data-panel-id="test" class="test-panel" role="region" aria-label="テスト操作パネル">
+<div class="test-panel-header">
+<strong class="test-panel-heading">🧪 テスト操作（開発用）</strong>
+<button type="button" class="panel-help-button test-help-button" id="test-help-button" aria-label="このエリアの名前：テスト操作パネル" aria-describedby="test-help-overlay"><span>ⓘ</span></button>
+<button id="reset" type="button" class="test-reset">↻ リセット（開発用）</button>
+</div>
+<div class="test-panel-body">
+<div class="test-section-title">🎮 描画方式</div>
+<div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div>
+<div class="test-separator"></div>
+<div class="test-section-title npc-anchor">🐹 NPC負荷・表示テスト</div>
+<div class="buttons"><button type="button" id="npc-stress-toggle" aria-pressed="false">🐹 ハムスター ×1000</button><button type="button" id="map-toggle" aria-pressed="false">🗺️ マップ表示</button></div>
+<div class="debug-controls">
+<label for="npc-render-limit">同時描画上限 <output id="npc-render-limit-value" for="npc-render-limit">65匹</output></label>
+<div class="slider-row"><button class="slider-step" type="button" data-step-target="npc-render-limit" data-step-amount="-25" aria-label="同時描画上限を25匹減らす">−</button><input id="npc-render-limit" type="range" min="1" max="1000" step="1" value="65" aria-label="ハムスターの3D同時描画上限"><button class="slider-step" type="button" data-step-target="npc-render-limit" data-step-amount="25" aria-label="同時描画上限を25匹増やす">＋</button></div>
+<label for="npc-render-distance">表示距離（主人公から） <output id="npc-render-distance-value" for="npc-render-distance">70m</output></label>
+<div class="slider-row"><button class="slider-step" type="button" data-step-target="npc-render-distance" data-step-amount="-5" aria-label="表示距離を5m短くする">−</button><input id="npc-render-distance" type="range" min="5" max="150" step="5" value="70" aria-label="ハムスターの3D表示距離"><button class="slider-step" type="button" data-step-target="npc-render-distance" data-step-amount="5" aria-label="表示距離を5m長くする">＋</button></div>
+</div>
+<div id="npc-stress-info" aria-live="polite" style="margin-top:6px">通常1匹。×1000で移動計算数を増やし、スライダーで表示負荷を調整。マップでは全員表示します。</div>
+<div id="npc-render-warning" aria-live="polite" style="margin-top:5px;color:#9b5224">高い描画数はiPhoneに負荷がかかります。描画数の増加は段階的に反映します。</div>
+<div class="test-separator"></div><div class="test-section-title">📍 テスト位置へ移動</div>
+<div class="test-locations"><button type="button" data-spot="front">🏡 家の前</button><button type="button" data-spot="tree">🌳 木の近く</button><button type="button" data-spot="side">↔ 壁沿い</button><button type="button" data-spot="cafe">☕ カフェ前</button><button type="button" data-spot="west">西端</button><button type="button" data-spot="east">東端</button><button type="button" data-spot="north">奥端</button><button type="button" data-spot="south">手前端</button></div>
+<div style="margin-top:6px">各地点への移動は、建物・衝突・カメラ・マップ境界などの汎用テストに使えます。</div>
+</div>
+<div id="test-help-overlay" class="panel-help-overlay test-help-overlay" role="tooltip" hidden><div class="panel-help-label test-help-label">🧪 テスト操作パネル</div></div></section>

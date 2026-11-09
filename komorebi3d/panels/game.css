@@ -1,0 +1,29 @@
+/* Styles for game panel from canonical dev.html. */
+.views{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.views.single{grid-template-columns:minmax(0,1fr)}
+.view-panel.off{display:none}
+#panel-a,#panel-b{min-width:0}
+canvas{display:block;width:100%;aspect-ratio:3/4;border-radius:9px;background:#a7d9e9}
+.play-surface{position:relative}
+.touch-layer{position:absolute;inset:0;display:flex;z-index:2;touch-action:none}
+.touch-zone{flex:1;min-width:0;touch-action:none;background:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.debug-map{position:absolute;top:8px;left:8px;z-index:3;width:min(47%,210px);padding:6px;border-radius:9px;background:rgba(17,35,29,.65);box-shadow:0 2px 12px #2133247a;pointer-events:none;color:#fff;user-select:none}
+.debug-map[hidden]{display:none}
+.debug-map canvas{width:100%;height:auto;aspect-ratio:1;background:transparent;border-radius:3px}
+.debug-map-title{font-size:10px;font-weight:700;margin-bottom:3px}
+.debug-map-legend{font-size:9px;display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.landscape-game{position:relative;--help-button-color:#31563b;--help-overlay-bg:rgba(29,52,35,.42);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:2px solid #397452;--help-focus-offset:-4px}
+.landscape-game button.game-help-button{display:block;z-index:4}
+.landscape-game .game-help-overlay:not([hidden]){display:flex}
+
+@media (orientation:landscape) and (min-width:900px) and (min-height:600px){
+ .landscape-game{min-height:0;min-width:0;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+ .landscape-game button.game-help-button{display:block;z-index:4}
+ .landscape-game .game-help-overlay:not([hidden]){display:flex}
+ .landscape-game .play-surface{height:100%;width:auto;max-width:100%;min-width:0;min-height:0;aspect-ratio:3/4;flex:0 1 auto}
+ .landscape-game .play-surface.ab-compare{width:100%;height:100%;aspect-ratio:auto;flex:1 1 auto}
+ .landscape-game .views{width:100%;height:100%;min-height:0}
+ .landscape-game .view-panel:not(.off){min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
+ .landscape-game .views.single canvas{display:block;width:100%;height:100%;max-width:100%;max-height:100%;aspect-ratio:3/4}
+ .landscape-game .views:not(.single) canvas{display:block;width:100%;height:auto;max-height:100%;aspect-ratio:3/4}
+}

@@ -1,13 +1,21 @@
-name: Check generated mock panel
+name: Check generated panel pages
 on:
   push:
     branches: [main]
     paths:
       - 'komorebi3d/dev.html'
+      - 'komorebi3d/dev.template.html'
+      - 'komorebi3d/common.css'
+      - 'komorebi3d/panels/**'
+      - 'komorebi3d/build-dev.mjs'
       - 'komorebi3d/dev-panel-components.js'
       - 'komorebi3d/dev-panel-layout.js'
       - 'komorebi3d/build-mock-panel.mjs'
       - 'komorebi3d/mock-panel.html'
+      - '.github/workflows/mock-panel-check.yml'
+  pull_request:
+    paths:
+      - 'komorebi3d/**'
       - '.github/workflows/mock-panel-check.yml'
   workflow_dispatch:
 permissions:
@@ -21,4 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: node --check komorebi3d/build-dev.mjs
+      - run: node --check komorebi3d/dev-panel-layout.js
+      - run: node komorebi3d/build-dev.mjs --check
       - run: node komorebi3d/build-mock-panel.mjs --check
