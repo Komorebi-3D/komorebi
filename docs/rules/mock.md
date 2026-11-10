@@ -4,6 +4,8 @@
 
 1. GitHub `main` から `komorebi3d/mock.chat.html` の最新版を取得する。
 2. 取得したHTML・CSS・JavaScriptの全文を確認する。
+   **絶対に処理の追加・加工・修正・削除・省略・最適化を行わないこと。**
+   GitHubから取得したコードを一切変更せず、そのままAppBlockに使用する。
 3. ChatGPTの回答本文に**1つだけAppBlockを作成し、開始タグ `<AppBlock>` と終了タグ `</AppBlock>` の間に取得した全文を直接記述して、インタラクティブに表示する。**
 
 GitHubの取得結果を自動転送する仕組みは不要。回答内のAppBlock本文に直接記述する。
