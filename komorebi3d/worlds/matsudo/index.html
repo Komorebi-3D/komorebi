@@ -11,16 +11,18 @@ h1{font-size:16px;margin:0 0 5px}p{font-size:12px;margin:5px 0;line-height:1.5}#
 #controls{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:16px;right:16px;display:flex;justify-content:space-between;align-items:end;pointer-events:none}
 #stick{width:132px;height:132px;border-radius:50%;border:2px solid #ffffff9c;background:#1b34487d;position:relative;pointer-events:auto;touch-action:none}
 #knob{width:54px;height:54px;border-radius:50%;position:absolute;left:37px;top:37px;background:#e5f0f2d8;border:2px solid white;pointer-events:none}
-#hint{max-width:170px;background:#17283855;border-radius:12px;padding:11px;font-size:12px;line-height:1.5;text-align:right}
+#hint{max-width:175px;background:#17283855;border-radius:12px;padding:9px;font-size:12px;line-height:1.5;text-align:right}
+#flight{display:flex;flex-direction:column;align-items:stretch;gap:8px;pointer-events:auto}
+#flight button{min-width:100px;min-height:48px;background:#274c67a8;touch-action:none;user-select:none;-webkit-user-select:none}
 footer{position:fixed;right:8px;bottom:4px;font-size:10px;background:#172838c9;padding:4px 7px;border-radius:7px}
 a{color:#b0eaff}#crosshair{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);opacity:.5;pointer-events:none}
 @media(max-width:560px){#ui{flex-wrap:wrap}.panel{padding:8px 10px}#hint{font-size:11px}h1{font-size:14px}}
 </style>
 </head>
 <body>
-<div id="ui"><div class="panel"><h1>🏙️ Real Matsudo <small>v0.1</small></h1><p>松戸駅中心 500m × 500m｜現実ベースの独立ワールド</p><p id="status" role="status">OpenStreetMapデータを読み込み中…</p><p id="counts">建物 — / 道路 —</p><button id="retry" type="button" hidden>地図データを再取得</button></div><div class="panel"><p>主人公 1.80m｜WASD / 矢印キーで移動</p><p>西口デッキ付近から開始｜左スティックで移動</p><p id="coords">X 0m / Z 0m</p></div></div>
+<div id="ui"><div class="panel"><h1>🏙️ Real Matsudo <small>v0.1</small></h1><p>松戸駅中心 500m × 500m｜現実ベースの独立ワールド</p><p id="status" role="status">OpenStreetMapデータを読み込み中…</p><p id="counts">建物 — / 道路 —</p><button id="retry" type="button" hidden>地図データを再取得</button></div><div class="panel"><p>🚁 空中散策｜WASD / 矢印キーで移動</p><p>西口上空から開始｜Space 上昇 / Shift 下降</p><p id="coords">X 0m / Z 0m</p></div></div>
 <div id="crosshair">＋</div>
-<div id="controls"><div id="stick" aria-label="移動スティック"><div id="knob"></div></div><div id="hint">これはOSMの道路・建物位置から作る初期試作。実際の外観・高さは再現していません。</div></div>
+<div id="controls"><div id="stick" aria-label="移動スティック"><div id="knob"></div></div><div id="flight"><button id="ascend" type="button">↑ 上昇</button><button id="descend" type="button">↓ 下降</button><div id="hint">左スティック：水平移動<br>右のボタン：高度変更<br>画面ドラッグ：向き変更</div></div></div>
 <footer>地図データ © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors (ODbL)</a></footer>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
@@ -40,11 +42,9 @@ const avatar=new THREE.Group();
 const body=new THREE.Mesh(new THREE.CapsuleGeometry(.28,1.03,5,9),new THREE.MeshLambertMaterial({color:0x447fa2}));body.position.y=.91;avatar.add(body);
 const head=new THREE.Mesh(new THREE.SphereGeometry(.23,12,10),new THREE.MeshLambertMaterial({color:0xf1c59f}));head.position.y=1.57;avatar.add(head);
 scene.add(avatar);
-// Start outside the large station building (verified against saved OSM footprints).
-// OSM way 207293119: 松戸駅東西自由通路, west-side deck entrance.
-const DECK_Y=5.2;
-const player={x:-40.5,z:27.3,y:DECK_Y,yaw:0},keys=new Set(),stickInput={x:0,y:0};let orbit=0.25,pitch=.50,drag=null;
-let westDeckPoints=[];
+// Temporary free-flight inspection above the west exit; no deck/ground collision.
+const player={x:-45,z:25,y:24,yaw:0},keys=new Set(),stickInput={x:0,y:0};
+const altitudeInput={up:false,down:false};let orbit=0.25,pitch=.38,drag=null;
 function xy(lat,lon){return[(lon-LON)*111320*Math.cos(LAT*Math.PI/180),-(lat-LAT)*111320];}
 function polygon(points){let area=0;for(let i=0,j=points.length-1;i<points.length;j=i++)area+=points[j][0]*points[i][1]-points[i][0]*points[j][1];return area/2;}
 const generated=[];
@@ -79,15 +79,13 @@ function createBuilding(el){
  return true;
 }
 function createMap(data){
- clearMap();westDeckPoints=[];
+ clearMap();
  const ways=data.elements.filter(e=>e.type==='way'&&e.geometry?.length);
  let nBuildings=0,nRoads=0,nRails=0;
  for(const el of ways)if(el.tags?.building&&el.tags.building!=='no'&&createBuilding(el))nBuildings++;
  for(const el of ways){
   const tags=el.tags||{},pts=el.geometry.map(p=>xy(p.lat,p.lon));
   if(tags.highway){const h=tags.highway;if(h==='construction'||h==='proposed')continue;
-   // Draw mapped elevated east-west station passage as a raised deck.
-   if(el.id===207293119){westDeckPoints=pts;strip(pts,8,walkMaterial,DECK_Y);nRoads++;continue;}
    const walk=['footway','pedestrian','path','steps','cycleway','corridor','living_street'].includes(h);
    const width=walk?(h==='pedestrian'?6:2.2):['primary','secondary','tertiary','trunk'].includes(h)?10:['service','residential','unclassified'].includes(h)?5.5:3.2;
    strip(pts,width,walk?walkMaterial:roadMaterial,walk?.052:.047);nRoads++;
@@ -160,15 +158,16 @@ window.addEventListener('blur',resetStick);
 renderer.domElement.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId);});
 renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;orbit-=(e.clientX-drag[0])*.006;pitch=Math.max(.16,Math.min(1.1,pitch+(e.clientY-drag[1])*.004));drag=[e.clientX,e.clientY];});
 renderer.domElement.addEventListener('pointerup',()=>drag=null);renderer.domElement.addEventListener('pointercancel',()=>drag=null);
-// Temporary viewing-only elevation: follow the mapped passage, otherwise return to ground.
-function nearWestDeck(x,z){
- for(let i=1;i<westDeckPoints.length;i++){
-  const a=westDeckPoints[i-1],b=westDeckPoints[i],dx=b[0]-a[0],dz=b[1]-a[1];
-  const t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz||1)));
-  if(Math.hypot(x-a[0]-t*dx,z-a[1]-t*dz)<4.5)return true;
- }
- return false;
+// Hold-to-fly controls for touchscreen, and Space / Shift for keyboard.
+for(const [id,key] of [['ascend','up'],['descend','down']]){
+ const button=document.getElementById(id);
+ const release=()=>{altitudeInput[key]=false;};
+ button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();altitudeInput[key]=true;button.setPointerCapture(e.pointerId);});
+ button.addEventListener('pointerup',release);
+ button.addEventListener('pointercancel',release);
+ button.addEventListener('lostpointercapture',release);
 }
+window.addEventListener('blur',()=>{altitudeInput.up=false;altitudeInput.down=false;});
 const clock=new THREE.Clock();let frame=0;
 function animate(){
  const dt=Math.min(clock.getDelta(),.05);
@@ -180,13 +179,14 @@ function animate(){
   player.z=Math.max(-HALF+1,Math.min(HALF-1,player.z+dz));
   player.yaw=Math.atan2(dx,dz);avatar.rotation.y=player.yaw;
  }
- player.y+=( (nearWestDeck(player.x,player.z)?DECK_Y:0)-player.y)*Math.min(1,dt*5);
+ const climb=(altitudeInput.up||keys.has(' ')?1:0)-(altitudeInput.down||keys.has('shift')?1:0);
+ player.y=Math.max(2,Math.min(120,player.y+climb*14*dt));
  avatar.position.set(player.x,player.y+.03,player.z);
- const distance=13,target=new THREE.Vector3(player.x,player.y+1.45,player.z);
+ const distance=16,target=new THREE.Vector3(player.x,player.y+1.45,player.z);
  camera.position.set(player.x-Math.sin(orbit)*distance*Math.cos(pitch),player.y+1.45+distance*Math.sin(pitch),player.z-Math.cos(orbit)*distance*Math.cos(pitch));
  camera.lookAt(target);
  renderer.render(scene,camera);
- if((frame++%8)===0)coords.textContent='X '+player.x.toFixed(1)+'m / Z '+player.z.toFixed(1)+'m'+(len>.04?'｜移動中':'｜停止中');
+ if((frame++%8)===0)coords.textContent='X '+player.x.toFixed(1)+'m / Z '+player.z.toFixed(1)+'m / 高度 '+player.y.toFixed(1)+'m';
  requestAnimationFrame(animate);
 }
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
