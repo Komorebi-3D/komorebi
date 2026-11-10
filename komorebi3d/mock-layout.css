@@ -24,3 +24,16 @@
  .mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:100%;min-height:0;overflow:visible}
  .mock-root .landscape-main .panel-slot-main>.landscape-game{height:100%}
 }
+/* 3-panel prototype: runtime in any of the four slots. */
+.mock-root .panel-slot-bottom:not([data-panel="empty"]){min-height:250px}
+.mock-root .panel-slot>.runtime-status{margin:0;padding:12px;background:#eff2ec;border:1px solid #c6d0c3;border-radius:9px;color:#455a49;min-width:0;overflow:auto;overflow-wrap:anywhere}
+.mock-root .panel-slot .runtime-status-heading{margin:0 0 4px}
+.mock-root .panel-slot .mock-runtime-notice{margin:0 0 6px;padding:6px 8px;background:#fffdf3;border-radius:6px;color:#64614b;font-size:11px;grid-column:1/-1}
+.mock-root .panel-slot .runtime-status>.stats{margin-top:0;display:flex;gap:6px;flex-wrap:wrap}
+.mock-root .panel-slot .runtime-status>p[id$="-status"]{margin:0;padding:7px!important;min-width:0}
+.mock-root .panel-slot .runtime-status>p:not([id]){margin:2px 0;grid-column:1/-1}
+.mock-root .panel-slot .runtime-status>#ea:empty,.mock-root .panel-slot .runtime-status>#eb:empty{display:none}
+@container (min-width:650px){
+ .mock-root .panel-slot-bottom>.runtime-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}
+ .mock-root .panel-slot-bottom .runtime-status-heading,.mock-root .panel-slot-bottom .mock-runtime-notice,.mock-root .panel-slot-bottom #collision-status,.mock-root .panel-slot-bottom #sync-status,.mock-root .panel-slot-bottom .stats,.mock-root .panel-slot-bottom #status{grid-column:1/-1}
+}
