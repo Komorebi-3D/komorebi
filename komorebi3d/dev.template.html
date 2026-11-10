@@ -563,6 +563,7 @@ const hamsterLiteGeometry=createMeshGeometry({
 });
 
 let renderFrameId=0;
+const SAVED_WORLD_KEY='komorebi3d-last-world-dev';
 let activeWorld='forest',matsudoMeshes=[],matsudoLabels=null,warpInProgress=false;
 let flightAltitude=0;
 function productRenderSnapshot(){
@@ -636,6 +637,8 @@ async function setWorld(name){
    cameraRig.state.applyInput(Math.PI/2/.0055,0,.0055);
    publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
   }else {publishRuntimeStatus('status','🌳 森にワープしました');publishRuntimeStatus('label-status','🏙️ 屋上名：森ワールドでは非表示');}
+  // Save only after a successful warp; failed Matsudo loads never get persisted.
+  try{localStorage.setItem(SAVED_WORLD_KEY,name)}catch(_){/* storage unavailable */}
   publishGameState();return true;
  }catch(error){
   publishRuntimeStatus('status','ワープ失敗：'+String(error.message||error));
@@ -777,6 +780,10 @@ function frame(t){
  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+// Startup has completed: restore the last world, or remain in the Forest.
+let savedWorld='forest';
+try{if(localStorage.getItem(SAVED_WORLD_KEY)==='matsudo')savedWorld='matsudo'}catch(_){/* storage unavailable */}
+if(savedWorld==='matsudo')setWorld('matsudo').catch(()=>setWorld('forest').catch(()=>{}));
 function pauseProductInput(){inputManager.pause();core.rotate({direction:0,phase:'hold'});last=0;}
 function resumeProductInput(){inputManager.resume();last=0;}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseProductInput();else resumeProductInput();});
