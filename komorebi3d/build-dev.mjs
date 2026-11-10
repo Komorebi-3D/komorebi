@@ -26,7 +26,7 @@ const css=[...pieces.map(x=>x[0]),...pieces.map(x=>x[1])].filter(Boolean).join('
 let html=read(mock?'mock.template.html':'dev.template.html');
 if(!mock){
  // Inline object fragments verbatim into their original game script scope.
- for(const path of ['objects/forest/layout.js','objects/trees/tree-v1.js','objects/trees/tree-v2.js','objects/trees/tree-v3.js','objects/buildings/house.js','objects/buildings/cafe.js','objects/forest/details.js']){
+ for(const path of ['objects/forest/layout.js','objects/trees/tree-v1.js','objects/trees/tree-v2.js','objects/trees/tree-v3.js','objects/buildings/house.js','objects/buildings/cafe.js','objects/forest/details.js','objects/characters/ghost-helicopter.js']){
   const marker='/* @object:'+path+' */';
   if(!html.includes(marker))throw Error('Missing object '+path);
   html=html.replace(marker,read(path));
