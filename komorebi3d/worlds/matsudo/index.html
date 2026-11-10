@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Komorebi 3D | Real Matsudo v0.1</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#bcd6e7;color:#f3f8ff;font-family:system-ui,-apple-system,sans-serif}
+canvas{display:block;touch-action:none}#ui{position:fixed;top:env(safe-area-inset-top,0);left:0;right:0;display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:12px;pointer-events:none}
+.panel{background:#172838d9;border:1px solid #ffffff30;border-radius:14px;padding:11px 13px;backdrop-filter:blur(8px);pointer-events:auto;max-width:min(94vw,360px)}
+h1{font-size:16px;margin:0 0 5px}p{font-size:12px;margin:5px 0;line-height:1.5}#status{color:#cde5dd}#counts{font-variant-numeric:tabular-nums}button{color:#fff;background:#365c73;border:1px solid #91b3c1;border-radius:9px;padding:8px 10px;font-size:12px;cursor:pointer}
+#controls{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:16px;right:16px;display:flex;justify-content:space-between;align-items:end;pointer-events:none}
+#stick{width:132px;height:132px;border-radius:50%;border:2px solid #ffffff9c;background:#1b34487d;position:relative;pointer-events:auto;touch-action:none}
+#knob{width:54px;height:54px;border-radius:50%;position:absolute;left:37px;top:37px;background:#e5f0f2d8;border:2px solid white;pointer-events:none}
+#hint{max-width:170px;background:#172838c9;border-radius:12px;padding:11px;font-size:12px;line-height:1.5;text-align:right}
+footer{position:fixed;right:8px;bottom:4px;font-size:10px;background:#172838c9;padding:4px 7px;border-radius:7px}
+a{color:#b0eaff}#crosshair{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);opacity:.5;pointer-events:none}
+@media(max-width:560px){#ui{flex-wrap:wrap}.panel{padding:8px 10px}#hint{font-size:11px}h1{font-size:14px}}
+</style>
+</head>
+<body>
+<div id="ui"><div class="panel"><h1>🏙️ Real Matsudo <small>v0.1</small></h1><p>松戸駅中心 500m × 500m｜現実ベースの独立ワールド</p><p id="status" role="status">OpenStreetMapデータを読み込み中…</p><p id="counts">建物 — / 道路 —</p><button id="retry" type="button" hidden>地図データを再取得</button></div><div class="panel"><p>主人公 1.80m｜WASD / 矢印キーで移動</p><p>画面ドラッグで視点回転・スマホは左スティック</p><p id="coords">X 0m / Z 0m</p></div></div>
+<div id="crosshair">＋</div>
+<div id="controls"><div id="stick" aria-label="移動スティック"><div id="knob"></div></div><div id="hint">これはOSMの道路・建物位置から作る初期試作。実際の外観・高さは再現していません。</div></div>
+<footer>地図データ © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors (ODbL)</a></footer>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+const LAT=35.78444,LON=139.90061,SIZE=500,HALF=SIZE/2;
+const status=document.getElementById('status'),counts=document.getElementById('counts'),coords=document.getElementById('coords'),retry=document.getElementById('retry');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xbad7e8);scene.fog=new THREE.Fog(0xbad7e8,110,400);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.08,520);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+document.body.insertBefore(renderer.domElement,document.getElementById('ui'));
+scene.add(new THREE.HemisphereLight(0xe9f4ff,0x819684,2.1));
+const sun=new THREE.DirectionalLight(0xfff2d3,2.2);sun.position.set(80,160,40);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(SIZE,SIZE),new THREE.MeshLambertMaterial({color:0x9eb2a1}));ground.rotation.x=-Math.PI/2;scene.add(ground);
+const grid=new THREE.GridHelper(SIZE,50,0x8eab9a,0x8eab9a);grid.position.y=.008;grid.material.transparent=true;grid.material.opacity=.15;scene.add(grid);
+const edge=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(SIZE,.05,SIZE)),new THREE.LineBasicMaterial({color:0x557a82}));edge.position.y=.04;scene.add(edge);
+const avatar=new THREE.Group();
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(.28,1.03,5,9),new THREE.MeshLambertMaterial({color:0x447fa2}));body.position.y=.91;avatar.add(body);
+const head=new THREE.Mesh(new THREE.SphereGeometry(.23,12,10),new THREE.MeshLambertMaterial({color:0xf1c59f}));head.position.y=1.57;avatar.add(head);
+scene.add(avatar);
+const player={x:0,z:35,yaw:0},keys=new Set(),stickInput={x:0,y:0};let orbit=0.25,pitch=.42,drag=null;
+function xy(lat,lon){return[(lon-LON)*111320*Math.cos(LAT*Math.PI/180),-(lat-LAT)*111320];}
+function polygon(points){let area=0;for(let i=0,j=points.length-1;i<points.length;j=i++)area+=points[j][0]*points[i][1]-points[i][0]*points[j][1];return area/2;}
+function inside(px,pz,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if(((a[1]>pz)!==(b[1]>pz))&&(px<(b[0]-a[0])*(pz-a[1])/(b[1]-a[1])+a[0]))inside=!inside;}return inside;}
+const buildings=[],generated=[];
+function clearMap(){for(const o of generated){scene.remove(o);o.geometry.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}generated.length=0;buildings.length=0;}
+function add(obj){scene.add(obj);generated.push(obj);}
+const roadMaterial=new THREE.MeshLambertMaterial({color:0x596570,side:THREE.DoubleSide});
+const walkMaterial=new THREE.MeshLambertMaterial({color:0xc7c6b4,side:THREE.DoubleSide});
+const railMaterial=new THREE.MeshLambertMaterial({color:0x806e65,side:THREE.DoubleSide});
+function strip(pts,width,mat,height=.045){
+ const verts=[],inds=[];for(let i=0;i<pts.length;i++){const p=pts[i],prev=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+1)],dx=next[0]-prev[0],dz=next[1]-prev[1],length=Math.hypot(dx,dz)||1;
+  const nx=-dz/length*width/2,nz=dx/length*width/2;verts.push(p[0]+nx,height,p[1]+nz,p[0]-nx,height,p[1]-nz);
+  if(i>0){const a=(i-1)*2,b=i*2;inds.push(a,a+1,b,a+1,b+1,b);}}
+ if(verts.length<6)return;
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(inds);geo.computeVertexNormals();add(new THREE.Mesh(geo,mat));
+}
+const buildingMaterial=[0xc9bba8,0x9baeb8,0xb7b0a8,0xdbbfaa,0xabae9e,0xc4a99d].map(c=>new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide}));
+const roofMaterial=new THREE.MeshLambertMaterial({color:0x666b73});
+function createBuilding(el){
+ if(el.geometry?.length<4)return false;
+ const pts=el.geometry.map(p=>xy(p.lat,p.lon));
+ if(Math.hypot(pts[0][0]-pts[pts.length-1][0],pts[0][1]-pts[pts.length-1][1])>.5)return false;
+ pts.pop();if(pts.length<3)return false;
+ const area=Math.abs(polygon(pts));if(area<3||area>35000)return false;
+ const minX=Math.min(...pts.map(p=>p[0])),maxX=Math.max(...pts.map(p=>p[0])),minZ=Math.min(...pts.map(p=>p[1])),maxZ=Math.max(...pts.map(p=>p[1]));
+ if(minX>HALF||maxX< -HALF||minZ>HALF||maxZ< -HALF)return false;
+ let h=parseFloat(el.tags?.height);if(!Number.isFinite(h)||h<2||h>180){const levels=parseFloat(el.tags?.['building:levels']);h=Number.isFinite(levels)&&levels>0?Math.min(60,levels*3):9;}
+ const ring=pts;if(Math.abs(polygon(ring))<1)return false;
+ const shape=new THREE.Shape();shape.moveTo(pts[0][0],-pts[0][1]);for(const p of pts.slice(1))shape.lineTo(p[0],-p[1]);shape.closePath();
+ const geo=new THREE.ExtrudeGeometry(shape,{depth:h,bevelEnabled:false,curveSegments:1,steps:1});geo.rotateX(-Math.PI/2);
+ const material=buildingMaterial[el.id%buildingMaterial.length];const mesh=new THREE.Mesh(geo,material);mesh.position.y=.025;add(mesh);
+ // Polygon-corner collision; avoid placing hero inside solid walls.
+ buildings.push({ring,bounds:[minX,maxX,minZ,maxZ]});return true;
+}
+function createMap(data){
+ clearMap();const ways=data.elements.filter(e=>e.type==='way'&&e.geometry?.length);
+ let nBuildings=0,nRoads=0,nRails=0;
+ for(const el of ways)if(el.tags?.building&&el.tags.building!=='no'&&createBuilding(el))nBuildings++;
+ for(const el of ways){
+  const tags=el.tags||{},pts=el.geometry.map(p=>xy(p.lat,p.lon));
+  if(tags.highway){const h=tags.highway;if(h==='construction'||h==='proposed')continue;
+   const walk=['footway','pedestrian','path','steps','cycleway','corridor','living_street'].includes(h);
+   const width=walk?(h==='pedestrian'?6:2.2):['primary','secondary','tertiary','trunk'].includes(h)?10:['service','residential','unclassified'].includes(h)?5.5:3.2;
+   strip(pts,width,walk?walkMaterial:roadMaterial,walk?.052:.047);nRoads++;
+  }else if(tags.railway&&['rail','light_rail','tram'].includes(tags.railway)){strip(pts,3.1,railMaterial,.075);nRails++;}
+ }
+ counts.textContent='建物 '+nBuildings+'棟 / 道路 '+nRoads+'本 / 鉄道 '+nRails+'線';
+ status.textContent='OSMの実データを表示中（建物高さ・外観は推定の場合あり）';
+}
+const extentLat=HALF/111320,extentLon=HALF/(111320*Math.cos(LAT*Math.PI/180));
+const bbox=[LAT-extentLat,LON-extentLon,LAT+extentLat,LON+extentLon].map(x=>x.toFixed(6)).join(',');
+const query='[out:json][timeout:35];(way["building"]('+bbox+');way["highway"]('+bbox+');way["railway"]('+bbox+'););out geom;';
+const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+async function loadMap(){
+ retry.hidden=true;status.textContent='OpenStreetMapから500m四方を取得中…';
+ let errors=[];
+ for(const endpoint of endpoints){
+  try{
+   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),27000);
+   let response;try{response=await fetch(endpoint+'?data='+encodeURIComponent(query),{signal:controller.signal,mode:'cors'});}finally{clearTimeout(timeout);}
+   if(!response.ok)throw Error('HTTP '+response.status);
+   const json=await response.json();
+   if(!Array.isArray(json.elements)||json.elements.length===0)throw Error('地図要素なし');
+   createMap(json);return;
+  }catch(err){errors.push(err.message||String(err));}
+ }
+ status.textContent='地図取得に失敗。接続状況を確認して再取得してください。';
+ counts.textContent='API応答: '+errors.join(' / ');retry.hidden=false;
+}
+retry.addEventListener('click',loadMap);
+window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());});
+window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+const stickEl=document.getElementById('stick'),knob=document.getElementById('knob');
+function stickMove(e){const r=stickEl.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2,k=Math.min(1,51/(Math.hypot(x,y)||1)),xx=x*k,yy=y*k;knob.style.transform='translate('+xx+'px,'+yy+'px)';stickInput.x=xx/51;stickInput.y=-yy/51;}
+stickEl.addEventListener('pointerdown',e=>{e.stopPropagation();stickEl.setPointerCapture(e.pointerId);stickMove(e);});
+stickEl.addEventListener('pointermove',e=>{if(stickEl.hasPointerCapture(e.pointerId))stickMove(e);});
+function resetStick(){stickInput.x=stickInput.y=0;knob.style.transform='';}
+stickEl.addEventListener('pointerup',resetStick);stickEl.addEventListener('pointercancel',resetStick);
+renderer.domElement.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId);});
+renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;orbit-=(e.clientX-drag[0])*.006;pitch=Math.max(.16,Math.min(1.1,pitch+(e.clientY-drag[1])*.004));drag=[e.clientX,e.clientY];});
+renderer.domElement.addEventListener('pointerup',()=>drag=null);renderer.domElement.addEventListener('pointercancel',()=>drag=null);
+function blocked(x,z){if(Math.abs(x)>HALF-1||Math.abs(z)>HALF-1)return true;for(const b of buildings){const [x0,x1,z0,z1]=b.bounds;if(x<x0-.4||x>x1+.4||z<z0-.4||z>z1+.4)continue;
+ for(const dx of [-.27,.27])for(const dz of [-.27,.27])if(inside(x+dx,z+dz,b.ring))return true;
+ }return false;}
+const clock=new THREE.Clock();let frame=0;
+function animate(){
+ const dt=Math.min(clock.getDelta(),.05);
+ const f=(keys.has('w')||keys.has('arrowup')?1:0)-(keys.has('s')||keys.has('arrowdown')?1:0)+stickInput.y;
+ const r=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stickInput.x;
+ const len=Math.hypot(f,r);
+ if(len>.04){const speed=4.6*dt/Math.max(1,len);const dx=(Math.sin(orbit)*f+Math.cos(orbit)*r)*speed,dz=(Math.cos(orbit)*f-Math.sin(orbit)*r)*speed;
+  if(!blocked(player.x+dx,player.z))player.x+=dx;if(!blocked(player.x,player.z+dz))player.z+=dz;
+  player.yaw=Math.atan2(dx,dz);avatar.rotation.y=player.yaw;
+ }
+ avatar.position.set(player.x,.03,player.z);
+ const distance=13,target=new THREE.Vector3(player.x,1.45,player.z);
+ camera.position.set(player.x-Math.sin(orbit)*distance*Math.cos(pitch),1.45+distance*Math.sin(pitch),player.z-Math.cos(orbit)*distance*Math.cos(pitch));
+ camera.lookAt(target);
+ renderer.render(scene,camera);
+ if((frame++%20)===0)coords.textContent='X '+player.x.toFixed(1)+'m / Z '+player.z.toFixed(1)+'m';
+ requestAnimationFrame(animate);
+}
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+loadMap();animate();
+</script>
+</body></html>
