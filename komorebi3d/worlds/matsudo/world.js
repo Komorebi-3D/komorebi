@@ -28,12 +28,12 @@ function top(m,p,h,t){
     if(ccw?Math.min(s1,s2,s3)>=-1e-7:Math.max(s1,s2,s3)<=1e-7){overlaps=true;break;}
    }
    if(overlaps)continue;
-   tri(m,[a[0],h,a[1]],[b[0],h,b[1]],[c[0],h,c[1]],t);
+   tri(m,[a[0],h,a[1]],[c[0],h,c[1]],[b[0],h,b[1]],t);
    idx.splice(i,1);found=true;break;
   }
   if(!found)break;
  }
- if(idx.length===3){const a=p[idx[0]],b=p[idx[1]],c=p[idx[2]];tri(m,[a[0],h,a[1]],[b[0],h,b[1]],[c[0],h,c[1]],t);}
+ if(idx.length===3){const a=p[idx[0]],b=p[idx[1]],c=p[idx[2]];tri(m,[a[0],h,a[1]],[c[0],h,c[1]],[b[0],h,b[1]],t);}
 }
 function building(m,p,h,t){
  for(let i=0;i<p.length;i++){
@@ -47,10 +47,10 @@ function strip(m,points,width,t,y=.045){
   const a=points[i-1],b=points[i],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);
   if(len<.01)continue;
   const nx=-dz/len*width/2,nz=dx/len*width/2;
-  quad(m,[a[0]+nx,y,a[1]+nz],[a[0]-nx,y,a[1]-nz],[b[0]-nx,y,b[1]-nz],[b[0]+nx,y,b[1]+nz],t);
+  quad(m,[a[0]-nx,y,a[1]-nz],[a[0]+nx,y,a[1]+nz],[b[0]+nx,y,b[1]+nz],[b[0]-nx,y,b[1]-nz],t);
  }
 }
-function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x1,-.22,z0],[x1,-.22,z1],[x0,-.22,z1],t);}
+function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1],[x1,-.22,z0],t);}
 export async function loadMatsudoWorld(){
  const response=await fetch('./worlds/matsudo/map-data.json',{cache:'no-cache'});
  if(!response.ok)throw new Error('松戸OSMの読み込み失敗 HTTP '+response.status);
