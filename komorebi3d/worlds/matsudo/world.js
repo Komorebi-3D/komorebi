@@ -122,7 +122,7 @@ export function createMatsudoLabels(host){
   });
  }
  function update(camera,player){
-  if(!camera||!layer.isConnected)return;
+  if(!camera||!layer.isConnected)return {total:items.length,inRange:0,inView:0,shown:0};
   const [ex,ey,ez]=camera.eye,[tx,ty,tz]=camera.target;
   const px=player?.x??tx,py=player?.y??ty,pz=player?.z??tz;
   let fx=tx-ex,fy=ty-ey,fz=tz-ez,fl=Math.hypot(fx,fy,fz)||1;
@@ -130,7 +130,7 @@ export function createMatsudoLabels(host){
   let rx=-fz,rz=fx,rl=Math.hypot(rx,rz)||1;rx/=rl;rz/=rl;
   const ux=-fy*rz,uy=fx*rz-fz*rx,uz=fy*rx;
   const w=layer.clientWidth,h=layer.clientHeight;
-  if(!w||!h)return;
+  if(!w||!h)return {total:items.length,inRange:0,inView:0,shown:0};
   const scale=h/(2*Math.tan(45*Math.PI/360)),occupied=[];
   // Eligibility uses camera distance; priority uses the protagonist's position.
   // Prioritize actual in-frame roof names while avoiding dense label stacking.
@@ -141,7 +141,7 @@ export function createMatsudoLabels(host){
   })).filter(entry=>entry.cameraDistance<=200)
     .sort((a,b)=>a.playerDistance-b.playerDistance);
   for(const item of items)item.el.style.display='none';
-  let shown=0;
+  let shown=0,inView=0;
   for(const {item} of ranked){
    if(shown>=20)break;
    const vx=item.x-ex,vy=item.y-ey,vz=item.z-ez,depth=vx*fx+vy*fy+vz*fz;
@@ -149,12 +149,14 @@ export function createMatsudoLabels(host){
    const x=w/2+(vx*rx+vz*rz)*scale/depth;
    const y=h/2-(vx*ux+vy*uy+vz*uz)*scale/depth;
    const wd=item.width,top=y-72;
+   if(x>=0&&x<=w&&y>=0&&y<=h)inView++;
    if(x<wd/2+4||x>w-wd/2-4||top<4||y>h-4||
      occupied.some(p=>Math.abs(x-p.x)<(wd+p.wd)/2+8&&Math.abs(top-p.top)<42))continue;
    occupied.push({x,top,wd});
    item.el.style.display='flex';item.el.style.left=x+'px';item.el.style.top=y+'px';
    shown++;
   }
+  return {total:items.length,inRange:ranked.length,inView,shown};
  }
  return {setLabels,update,dispose(){layer.remove();items=[];}};
 }
