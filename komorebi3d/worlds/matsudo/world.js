@@ -92,37 +92,67 @@ export async function loadMatsudoWorld(){
  const meshes=[floor,...buildings,roads,walks,rails].filter(m=>m.positions.length>0);
  return {meshes,labels,counts:{buildings:buildingCount,roads:roadCount,rails:railCount}};
 }
+// Lightweight screen-facing HUD labels, anchored to OSM building rooftops.
 export function createMatsudoLabels(host){
- const layer=document.createElement('div');layer.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3';
- host.appendChild(layer);let items=[];
+ const layer=document.createElement('div');
+ layer.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3';
+ host.appendChild(layer);
+ let items=[];
  function setLabels(labels){
-  layer.replaceChildren();items=labels.map(label=>{
-   const el=document.createElement('div');el.textContent=label.name;
-   el.style.cssText='position:absolute;display:none;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px 8px;background:#142435e8;border:1px solid #fff8be;border-radius:6px;color:#fff;font:bold 13px system-ui;transform:translate(-50%,-100%);text-shadow:0 1px #000';
-   layer.appendChild(el);return {...label,el};
+  layer.replaceChildren();
+  items=labels.map(label=>{
+   const el=document.createElement('div');
+   el.style.cssText='position:absolute;display:none;pointer-events:none;transform:translate(-50%,-100%);flex-direction:column;align-items:center;white-space:nowrap;';
+   const card=document.createElement('div');
+   card.style.cssText='box-sizing:border-box;max-width:210px;min-width:92px;overflow:hidden;padding:7px 11px 8px;border:1px solid rgba(123,234,216,.72);border-radius:10px;background:rgba(23,40,56,.75);box-shadow:0 3px 14px rgba(6,15,29,.22);color:white;font-family:system-ui,-apple-system,sans-serif;text-align:left;';
+   const header=document.createElement('div');
+   header.style.cssText='color:#7bead8;font:600 9px/1.3 system-ui,-apple-system,sans-serif;letter-spacing:1.1px;margin-bottom:3px;';
+   header.textContent='● BUILDING';
+   const title=document.createElement('div');
+   title.style.cssText='max-width:186px;overflow:hidden;text-overflow:ellipsis;color:#fff;font:600 13px/1.4 system-ui,-apple-system,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,.28);';
+   title.textContent=label.name; // OSM names are always text, never HTML.
+   card.append(header,title);
+   const stem=document.createElement('div');
+   stem.style.cssText='width:1px;height:22px;background:#7bead8;box-shadow:0 0 4px rgba(123,234,216,.35);';
+   const dot=document.createElement('div');
+   dot.style.cssText='width:7px;height:7px;border-radius:50%;background:#7bead8;box-shadow:0 0 0 2px rgba(23,40,56,.45);';
+   el.append(card,stem,dot);
+   layer.appendChild(el);
+   return {...label,el,width:Math.min(210,Math.max(92,Array.from(label.name).length*13+24))};
   });
  }
- function update(camera){
+ function update(camera,player){
   if(!camera||!layer.isConnected)return;
   const [ex,ey,ez]=camera.eye,[tx,ty,tz]=camera.target;
-  let fx=tx-ex,fy=ty-ey,fz=tz-ez,fl=Math.hypot(fx,fy,fz)||1;fx/=fl;fy/=fl;fz/=fl;
+  const px=player?.x??tx,py=player?.y??ty,pz=player?.z??tz;
+  let fx=tx-ex,fy=ty-ey,fz=tz-ez,fl=Math.hypot(fx,fy,fz)||1;
+  fx/=fl;fy/=fl;fz/=fl;
   let rx=-fz,rz=fx,rl=Math.hypot(rx,rz)||1;rx/=rl;rz/=rl;
   const ux=-fy*rz,uy=fx*rz-fz*rx,uz=fy*rx;
   const w=layer.clientWidth,h=layer.clientHeight;
   if(!w||!h)return;
   const scale=h/(2*Math.tan(45*Math.PI/360)),occupied=[];
-  const visible=items.map(item=>({item,d:Math.hypot(item.x-ex,item.y-ey,item.z-ez)})).sort((a,b)=>a.d-b.d);
+  // Eligibility uses camera distance; priority uses the protagonist's position.
+  const ranked=items.map(item=>({
+   item,
+   cameraDistance:Math.hypot(item.x-ex,item.y-ey,item.z-ez),
+   playerDistance:Math.hypot(item.x-px,item.y-py,item.z-pz)
+  })).filter(entry=>entry.cameraDistance<=200)
+    .sort((a,b)=>a.playerDistance-b.playerDistance);
+  for(const item of items)item.el.style.display='none';
   let shown=0;
-  for(const {item,d} of visible){
+  for(const {item} of ranked){
+   if(shown>=20)break;
    const vx=item.x-ex,vy=item.y-ey,vz=item.z-ez,depth=vx*fx+vy*fy+vz*fz;
-   if(d>180||depth<=.2){item.el.style.display='none';continue;}
-   const x=w/2+(vx*rx+vz*rz)*scale/depth,y=h/2-(vx*ux+vy*uy+vz*uz)*scale/depth;
-   const wd=Math.min(190,Math.max(68,item.name.length*13+16));
-   if(shown>=18||x<wd/2+4||x>w-wd/2-4||y<36||y>h-4||
-     occupied.some(p=>Math.abs(x-p.x)<(wd+p.wd)/2+8&&Math.abs(y-p.y)<34)){
-    item.el.style.display='none';continue;
-   }
-   occupied.push({x,y,wd});shown++;item.el.style.display='block';item.el.style.left=x+'px';item.el.style.top=y+'px';
+   if(depth<=.2)continue;
+   const x=w/2+(vx*rx+vz*rz)*scale/depth;
+   const y=h/2-(vx*ux+vy*uy+vz*uz)*scale/depth;
+   const wd=item.width,top=y-72;
+   if(x<wd/2+4||x>w-wd/2-4||top<4||y>h-4||
+     occupied.some(p=>Math.abs(x-p.x)<(wd+p.wd)/2+8&&Math.abs(top-p.top)<78))continue;
+   occupied.push({x,top,wd});
+   item.el.style.display='flex';item.el.style.left=x+'px';item.el.style.top=y+'px';
+   shown++;
   }
  }
  return {setLabels,update,dispose(){layer.remove();items=[];}};
