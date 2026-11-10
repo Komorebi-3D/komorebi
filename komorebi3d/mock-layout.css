@@ -37,3 +37,9 @@
  .mock-root .panel-slot-bottom>.runtime-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}
  .mock-root .panel-slot-bottom .runtime-status-heading,.mock-root .panel-slot-bottom .mock-runtime-notice,.mock-root .panel-slot-bottom #collision-status,.mock-root .panel-slot-bottom #sync-status,.mock-root .panel-slot-bottom .stats,.mock-root .panel-slot-bottom #status{grid-column:1/-1}
 }
+/* Four-panel mock: game and test slots keep the same height. */
+.mock-root .landscape-main .panel-slot-main{height:440px;flex:none}
+@container (min-width:650px){
+ .mock-root .landscape-main{height:440px;min-height:0}
+ .mock-root .landscape-main .panel-slot-main{height:100%}
+}
