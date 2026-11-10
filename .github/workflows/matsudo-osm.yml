@@ -1,0 +1,33 @@
+name: Refresh Matsudo OSM snapshot
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/matsudo-osm.yml'
+      - 'komorebi3d/worlds/matsudo/fetch-map.py'
+  schedule:
+    - cron: '20 3 1 * *'
+permissions:
+  contents: write
+jobs:
+  download-map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download real Matsudo OSM data
+        run: python komorebi3d/worlds/matsudo/fetch-map.py
+      - name: Commit verified static snapshot only if changed
+        run: |
+          git add komorebi3d/worlds/matsudo/map-data.json
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Refresh Matsudo 500m OpenStreetMap snapshot"
+            git push
+          fi
