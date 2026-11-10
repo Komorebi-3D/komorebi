@@ -10,7 +10,7 @@ const mode=modeArgs[0]?.slice('--mode='.length)??'product';
 if(!['product','mock','chat'].includes(mode))throw Error('Unknown mode: '+mode);
 const chat=mode==='chat';
 const mock=mode!=='product';
-const panelIds=mock?['build','game']:['build','game','test','runtime'];
+const panelIds=mock?['build','game','runtime']:['build','game','test','runtime'];
 const variant=id=>mock&&id==='game'?'game.mock':id;
 const names=['common',...panelIds.map(variant),...(mock?['mock-layout']:[])];
 const read=path=>readFileSync(join(dir,path),'utf8');
@@ -29,7 +29,13 @@ html=html.replace('/* @component-styles */',css);
 for(const id of panelIds){
  const marker='<!-- @panel:'+id+' -->';
  if(!html.includes(marker))throw Error('Missing panel '+id);
- html=html.replace(marker,read('panels/'+variant(id)+'.html').trimEnd());
+ let panelHtml=read('panels/'+variant(id)+'.html').trimEnd();
+ if(mock&&id==='runtime'){
+  const endHeading='</h2>';
+  if(!panelHtml.includes(endHeading))throw Error('Missing runtime heading');
+  panelHtml=panelHtml.replace(endHeading,endHeading+'<p class="mock-runtime-notice">🧪 モック表示：下記のステータスは実際のEngineとは連動していません。</p>');
+ }
+ html=html.replace(marker,panelHtml);
 }
 if(html.includes('<!-- @panel:')||html.includes('/* @component-styles */'))throw Error('Unresolved placeholder');
 if(chat){
