@@ -15,7 +15,10 @@ h1{font-size:16px;margin:0 0 5px}p{font-size:12px;margin:5px 0;line-height:1.5}#
 #flight{display:flex;flex-direction:column;align-items:stretch;gap:8px;pointer-events:auto}
 #flight button{min-width:100px;min-height:48px;background:#274c67a8;touch-action:none;user-select:none;-webkit-user-select:none}
 footer{position:fixed;right:8px;bottom:4px;font-size:10px;background:#172838c9;padding:4px 7px;border-radius:7px}
-a{color:#b0eaff}#crosshair{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);opacity:.5;pointer-events:none}
+a{color:#b0eaff}
+#roof-labels{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+.roof-label{position:absolute;display:none;max-width:195px;padding:5px 9px;border:1.5px solid #fff8be;border-radius:7px;background:#142435e8;color:#fff;font-size:13px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;text-shadow:0 1px 2px #000;box-shadow:0 2px 10px #0009;transform:translate(-50%,-100%)}
+#crosshair{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);opacity:.5;pointer-events:none}
 @media(max-width:560px){#ui{flex-wrap:wrap}.panel{padding:8px 10px}#hint{font-size:11px}h1{font-size:14px}}
 </style>
 </head>
@@ -33,6 +36,35 @@ const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.08,520);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
 document.body.insertBefore(renderer.domElement,document.getElementById('ui'));
+const labelLayer=document.createElement('div');labelLayer.id='roof-labels';document.body.appendChild(labelLayer);
+const roofLabels=[];const labelVector=new THREE.Vector3();
+function clearRoofLabels(){for(const item of roofLabels)item.element.remove();roofLabels.length=0;}
+function addRoofLabel(name,x,z,height){
+ const el=document.createElement('div');el.className='roof-label';el.textContent=name;el.title=name;
+ labelLayer.appendChild(el);roofLabels.push({element:el,world:new THREE.Vector3(x,height+.9,z)});
+}
+function drawRoofLabels(){
+ camera.updateMatrixWorld();
+ const w=innerWidth,h=innerHeight,occupied=[];
+ const candidates=roofLabels.map(item=>({item,d:camera.position.distanceTo(item.world)}))
+  .filter(v=>v.d<200).sort((a,b)=>a.d-b.d);
+ let shown=0;
+ for(const {item} of candidates){
+  labelVector.copy(item.world).project(camera);
+  if(labelVector.z<=-1||labelVector.z>=1||Math.abs(labelVector.x)>1||Math.abs(labelVector.y)>1){item.element.style.display='none';continue;}
+  const x=(labelVector.x+1)*w/2,y=(1-labelVector.y)*h/2;
+  const width=Math.min(195,Math.max(72,item.element.textContent.length*13+19));
+  const bounds={x0:x-width/2-7,x1:x+width/2+7,y0:y-39,y1:y+5};
+  if(shown>=20||bounds.x0<4||bounds.x1>w-4||bounds.y0<4||bounds.y1>h-4||
+   occupied.some(r=>bounds.x0<r.x1&&bounds.x1>r.x0&&bounds.y0<r.y1&&bounds.y1>r.y0)){
+   item.element.style.display='none';continue;
+  }
+  occupied.push(bounds);shown++;
+  item.element.style.display='block';item.element.style.left=x+'px';item.element.style.top=y+'px';
+ }
+ for(const item of roofLabels)if(camera.position.distanceToSquared(item.world)>=40000)item.element.style.display='none';
+}
+
 scene.add(new THREE.HemisphereLight(0xe9f4ff,0x819684,2.1));
 const sun=new THREE.DirectionalLight(0xfff2d3,2.2);sun.position.set(80,160,40);scene.add(sun);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(SIZE,SIZE),new THREE.MeshLambertMaterial({color:0x9eb2a1}));ground.rotation.x=-Math.PI/2;scene.add(ground);
@@ -48,7 +80,7 @@ const altitudeInput={up:false,down:false};let orbit=0.25,pitch=.38,drag=null;
 function xy(lat,lon){return[(lon-LON)*111320*Math.cos(LAT*Math.PI/180),-(lat-LAT)*111320];}
 function polygon(points){let area=0;for(let i=0,j=points.length-1;i<points.length;j=i++)area+=points[j][0]*points[i][1]-points[i][0]*points[j][1];return area/2;}
 const generated=[];
-function clearMap(){for(const o of generated){scene.remove(o);o.geometry.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}generated.length=0;}
+function clearMap(){clearRoofLabels();for(const o of generated){scene.remove(o);o.geometry.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}generated.length=0;}
 function add(obj){scene.add(obj);generated.push(obj);}
 const roadMaterial=new THREE.MeshLambertMaterial({color:0x596570,side:THREE.DoubleSide});
 const walkMaterial=new THREE.MeshLambertMaterial({color:0xc7c6b4,side:THREE.DoubleSide});
@@ -75,7 +107,8 @@ function createBuilding(el){
  const shape=new THREE.Shape();shape.moveTo(pts[0][0],-pts[0][1]);for(const p of pts.slice(1))shape.lineTo(p[0],-p[1]);shape.closePath();
  const geo=new THREE.ExtrudeGeometry(shape,{depth:h,bevelEnabled:false,curveSegments:1,steps:1});geo.rotateX(-Math.PI/2);
  const material=buildingMaterial[el.id%buildingMaterial.length];const mesh=new THREE.Mesh(geo,material);mesh.position.y=.025;add(mesh);
- // Polygon-corner collision; avoid placing hero inside solid walls.
+ const name=String(el.tags?.['name:ja']||el.tags?.name||'').trim();
+ if(name)addRoofLabel(name,(minX+maxX)/2,(minZ+maxZ)/2,h+.025);
  return true;
 }
 function createMap(data){
@@ -186,6 +219,7 @@ function animate(){
  camera.position.set(player.x-Math.sin(orbit)*distance*Math.cos(pitch),player.y+1.45+distance*Math.sin(pitch),player.z-Math.cos(orbit)*distance*Math.cos(pitch));
  camera.lookAt(target);
  renderer.render(scene,camera);
+ if(frame%3===0)drawRoofLabels();
  if((frame++%8)===0)coords.textContent='X '+player.x.toFixed(1)+'m / Z '+player.z.toFixed(1)+'m / 高度 '+player.y.toFixed(1)+'m';
  requestAnimationFrame(animate);
 }
