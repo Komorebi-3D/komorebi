@@ -58,7 +58,7 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .landscape-game .game-help-overlay:not([hidden]){display:flex}
 
 .mock-root{width:100%;max-width:100%;container-type:inline-size}
-.mock-root .mock-frame{width:100%;max-width:850px;margin:0 auto;padding:12px;background:#f2f0e4;border:6px solid #354038;border-radius:18px;color:#4d5540;font:12px system-ui}
+.mock-root .mock-frame{width:100%;max-width:850px;margin:0 auto;padding:12px;background:#f2f0e4;border:0;border-radius:0;color:#4d5540;font:12px system-ui}
 .mock-root .shell{width:100%;max-width:none;margin:0;min-width:0}
 .mock-root .landscape-hero{display:flex;flex-direction:column;gap:8px;min-height:0;height:auto;overflow:visible}
 .mock-root .site-heading{flex:0 0 auto;display:flex;justify-content:space-between;font-size:12px;color:#385c42}
@@ -75,15 +75,14 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .mock-root .landscape-main .panel-slot-main>.build-info{overflow-y:auto}
 .mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:72px;min-height:72px;overflow:visible}
 .mock-root .panel-slot[data-panel="empty"]{display:block}
+.mock-root .panel-slot-bottom{margin-top:8px}
+.mock-root .panel-slot-bottom[data-panel="empty"]{height:130px;min-height:130px;overflow:visible}
 @container (min-width:650px){
- .mock-root .mock-frame{aspect-ratio:4/3;overflow:hidden}
- .mock-root .shell{height:100%}
- .mock-root .landscape-hero{height:100%;overflow:hidden}
- .mock-root .landscape-main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .mock-root .landscape-main{flex:none;min-height:440px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
  .mock-root .landscape-main .panel-slot-main{height:100%;overflow:hidden}
  .mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:100%;min-height:0;overflow:visible}
  .mock-root .landscape-main .panel-slot-main>.landscape-game{height:100%}
-}</style><div class="mock-root"><div class="mock-frame"><div class="shell"><div class="landscape-hero"><div class="site-heading"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><div id="build-info" data-panel-id="build" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><div class="landscape-game" data-panel-id="game"><div class="play-surface" aria-label="ゲーム画面（描画なし）"></div><button type="button" id="game-help-button" class="panel-help-button game-help-button" aria-label="このエリアの名前：ゲーム画面" aria-describedby="game-help-overlay"><span>ⓘ</span></button><div id="game-help-overlay" class="panel-help-overlay game-help-overlay" role="tooltip" hidden><div class="panel-help-label game-help-label">🎮 ゲーム画面</div></div></div></div><div class="panel-slot panel-slot-main" data-panel-slot="right"></div></div></div></div></div></div><script>
+}</style><div class="mock-root"><div class="mock-frame"><div class="shell"><div class="landscape-hero"><div class="site-heading"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><div id="build-info" data-panel-id="build" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><div class="landscape-game" data-panel-id="game"><div class="play-surface" aria-label="ゲーム画面（描画なし）"></div><button type="button" id="game-help-button" class="panel-help-button game-help-button" aria-label="このエリアの名前：ゲーム画面" aria-describedby="game-help-overlay"><span>ⓘ</span></button><div id="game-help-overlay" class="panel-help-overlay game-help-overlay" role="tooltip" hidden><div class="panel-help-label game-help-label">🎮 ゲーム画面</div></div></div></div><div class="panel-slot panel-slot-main" data-panel-slot="right"></div></div></div><div class="panel-slot panel-slot-bottom" data-panel-slot="bottom"></div></div></div></div><script>
 // Live four-slot editor for the development page. Never imports Engine or Game API.
 // Panels are retained as DOM nodes (including their canvases and event subscriptions).
 const PANEL_IDS=Object.freeze(['build','game','test','runtime']);
