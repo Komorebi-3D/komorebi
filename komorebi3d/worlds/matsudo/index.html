@@ -18,7 +18,7 @@ a{color:#b0eaff}#crosshair{position:fixed;left:50%;top:52%;transform:translate(-
 </style>
 </head>
 <body>
-<div id="ui"><div class="panel"><h1>🏙️ Real Matsudo <small>v0.1</small></h1><p>松戸駅中心 500m × 500m｜現実ベースの独立ワールド</p><p id="status" role="status">OpenStreetMapデータを読み込み中…</p><p id="counts">建物 — / 道路 —</p><button id="retry" type="button" hidden>地図データを再取得</button></div><div class="panel"><p>主人公 1.80m｜WASD / 矢印キーで移動</p><p>画面ドラッグで視点回転・スマホは左スティック</p><p id="coords">X 0m / Z 0m</p></div></div>
+<div id="ui"><div class="panel"><h1>🏙️ Real Matsudo <small>v0.1</small></h1><p>松戸駅中心 500m × 500m｜現実ベースの独立ワールド</p><p id="status" role="status">OpenStreetMapデータを読み込み中…</p><p id="counts">建物 — / 道路 —</p><button id="retry" type="button" hidden>地図データを再取得</button></div><div class="panel"><p>主人公 1.80m｜WASD / 矢印キーで移動</p><p>画面ドラッグで視点回転・スマホは左スティック｜高速移動</p><p id="coords">X 0m / Z 0m</p></div></div>
 <div id="crosshair">＋</div>
 <div id="controls"><div id="stick" aria-label="移動スティック"><div id="knob"></div></div><div id="hint">これはOSMの道路・建物位置から作る初期試作。実際の外観・高さは再現していません。</div></div>
 <footer>地図データ © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors (ODbL)</a></footer>
@@ -43,9 +43,8 @@ scene.add(avatar);
 const player={x:0,z:35,yaw:0},keys=new Set(),stickInput={x:0,y:0};let orbit=0.25,pitch=.42,drag=null;
 function xy(lat,lon){return[(lon-LON)*111320*Math.cos(LAT*Math.PI/180),-(lat-LAT)*111320];}
 function polygon(points){let area=0;for(let i=0,j=points.length-1;i<points.length;j=i++)area+=points[j][0]*points[i][1]-points[i][0]*points[j][1];return area/2;}
-function inside(px,pz,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if(((a[1]>pz)!==(b[1]>pz))&&(px<(b[0]-a[0])*(pz-a[1])/(b[1]-a[1])+a[0]))inside=!inside;}return inside;}
-const buildings=[],generated=[];
-function clearMap(){for(const o of generated){scene.remove(o);o.geometry.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}generated.length=0;buildings.length=0;}
+const generated=[];
+function clearMap(){for(const o of generated){scene.remove(o);o.geometry.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}generated.length=0;}
 function add(obj){scene.add(obj);generated.push(obj);}
 const roadMaterial=new THREE.MeshLambertMaterial({color:0x596570,side:THREE.DoubleSide});
 const walkMaterial=new THREE.MeshLambertMaterial({color:0xc7c6b4,side:THREE.DoubleSide});
@@ -73,7 +72,7 @@ function createBuilding(el){
  const geo=new THREE.ExtrudeGeometry(shape,{depth:h,bevelEnabled:false,curveSegments:1,steps:1});geo.rotateX(-Math.PI/2);
  const material=buildingMaterial[el.id%buildingMaterial.length];const mesh=new THREE.Mesh(geo,material);mesh.position.y=.025;add(mesh);
  // Polygon-corner collision; avoid placing hero inside solid walls.
- buildings.push({ring,bounds:[minX,maxX,minZ,maxZ]});return true;
+ return true;
 }
 function createMap(data){
  clearMap();const ways=data.elements.filter(e=>e.type==='way'&&e.geometry?.length);
@@ -143,17 +142,15 @@ stickEl.addEventListener('pointerup',resetStick);stickEl.addEventListener('point
 renderer.domElement.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId);});
 renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;orbit-=(e.clientX-drag[0])*.006;pitch=Math.max(.16,Math.min(1.1,pitch+(e.clientY-drag[1])*.004));drag=[e.clientX,e.clientY];});
 renderer.domElement.addEventListener('pointerup',()=>drag=null);renderer.domElement.addEventListener('pointercancel',()=>drag=null);
-function blocked(x,z){if(Math.abs(x)>HALF-1||Math.abs(z)>HALF-1)return true;for(const b of buildings){const [x0,x1,z0,z1]=b.bounds;if(x<x0-.4||x>x1+.4||z<z0-.4||z>z1+.4)continue;
- for(const dx of [-.27,.27])for(const dz of [-.27,.27])if(inside(x+dx,z+dz,b.ring))return true;
- }return false;}
 const clock=new THREE.Clock();let frame=0;
 function animate(){
  const dt=Math.min(clock.getDelta(),.05);
  const f=(keys.has('w')||keys.has('arrowup')?1:0)-(keys.has('s')||keys.has('arrowdown')?1:0)+stickInput.y;
  const r=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stickInput.x;
  const len=Math.hypot(f,r);
- if(len>.04){const speed=4.6*dt/Math.max(1,len);const dx=(Math.sin(orbit)*f+Math.cos(orbit)*r)*speed,dz=(Math.cos(orbit)*f-Math.sin(orbit)*r)*speed;
-  if(!blocked(player.x+dx,player.z))player.x+=dx;if(!blocked(player.x,player.z+dz))player.z+=dz;
+ if(len>.04){const speed=12*dt/Math.max(1,len);const dx=(Math.sin(orbit)*f+Math.cos(orbit)*r)*speed,dz=(Math.cos(orbit)*f-Math.sin(orbit)*r)*speed;
+  player.x=Math.max(-HALF+1,Math.min(HALF-1,player.x+dx));
+  player.z=Math.max(-HALF+1,Math.min(HALF-1,player.z+dz));
   player.yaw=Math.atan2(dx,dz);avatar.rotation.y=player.yaw;
  }
  avatar.position.set(player.x,.03,player.z);
