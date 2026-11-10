@@ -57,6 +57,10 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .landscape-game button.game-help-button{display:block;z-index:4}
 .landscape-game .game-help-overlay:not([hidden]){display:flex}
 
+/* Styles for runtime panel from canonical dev.html. */
+.runtime-status{position:relative;--help-button-color:#455a49;--help-overlay-bg:rgba(29,52,35,.42);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:2px solid #397452;--help-focus-offset:-4px}
+.runtime-status-heading{display:block;min-height:36px;margin:0 0 8px;padding-right:43px;font-size:13px}
+
 .mock-root{width:100%;max-width:100%;container-type:inline-size}
 .mock-root .mock-frame{width:100%;max-width:850px;margin:0 auto;padding:12px;background:#f2f0e4;border:0;border-radius:0;color:#4d5540;font:12px system-ui}
 .mock-root .shell{width:100%;max-width:none;margin:0;min-width:0}
@@ -82,7 +86,26 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
  .mock-root .landscape-main .panel-slot-main{height:100%;overflow:hidden}
  .mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:100%;min-height:0;overflow:visible}
  .mock-root .landscape-main .panel-slot-main>.landscape-game{height:100%}
-}</style><div class="mock-root"><div class="mock-frame"><div class="shell"><div class="landscape-hero"><div class="site-heading"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><div id="build-info" data-panel-id="build" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><div class="landscape-game" data-panel-id="game"><div class="play-surface" aria-label="ゲーム画面（描画なし）"></div><button type="button" id="game-help-button" class="panel-help-button game-help-button" aria-label="このエリアの名前：ゲーム画面" aria-describedby="game-help-overlay"><span>ⓘ</span></button><div id="game-help-overlay" class="panel-help-overlay game-help-overlay" role="tooltip" hidden><div class="panel-help-label game-help-label">🎮 ゲーム画面</div></div></div></div><div class="panel-slot panel-slot-main" data-panel-slot="right"></div></div></div><div class="panel-slot panel-slot-bottom" data-panel-slot="bottom"></div></div></div></div><script>
+}
+/* 3-panel prototype: runtime in any of the four slots. */
+.mock-root .panel-slot-bottom:not([data-panel="empty"]){min-height:250px}
+.mock-root .panel-slot>.runtime-status{margin:0;padding:12px;background:#eff2ec;border:1px solid #c6d0c3;border-radius:9px;color:#455a49;min-width:0;overflow:auto;overflow-wrap:anywhere}
+.mock-root .panel-slot .runtime-status-heading{margin:0 0 4px}
+.mock-root .panel-slot .mock-runtime-notice{margin:0 0 6px;padding:6px 8px;background:#fffdf3;border-radius:6px;color:#64614b;font-size:11px;grid-column:1/-1}
+.mock-root .panel-slot .runtime-status>.stats{margin-top:0;display:flex;gap:6px;flex-wrap:wrap}
+.mock-root .panel-slot .runtime-status>p[id$="-status"]{margin:0;padding:7px!important;min-width:0}
+.mock-root .panel-slot .runtime-status>p:not([id]){margin:2px 0;grid-column:1/-1}
+.mock-root .panel-slot .runtime-status>#ea:empty,.mock-root .panel-slot .runtime-status>#eb:empty{display:none}
+@container (min-width:650px){
+ .mock-root .panel-slot-bottom>.runtime-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}
+ .mock-root .panel-slot-bottom .runtime-status-heading,.mock-root .panel-slot-bottom .mock-runtime-notice,.mock-root .panel-slot-bottom #collision-status,.mock-root .panel-slot-bottom #sync-status,.mock-root .panel-slot-bottom .stats,.mock-root .panel-slot-bottom #status{grid-column:1/-1}
+}
+
+@media (orientation:landscape) and (min-width:900px) and (min-height:600px){
+ .runtime-status{margin-top:12px;padding:12px;background:#eff2ec;border:1px solid #c6d0c3;border-radius:9px;color:#455a49}
+ .runtime-status-heading{display:block;font-size:13px;margin:0 0 8px}
+ .runtime-status .stats{margin-top:8px}
+}</style><div class="mock-root"><div class="mock-frame"><div class="shell"><div class="landscape-hero"><div class="site-heading"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><div id="build-info" data-panel-id="build" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Game v0.7ベース・NPC表示限界テスト（実機確認待ち）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🏡 2階建て住宅＋☕ 森カフェ / 🌳 木 / 🐹 ハムスター自由散歩＋1,000匹負荷テスト / 🌍 100m × 100m</span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><div class="landscape-game" data-panel-id="game"><div class="play-surface" aria-label="ゲーム画面（描画なし）"></div><button type="button" id="game-help-button" class="panel-help-button game-help-button" aria-label="このエリアの名前：ゲーム画面" aria-describedby="game-help-overlay"><span>ⓘ</span></button><div id="game-help-overlay" class="panel-help-overlay game-help-overlay" role="tooltip" hidden><div class="panel-help-label game-help-label">🎮 ゲーム画面</div></div></div></div><div class="panel-slot panel-slot-main" data-panel-slot="right"></div></div></div><div class="panel-slot panel-slot-bottom" data-panel-slot="bottom"><section data-panel-id="runtime" class="runtime-status" aria-label="実行ステータス"><h2 class="runtime-status-heading">📊 実行ステータス</h2><p class="mock-runtime-notice">🧪 モック表示：下記のステータスは実際のEngineとは連動していません。</p><button type="button" id="runtime-help-button" class="panel-help-button runtime-help-button" aria-label="このエリアの名前：実行ステータス" aria-describedby="runtime-help-overlay"><span>ⓘ</span></button><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span><span id="npc-status">🐹 お散歩AI準備中</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p><div id="runtime-help-overlay" class="panel-help-overlay runtime-help-overlay" role="tooltip" hidden><div class="panel-help-label runtime-help-label">📊 実行ステータス</div></div></section></div></div></div></div><script>
 // Live four-slot editor for the development page. Never imports Engine or Game API.
 // Panels are retained as DOM nodes (including their canvases and event subscriptions).
 const PANEL_IDS=Object.freeze(['build','game','test','runtime']);
@@ -318,5 +341,5 @@ function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false}={}){
  }
  return {getLayout:()=>({...layout})};
 }
-mountPanelLayoutEditor(document,{top:'build',left:'game',right:null,bottom:null},{preserveSlotSize:true});
+mountPanelLayoutEditor(document,{top:'build',left:'game',right:null,bottom:'runtime'},{preserveSlotSize:true});
 </script>
