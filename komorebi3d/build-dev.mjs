@@ -24,6 +24,15 @@ const commonCSS=read('common.css')+(mock?'':read('dev-layout.css'));
 const pieces=names.map(name=>split(name==='common'?commonCSS:read(cssPath(name))));
 const css=[...pieces.map(x=>x[0]),...pieces.map(x=>x[1])].filter(Boolean).join('\n\n');
 let html=read(mock?'mock.template.html':'dev.template.html');
+if(!mock){
+ // Inline object fragments verbatim into their original game script scope.
+ for(const path of ['objects/trees/tree-v1.js','objects/trees/tree-v2.js','objects/trees/tree-v3.js','objects/buildings/house.js','objects/buildings/cafe.js']){
+  const marker='/* @object:'+path+' */';
+  if(!html.includes(marker))throw Error('Missing object '+path);
+  html=html.replace(marker,read(path));
+ }
+ if(html.includes('/* @object:'))throw Error('Unresolved object placeholder');
+}
 if(!html.includes('/* @component-styles */'))throw Error('Missing CSS placeholder');
 html=html.replace('/* @component-styles */',css);
 for(const id of panelIds){
