@@ -133,6 +133,7 @@ export function createMatsudoLabels(host){
   if(!w||!h)return;
   const scale=h/(2*Math.tan(45*Math.PI/360)),occupied=[];
   // Eligibility uses camera distance; priority uses the protagonist's position.
+  // Prioritize actual in-frame roof names while avoiding dense label stacking.
   const ranked=items.map(item=>({
    item,
    cameraDistance:Math.hypot(item.x-ex,item.y-ey,item.z-ez),
@@ -149,7 +150,7 @@ export function createMatsudoLabels(host){
    const y=h/2-(vx*ux+vy*uy+vz*uz)*scale/depth;
    const wd=item.width,top=y-72;
    if(x<wd/2+4||x>w-wd/2-4||top<4||y>h-4||
-     occupied.some(p=>Math.abs(x-p.x)<(wd+p.wd)/2+8&&Math.abs(top-p.top)<78))continue;
+     occupied.some(p=>Math.abs(x-p.x)<(wd+p.wd)/2+8&&Math.abs(top-p.top)<42))continue;
    occupied.push({x,top,wd});
    item.el.style.display='flex';item.el.style.left=x+'px';item.el.style.top=y+'px';
    shown++;
