@@ -735,7 +735,7 @@ function frame(t){
  if(gameView?.canvasB.isConnected){
   try{
    const snapshot=productRenderSnapshot();
-   if(activeWorld==='matsudo')matsudoLabels?.update(snapshot.camera);
+   if(activeWorld==='matsudo')matsudoLabels?.update(snapshot.camera,{x:game.x,y:flightAltitude,z:game.z});
    if(renderMode!=='B'&&okA)rendererA.render(snapshot);
    if(renderMode!=='A'&&okB)rendererB.render(snapshot);
    const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
