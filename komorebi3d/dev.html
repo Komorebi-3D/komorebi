@@ -1044,6 +1044,10 @@ async function setWorld(name){
   core=new CharacterMotionCore2D({ground:groundSystem,collision:collisionSystem,
    initialState:name==='forest'?{x:0,z:4.5,angle:.55,spin:0}:{x:-42,z:28,angle:-Math.PI/2,spin:0},
    tapRadians:.14,spinRadiansPerFrame:.025,moveUnitsPerFrame:.095,deadzone:.06});
+  // Reinitialize the common renderer on each warp to release the previous world's GPU meshes.
+  await Promise.allSettled([loadingA,loadingB].filter(Boolean));
+  rendererA?.dispose?.();rendererB?.dispose?.();
+  rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
   activeWorld=name;
   resetHouse();engineInputAdapter?.resetZoom();
   npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;npcManager.actualLimit=65;
