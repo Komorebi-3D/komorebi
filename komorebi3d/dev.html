@@ -1033,7 +1033,6 @@ async function setWorld(name){
  try{
   let next=null;
   if(name==='matsudo'){
-   publishRuntimeStatus('status','松戸のOSMデータを読み込み中');
    next=await loadMatsudoWorld();
    // Convert Matsudo data to the same geometry format as the forest.
    next.geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
