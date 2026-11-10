@@ -624,7 +624,7 @@ async function setWorld(name){
    matsudoMeshes=next.geometry;
    if(gameView?.surface){matsudoLabels=createMatsudoLabels(gameView.surface);matsudoLabels.setLabels(next.labels);}
    // West exit street is west (negative X) of the station.
-   cameraRig.state.applyInput(-Math.PI/2/.0055,0,.0055);
+   cameraRig.state.applyInput(Math.PI/2/.0055,0,.0055);
    publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
   }else publishRuntimeStatus('status','🌳 森にワープしました');
   publishGameState();return true;
@@ -692,8 +692,8 @@ const gameApi=Object.freeze({
  getState(){
   return {
    ...core.getState(),houseLevel,renderMode,worldId:activeWorld,
-   npcCount:npcManager.agents.length,npcVisible:npcManager.visibleCount,
-   npcDrawn:npcManager.drawCount,npcRenderLimit:npcManager.maxDrawn,
+   npcCount:activeWorld==='forest'?npcManager.agents.length:0,npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
+   npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
    npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
    testWarning,status:Object.fromEntries(runtimeStatusValues)
   };
