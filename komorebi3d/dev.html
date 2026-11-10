@@ -284,6 +284,41 @@ const BUILDING_HEIGHT_SCALE=.90;
 const HOUSE_UPPER_FLOOR_Y=3.35*BUILDING_HEIGHT_SCALE;
 const CAFE_X=-25,CAFE_Z=-20;
 const cafeRect=(id,x,z,width,depth)=>({id:'cafe-'+id,type:'rect',centerX:CAFE_X+x,centerZ:CAFE_Z+z,width,depth,enabled:true});
+// Forest layout v1 — deterministic, 50 added Tree v2 instances.
+// Outer forest is denser. Keep both buildings, entrances, their shared walkway,
+// the northern comparison trees, and the existing v2 tree clear.
+const FOREST_TREE_POSITIONS=(()=>{
+ const trees=[],occupied=[[-18,-40],[-5,-40],[10,-40],[-7,-5]];
+ let seed=20261110;
+ const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+ const pathA=[-25,-13],pathB=[4.5,2.5];
+ const distanceToSegment=(x,z,a,b)=>{
+  const dx=b[0]-a[0],dz=b[1]-a[1];
+  const t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
+  return Math.hypot(x-a[0]-t*dx,z-a[1]-t*dz);
+ };
+ const free=(x,z)=>{
+  // Building + porch/deck buffers (both open spaces are intentionally broad).
+  if(x>-14&&x<22&&z>-19&&z<15)return false;
+  if(x>-43&&x<-7&&z>-35&&z<4)return false;
+  if(distanceToSegment(x,z,pathA,pathB)<9)return false;
+  if(x>-26&&x<19&&z<-32)return false; // preserve original northern tree comparison
+  if(occupied.some(([tx,tz])=>Math.hypot(x-tx,z-tz)<7))return false;
+  return true;
+ };
+ for(let attempt=0;attempt<6000&&trees.length<50;attempt++){
+  const x=-44+88*random(),z=-44+88*random();
+  const border=Math.max(Math.abs(x),Math.abs(z));
+  if(border<20||random()>Math.min(1,.38+(border-20)*.028))continue;
+  if(!free(x,z))continue;
+  const px=Math.round(x*10)/10,pz=Math.round(z*10)/10;
+  trees.push([px,pz]);
+  occupied.push([px,pz]);
+ }
+ if(trees.length!==50)throw Error('Forest requires 50 safely spaced Tree v2 positions; got '+trees.length);
+ return trees;
+})();
+
 const GAME_COLLISION_OBSTACLES = [
   // The house foundation in v12 is centered at (4.5,-4.5), 14 x 10.
   // House shell is four walls; front wall has a 2.1m open doorway.
@@ -312,6 +347,10 @@ GAME_COLLISION_OBSTACLES.push(
  cafeRect('deck-table-left',-3.1,7.05,1.4,1.3),
  cafeRect('deck-table-right',3.1,7.05,1.4,1.3)
 );
+// New forest trunks have 2D collision; small ground details are decorative.
+GAME_COLLISION_OBSTACLES.push(...FOREST_TREE_POSITIONS.map(([x,z],i)=>({
+ id:'forest-v2-'+i,type:'circle',centerX:x,centerZ:z,radius:.95,enabled:true,role:'tree'
+})));
 const groundSystem=new GroundBounds({centerX:0,centerZ:0,width:100,depth:100});
 const ground=groundSystem.getGround();
 const collisionSystem=new CollisionWorld2D({
@@ -829,6 +868,40 @@ for(const x of [-3.1,3.1]){
  makeCafeChair(cafeFurniture,x,6.05);
  makeCafeChair(cafeFurniture,x,8.1);
 }
+// Lightweight forest floor detail: shared meshes for grass, mossy rocks and deadwood.
+// Visual-only details stay away from building entrances and the house/cafe passage.
+const forestUnderstory=part('forest-understory');
+const forestRocks=part('forest-rocks');
+const forestDeadwood=part('forest-deadwood');
+for(let i=0;i<FOREST_TREE_POSITIONS.length;i++){
+ const [tx,tz]=FOREST_TREE_POSITIONS[i];
+ // Fern-like crossed leaves around existing trunks, in irregular clusters.
+ for(let j=0;j<6;j++){
+  const a=(i*2.399+j*1.047),d=1.6+(j%3)*.44;
+  const x=tx+Math.cos(a)*d,z=tz+Math.sin(a)*d;
+  const h=.26+((i+j)%4)*.075;
+  const color=[0x497c44,0x5c9653,0x6da15d,0x376e42][(i+j)%4];
+  const axis=Math.cos(a+.45),side=Math.sin(a+.45);
+  for(const sign of [-1,1]){
+   tri(forestUnderstory,[x-.19*axis,0,z-.19*side],[x+.19*axis,0,z+.19*side],[x+sign*.09*side,h,z-sign*.09*axis],color);
+   tri(forestUnderstory,[x+.19*axis,0,z+.19*side],[x-.19*axis,0,z-.19*side],[x+sign*.09*side,h,z-sign*.09*axis],color);
+  }
+ }
+ if(i%2===0){
+  const x=tx+3.1,z=tz-2.1;
+  ellipsoid(forestRocks,x,0,z,.42+(i%3)*.1,.28+(i%4)*.04,.35,0x858d7b,4,6);
+  ellipsoid(forestRocks,x-.10,.21,z-.07,.24,.09,.23,0x67966b,4,6);
+ }
+ if(i%4===0){
+  const x=tx-2.8,z=tz+2.4;
+  treeBranch(forestDeadwood,[x,0,z],[x,.45+(i%3)*.08,z],.34,.30,0x735942,6);
+  ellipsoid(forestDeadwood,x,.46+(i%3)*.08,z,.32,.045,.32,0xb79d78,4,6);
+ }
+ if(i%6===0){
+  const x=tx+2.3,z=tz+2.9;
+  treeBranch(forestDeadwood,[x,.19,z],[x+1.45,.18,z+.38],.20,.14,0x6f573f,6);
+ }
+}
 function hiddenPart(name){if(cafeInside&&name==='cafe-roof')return true;if(!houseLevel)return false;if(['roof','chimney'].includes(name))return true;return houseLevel===1&&['interior-upper-floor','interior-bedroom','interior-bedroom-rug'].includes(name);}
 let wallFade=1,cafeWallFade=1;
 function wallTarget(){if(!houseLevel)return 1;return Math.cos(cameraDirection())>0.025?0:1;}
@@ -915,6 +988,11 @@ function productRenderSnapshot(){
  // Reuse Tree v2's geometry at Tree v1's former position, without duplicating its mesh.
  const v2Index=renderParts.findIndex(p=>p.name==='tree-v2');
  if(v2Index>=0)objects.push({id:'tree-v2-original-spot',geometry:engineMeshes[v2Index],position:[-7,0,-5],yaw:0,opacity:1,visible:true});
+ // New forest trees reuse the exact same geometry in both renderers.
+ if(v2Index>=0)for(let i=0;i<FOREST_TREE_POSITIONS.length;i++){
+  const [x,z]=FOREST_TREE_POSITIONS[i];
+  objects.push({id:'forest-v2-'+i,geometry:engineMeshes[v2Index],position:[x,0,z],yaw:i*2.399963,opacity:1,visible:true});
+ }
  // Only nearby visible extras, limited by the draw-count slider, reach Renderer A or B.
  for(const a of npcManager.drawCandidates){
   objects.push({id:'npc:'+a.id,geometry:hamsterLiteGeometry,
