@@ -67,7 +67,7 @@ import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/k
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
 import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js";
 import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=slot-size-20261110";
-import {loadMatsudoWorld,createMatsudoLabels} from "./worlds/matsudo/world.js?v=roof-hud-diagnostic-20261110c";
+import {loadMatsudoWorld,createMatsudoLabels} from "./worlds/matsudo/world.js?v=roof-hud-diagnostic-20261110d";
 (function(){var d=document.getElementById("launch-diagnostic");if(d)d.textContent="診断：JavaScript実行OK / WebGL="+(function(){try{return !!document.createElement("canvas").getContext("webgl")}catch(e){return false}})()+" / Three.js読み込みを確認中";window.addEventListener("error",function(e){if(d)d.textContent="診断：JavaScriptエラー："+e.message});window.addEventListener("unhandledrejection",function(e){if(d)d.textContent="診断：読み込みエラー："+String(e.reason)});})();
 
 const $=id=>document.getElementById(id);
@@ -630,11 +630,12 @@ async function setWorld(name){
   if(name==='matsudo'){
    matsudoMeshes=next.geometry;
    if(gameView?.surface){matsudoLabels=createMatsudoLabels(gameView.surface);matsudoLabels.setLabels(next.labels);}
+   publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
    // Start facing west across the town, with a level flight direction.
    cameraRig.state.pitch=0;
    cameraRig.state.applyInput(Math.PI/2/.0055,0,.0055);
    publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
-  }else publishRuntimeStatus('status','🌳 森にワープしました');
+  }else {publishRuntimeStatus('status','🌳 森にワープしました');publishRuntimeStatus('label-status','🏙️ 屋上名：森ワールドでは非表示');}
   publishGameState();return true;
  }catch(error){
   publishRuntimeStatus('status','ワープ失敗：'+String(error.message||error));
@@ -731,14 +732,20 @@ function frame(t){
  }
  publishRuntimeStatus('pos',activeWorld==='matsudo'?`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / 🚁 高度 ${flightAltitude.toFixed(1)}m`:`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`);
  publishRuntimeStatus('edge',(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内');
+ // HUD updates are independent of the GPU renderer, so failures remain diagnosable.
+ if(activeWorld==='matsudo'){
+  try{
+   if(matsudoLabels){
+    const hudPose=cameraRig.getPose({x:game.x,z:game.z},0);
+    const labelStats=matsudoLabels.update({...hudPose,fovDegrees:45},{x:game.x,y:flightAltitude,z:game.z});
+    publishRuntimeStatus('label-status',`🏙️ 屋上名：データ ${labelStats.total} / 200m以内 ${labelStats.inRange} / 画面内 ${labelStats.inView} / 表示 ${labelStats.shown}`);
+   }else publishRuntimeStatus('label-status','🏙️ 屋上名：松戸ラベルレイヤー未作成');
+  }catch(error){publishRuntimeStatus('label-status','🏙️ 屋上名：描画診断エラー '+String(error.message||error));}
+ }
  // When the game panel is removed, keep simulation state but pause GPU drawing.
  if(gameView?.canvasB.isConnected){
   try{
    const snapshot=productRenderSnapshot();
-   if(activeWorld==='matsudo'){
-    const labelStats=matsudoLabels?.update(snapshot.camera,{x:game.x,y:flightAltitude,z:game.z});
-    if(labelStats)publishRuntimeStatus('label-status',`🏙️ 屋上名：データ ${labelStats.total} / 200m以内 ${labelStats.inRange} / 画面内 ${labelStats.inView} / 表示 ${labelStats.shown}`);
-   }
    if(renderMode!=='B'&&okA)rendererA.render(snapshot);
    if(renderMode!=='A'&&okB)rendererB.render(snapshot);
    const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
