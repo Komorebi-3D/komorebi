@@ -630,7 +630,8 @@ async function setWorld(name){
   if(name==='matsudo'){
    matsudoMeshes=next.geometry;
    if(gameView?.surface){matsudoLabels=createMatsudoLabels(gameView.surface);matsudoLabels.setLabels(next.labels);}
-   // West exit street is west (negative X) of the station.
+   // Start facing west across the town, with a level flight direction.
+   cameraRig.state.pitch=0;
    cameraRig.state.applyInput(Math.PI/2/.0055,0,.0055);
    publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
   }else publishRuntimeStatus('status','🌳 森にワープしました');
