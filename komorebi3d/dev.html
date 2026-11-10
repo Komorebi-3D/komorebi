@@ -646,7 +646,7 @@ function update(dt,commands){
  // Undo Core's actor-relative basis so travel stays camera-relative while turning.
  const facing=core.getState().angle,co=Math.cos(facing),si=Math.sin(facing);
  core.update(flying?dt*5:dt,{x:worldX*co-worldZ*si,y:worldX*si+worldZ*co});
- if(flying)flightAltitude=clamp(flightAltitude-Math.sin(pitch)*stickY*.095*dt*5,0,500);
+ if(flying)flightAltitude=clamp(flightAltitude+Math.sin(pitch)*stickY*.095*dt*5,0,500);
  const now=core.getState(),isStair=activeWorld==='forest'&&onStairs(now.x,now.z);
  if(activeWorld==='matsudo'){
   characterY=0;houseLevel=0;cafeInside=false;
