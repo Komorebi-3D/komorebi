@@ -571,7 +571,7 @@ function productRenderSnapshot(){
  if(activeWorld==='matsudo'){
   const ghostIndex=renderParts.findIndex(p=>p.name==='ghost-helicopter');
   const objs=matsudoMeshes.map((geometry,i)=>({id:'matsudo:'+i,geometry,position:[0,0,0],yaw:0,opacity:1,visible:true}));
-  if(ghostIndex>=0)objs.push({id:'ghost-helicopter',geometry:engineMeshes[ghostIndex],position:[game.x,flightAltitude,game.z],yaw:game.angle,opacity:.55,visible:true});
+  if(ghostIndex>=0)objs.push({id:'ghost-helicopter',geometry:engineMeshes[ghostIndex],position:[game.x,flightAltitude,game.z],yaw:game.angle,opacity:.9,visible:true});
   return createMeshRenderSnapshot({frameId:++renderFrameId,camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:650},objects:objs});
  }
  const objects=renderParts.map((p,i)=>({
