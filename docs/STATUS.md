@@ -9,18 +9,18 @@
 
 - **開発フェーズ:** Development / Debug。開発入口は [`komorebi3d/dev.html`](https://shuma-fujita1012.github.io/komorebi/komorebi3d/dev.html)。テスト機能を残して開発を続ける。
 - **疎結合作戦:** **成功・正式完了（2026-11-09、ユーザー確認済み）。追加のコード整理・実機テストは不要。** Game API、ゲーム画面とパネルの表示分離、独立JSモジュール、4スロット配置の基盤が現行コードに存在する。
-- **チャット用自己完結モック（2026-11-10）:** `--mode=chat` で3パネルの `mock.chat.html` を生成。既存の `top=build`・`left=game`・空の `right` を維持して `bottom=runtime`（実行ステータス）を追加。`runtime.html`・`runtime.css` と共通 `dev-panel-layout.js` を再利用し、モック表示専用のステータス注記と、どのスロットへ移しても読めるCSSを適用。**チャット内試作の↓表示と←への移動後の表示崩れ修正はiPad横向き実機でユーザーPASS（2026-11-10）。** モックの合格条件はチャット内の表示・操作のユーザーPASSであり、モック専用のGitHub Pages・Safari追加検証は行わない。本番開発版の検証とは区別する。今後は生成済み完成ファイルを無加工でチャット表示し、次の改善点はユーザーと相談して決定する。詳しくは [rules/mock.md](rules/mock.md)。
+- **チャット用自己完結モック（2026-11-10）:** `--mode=chat` で**4パネル**の `mock.chat.html` を生成。初期配置は `{top:'build',left:'game',right:'test',bottom:'runtime'}`。左 `game.mock.html`/`.css` と同じビルド切替で `test.mock.html`/`.css` を使用し、テスト操作は表示専用（ゲーム用操作JSは非搭載）。`test.mock.css` は見出しとリセットを固定し、本文だけ縦スクロール。`mock-layout.css` は左右440pxを維持。ⓘ・交換・削除・再追加・高さ保持は共通 `dev-panel-layout.js`・`common.css` に一本化。**生成結果の静的整合性はPASS、4パネルのチャット内表示・操作のユーザーPASSは未確認。** 先行する3パネル試作はiPad横向きでユーザーPASS済み（2026-11-10）。モック専用のGitHub Pages・Safari追加検証は行わない。
 - **公開ページの動作確認:** `632569e` の共通スロット高さ固定反映後、**Q49：2パネル `mock.html` の表示・入れ替え・削除・再追加・高さ固定すべてPASS**、**Q50：4パネル `dev.html` の高さ固定・ゲーム描画・操作すべてPASS**（2026-11-10、ユーザー報告）。個別のiPhone/iPad機種・Safari環境の内訳、および任意配置24通りの網羅検証は未確認。旧Q47・Q48も変更前にPASS。
 - **実機PASS済みの基準版:** v0.7（最新）とv0.6（前世代）。固定した既存の安定版として保持する。
 - **パネルエンハンス（公開ページ操作PASS済み・端末別詳細未確認）:** `dev-panel-layout.js` でⓘ押下中の説明とゴミ箱同時表示・スライド交換/削除・空き枠の＋再追加を提供。DOM・CanvasとGame APIを維持して移動。`preserveSlotSize:true` を本番・モック双方で有効化し、各枠の初期高さをパネル移動/削除/再追加後も保持する。幅変更時には左右枠が2列グリッドへ追従する。**Q49・Q50の基本操作PASS済み。iPhone/iPad個別・任意配置の詳細検証は必要に応じて行う**。
 
-- **共通ゴミ箱CSSの統一（2026-11-10）:** 本番の `panels/test.css` が共通 `panel-trash-target` にテスト操作ボタンの装飾を重ねていたため、通常のテスト操作ボタン・リセットボタンにだけスタイルを適用するよう修正。共通のゴミ箱表示・ⓘ・交換・削除・再追加の正本は `common.css`・`dev-panel-layout.js` のまま変更なし。`dev.html` は生成規則と一致するよう更新済み。**静的整合性PASS、修正後の本番Safari実機は未確認。**
+- **共通ゴミ箱CSSの統一（2026-11-10）:** 本番の `panels/test.css` による共通ゴミ箱のスタイル上書きを解消し、`common.css`・`dev-panel-layout.js` を正本として維持。`dev.html` の生成整合性PASSに加え、**修正後の本番開発版の実機テストもユーザーPASS（2026-11-10）**。端末別内訳・全配置や負荷の網羅検証は別。
 
 ## 2. 未完了タスク／次に相談すること
 
 | 優先度 | タスク | 確認・完了条件 |
 | --- | --- | --- |
-| 次の主題 | **4パネルチャット内モックの軽量化・試作（未PASS）** | 3パネル版は引き続きユーザーPASS済みで維持。追加する `right=test` は既存のHTML/CSS・`mountTestControlsPanel` を共有利用し、`common.css` のゴミ箱に重複スタイルを作らない。4パネル完成版の生成・チャット操作PASSは未完了 |
+| 次の主題 | **4パネルのチャット内モック表示・操作確認** | 生成済み `mock.chat.html` は4パネル・自己完結型（28,729文字・395行）、ビルド生成一致・構造静的チェックPASS。右テスト操作の見出し・リセット固定、本文スクロール、左右の高さ440px、ⓘ・交換・削除・再追加をチャット内でユーザー確認し、実機PASSが出るまでは未確認扱い。公開モック専用のPages/Safari追加検証は不要 |
 | P1 | **NPC負荷テストの個別実機検証** | 1/1000匹切替、描画数1～1000、距離5～150m、±ボタン、マップ全NPC表示、FPS/描画数・限界、カフェ/階段/移動/ピンチ/Renderer A/Bを必要に応じて確認。標準配置の一般的な実機PASSとは別の負荷検証 |
 | P1 | **自動テスト・CI** | `engine/tests/*.test.mjs` の継続実行などを整備 |
 | P1 | **回帰テスト項目の標準化** | 移動・カメラ・衝突・室内/階段・A/B描画・リセットなどを短いチェックリストにする |
@@ -33,7 +33,7 @@
 ## 3. 現行コードと依存関係
 
 - **リポジトリ:** `shuma-fujita1012/komorebi` ／ 運用ブランチは `main` のみ。
-- **開発HTML:** `komorebi3d/dev.html`（4パネル本番開発ページ）。`komorebi3d/mock.html` は3パネルUIの軽量検証ページで、ゲームの安定版・アーカイブではない。`build-dev.mjs` は引数なし/`--mode=product` で本番、`--mode=mock` で3パネルWebモック、`--mode=chat` で自己完結型3パネルチャット用HTML断片 `mock.chat.html` を生成する。モックのステータス値はEngineに非連動。共通操作JSは引き続き `dev-panel-layout.js` が正本。
+- **開発HTML:** `komorebi3d/dev.html` は実機PASS済みの4パネル本番開発ページで変更なし。`komorebi3d/mock.html` は4パネルの軽量UI検証ページ（安定版ではない）。`build-dev.mjs` は引数なし/`--mode=product` で本番、`--mode=mock` で4パネルWebモック、`--mode=chat` で自己完結型4パネルチャット用HTML断片 `mock.chat.html` を生成する。モックのゲーム・テスト操作とランタイムの値はEngine非連動。モックの `game` と `test` は `.mock.html`/`.mock.css` に切替え、共通操作JSは `dev-panel-layout.js` が正本。
 - **パネル部品:** `komorebi3d/dev-panel-components.js`。`createGameView`、`mountTestControlsPanel`、`mountRuntimeStatusPanel` をエクスポート。ゲーム内部のDOMに依存せず、Game API経由で状態・命令を扱う。
 - **ライブ配置編集:** `komorebi3d/dev-panel-layout.js`（Engine非依存）。4スロットのDOMを保管しながら移動する。`preserveSlotSize:true` の場合、起動時の各スロットの高さを固定し、入れ替え・削除・再追加後も維持（本番とモックで有効）。
 - **ゲームAPI:** `getState()`、`subscribe()`、`reset()`、`setRenderMode()`、`setNpcCount()`、`setNpcRenderLimit()`、`setNpcRenderDistance()`、`setMapVisible()`、`teleport()`。状態変更通知の購読解除が可能。
@@ -57,4 +57,4 @@
 
 ## 6. 次のチャッピーへの引き継ぎ
 
-GitHub `main` の **`docs/rules/README.md` と配下の3つのルール文書**、**`docs/STATUS.md`（現状・次タスク）**、最新ソースを確認する。疎結合作戦・2パネルの完成工程をやり直さない。現在は **3パネル（↑開発情報・←ゲーム画面・↓実行ステータス、→空き）** のチャット内試作がiPad横向きでユーザーPASS済み。共通のⓘ・交換・削除・再追加・高さ固定処理はそのまま使用する。モック専用のGitHub Pages・Safari追加検証は行わない。現在は4パネル試作に向けてテスト操作パネルの共通ゴミ箱CSS競合を除去済み。**修正後の `dev.html` は静的整合性のみ確認済み、実機PASSは未確認。** 4パネルの完成モック・操作PASSは今後の工程。
+GitHub `main` の **`docs/rules/README.md` と配下の3つのルール文書**、**`docs/STATUS.md`（現状・次タスク）**、最新ソースを確認する。疎結合作戦・2パネルの完成工程をやり直さない。現在の正本は **4パネル（↑開発情報・←ゲーム画面・→テスト操作・↓実行ステータス）** の生成済みチャット用モックで、**静的整合性PASS／チャット表示・実機操作は未確認**。テスト操作のヘッダー・リセット固定と内容スクロール、左右440pxを優先確認。3パネル試作は別途ユーザーPASS済み。本番共通ゴミ箱CSS修正後もユーザー実機PASS済み。モック専用GitHub Pages・Safari追加検証は行わず、必要な修正はチャットで相談する。
