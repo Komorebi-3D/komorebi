@@ -9,7 +9,7 @@
 
 - **開発フェーズ:** Development / Debug。開発入口は [`komorebi3d/dev.html`](https://shuma-fujita1012.github.io/komorebi/komorebi3d/dev.html)。テスト機能を残して開発を続ける。
 - **疎結合作戦:** **成功・正式完了（2026-11-09、ユーザー確認済み）。追加のコード整理・実機テストは不要。** Game API、ゲーム画面とパネルの表示分離、独立JSモジュール、4スロット配置の基盤が現行コードに存在する。
-- **チャット用自己完結モック（2026-11-10）:** `--mode=chat` を実装し、2パネルの `mock.chat.html` を生成。元の共通JSをビルド時に内蔵し、チャット表示時の追加import・再実装を不要にする。**2026-11-10: チャット内で完成ファイルの初回再表示に成功。2パネルモックの太い外枠線・4:3固定クリップを解除し、左右2列の下に `bottom` 空きスロットを追加。チャット内モックの表示・基本操作はユーザーPASS（iPad横のゲーム画面の見切れ改善も報告済み）。生成結果の静的整合性は再確認済み。GitHub Pages配信後・Safari実機での当該更新版の確認は別工程。** 今後の要件検討中はチャット内で自由に変更し、確定後の本番反映・検証完了時に再生成する。詳しくは [rules/mock.md](rules/mock.md)。
+- **チャット用自己完結モック（2026-11-10）:** `--mode=chat` で3パネルの `mock.chat.html` を生成。既存の `top=build`・`left=game`・空の `right` を維持して `bottom=runtime`（実行ステータス）を追加。`runtime.html`・`runtime.css` と共通 `dev-panel-layout.js` を再利用し、モック表示専用のステータス注記と、どのスロットへ移しても読めるCSSを適用。**チャット内試作の↓表示と←への移動後の表示崩れ修正はiPad横向き実機でユーザーPASS（2026-11-10）。** モックの合格条件はチャット内の表示・操作のユーザーPASSであり、モック専用のGitHub Pages・Safari追加検証は行わない。本番開発版の検証とは区別する。今後は生成済み完成ファイルを無加工でチャット表示し、次の改善点はユーザーと相談して決定する。詳しくは [rules/mock.md](rules/mock.md)。
 - **公開ページの動作確認:** `632569e` の共通スロット高さ固定反映後、**Q49：2パネル `mock.html` の表示・入れ替え・削除・再追加・高さ固定すべてPASS**、**Q50：4パネル `dev.html` の高さ固定・ゲーム描画・操作すべてPASS**（2026-11-10、ユーザー報告）。個別のiPhone/iPad機種・Safari環境の内訳、および任意配置24通りの網羅検証は未確認。旧Q47・Q48も変更前にPASS。
 - **実機PASS済みの基準版:** v0.7（最新）とv0.6（前世代）。固定した既存の安定版として保持する。
 - **パネルエンハンス（公開ページ操作PASS済み・端末別詳細未確認）:** `dev-panel-layout.js` でⓘ押下中の説明とゴミ箱同時表示・スライド交換/削除・空き枠の＋再追加を提供。DOM・CanvasとGame APIを維持して移動。`preserveSlotSize:true` を本番・モック双方で有効化し、各枠の初期高さをパネル移動/削除/再追加後も保持する。幅変更時には左右枠が2列グリッドへ追従する。**Q49・Q50の基本操作PASS済み。iPhone/iPad個別・任意配置の詳細検証は必要に応じて行う**。
@@ -18,7 +18,7 @@
 
 | 優先度 | タスク | 確認・完了条件 |
 | --- | --- | --- |
-| 次の主題 | **2パネルのブラッシュアップ継続（3パネル化は保留）** | 高さ固定は共通実装済みで公開ページ基本操作Q49・Q50 PASS。次の改善内容はユーザーと相談して決定。iPhone/iPad別・全24配置の網羅結果は未確認のまま区別する |
+| 次の主題 | **3パネルのチャット内モックPASS済み／次の改善点を相談** | `top=build`・`left=game`・`bottom=runtime`・`right=empty`。↓表示と←への移動後の修正はiPad横向きユーザーPASS。追加のモック公開検証は不要。今後の改修はチャット内で試作・PASS後に反映 |
 | P1 | **NPC負荷テストの個別実機検証** | 1/1000匹切替、描画数1～1000、距離5～150m、±ボタン、マップ全NPC表示、FPS/描画数・限界、カフェ/階段/移動/ピンチ/Renderer A/Bを必要に応じて確認。標準配置の一般的な実機PASSとは別の負荷検証 |
 | P1 | **自動テスト・CI** | `engine/tests/*.test.mjs` の継続実行などを整備 |
 | P1 | **回帰テスト項目の標準化** | 移動・カメラ・衝突・室内/階段・A/B描画・リセットなどを短いチェックリストにする |
@@ -31,7 +31,7 @@
 ## 3. 現行コードと依存関係
 
 - **リポジトリ:** `shuma-fujita1012/komorebi` ／ 運用ブランチは `main` のみ。
-- **開発HTML:** `komorebi3d/dev.html`（4パネル本番開発ページ）。`komorebi3d/mock.html` は2パネルUIの軽量検証ページで、ゲームの安定版・アーカイブではない。`build-dev.mjs` は引数なし/`--mode=product` で本番、`--mode=mock` でWebモック、**`--mode=chat` で自己完結型チャット用HTML断片 `mock.chat.html`** を生成する。共通操作JSは引き続き `dev-panel-layout.js` が正本。
+- **開発HTML:** `komorebi3d/dev.html`（4パネル本番開発ページ）。`komorebi3d/mock.html` は3パネルUIの軽量検証ページで、ゲームの安定版・アーカイブではない。`build-dev.mjs` は引数なし/`--mode=product` で本番、`--mode=mock` で3パネルWebモック、`--mode=chat` で自己完結型3パネルチャット用HTML断片 `mock.chat.html` を生成する。モックのステータス値はEngineに非連動。共通操作JSは引き続き `dev-panel-layout.js` が正本。
 - **パネル部品:** `komorebi3d/dev-panel-components.js`。`createGameView`、`mountTestControlsPanel`、`mountRuntimeStatusPanel` をエクスポート。ゲーム内部のDOMに依存せず、Game API経由で状態・命令を扱う。
 - **ライブ配置編集:** `komorebi3d/dev-panel-layout.js`（Engine非依存）。4スロットのDOMを保管しながら移動する。`preserveSlotSize:true` の場合、起動時の各スロットの高さを固定し、入れ替え・削除・再追加後も維持（本番とモックで有効）。
 - **ゲームAPI:** `getState()`、`subscribe()`、`reset()`、`setRenderMode()`、`setNpcCount()`、`setNpcRenderLimit()`、`setNpcRenderDistance()`、`setMapVisible()`、`teleport()`。状態変更通知の購読解除が可能。
@@ -55,4 +55,4 @@
 
 ## 6. 次のチャッピーへの引き継ぎ
 
-GitHub `main` の **`docs/rules/README.md` と配下の3つのルール文書（運用ルール）**、**`docs/STATUS.md`（現状・次タスク）**、そして最新ソースを見て、**「未完了タスク」と「変更禁止資材」から作業を始める**。疎結合作戦をやり直さない。現在は2パネルのブラッシュアップ優先で3パネル化は保留。`632569e` の本番・モック共通スロット固定は公開版のユーザー操作でQ49・Q50 PASS。引き続き2パネルをブラッシュアップし、次の改善箇所はユーザーと決める。iPhone/iPad別・24配置網羅は未確認として扱う。
+GitHub `main` の **`docs/rules/README.md` と配下の3つのルール文書**、**`docs/STATUS.md`（現状・次タスク）**、最新ソースを確認する。疎結合作戦・2パネルの完成工程をやり直さない。現在は **3パネル（↑開発情報・←ゲーム画面・↓実行ステータス、→空き）** のチャット内試作がiPad横向きでユーザーPASS済み。共通のⓘ・交換・削除・再追加・高さ固定処理はそのまま使用する。モック専用のGitHub Pages・Safari追加検証は行わず、次の改善はユーザーの指示から進める。
