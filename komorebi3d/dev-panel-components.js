@@ -72,6 +72,7 @@ export function mountTestControlsPanel(root,api){
  // When no Game API is supplied, operate this same UI locally.
  // Defaults come from the canonical HTML controls, not a second game model.
  const initial=Object.freeze({
+  worldId:'forest',
   npcCount:1,
   npcRenderLimit:Number(find('npc-render-limit')?.defaultValue ?? 65),
   npcRenderDistance:Number(find('npc-render-distance')?.defaultValue ?? 70),
@@ -85,6 +86,7 @@ export function mountTestControlsPanel(root,api){
  const act=(method,value)=>{
   if(api)return api[method](value);
   if(method==='reset')localState={...initial};
+  else if(method==='setWorld')localState.worldId=value;
   else if(method==='setRenderMode')localState.renderMode=value;
   else if(method==='setNpcCount')localState.npcCount=value;
   else if(method==='setNpcRenderLimit')localState.npcRenderLimit=Number(value);
@@ -119,10 +121,15 @@ export function mountTestControlsPanel(root,api){
    button.classList.toggle('selected',selected);
    button.setAttribute('aria-pressed',String(selected));
   }
+  for(const button of root.querySelectorAll('[data-world]'))button.setAttribute('aria-pressed',String((s.worldId||'forest')===button.dataset.world));
   write('mode-status',s.renderMode==='A'?'描画モード：Engine A（WebGL）':s.renderMode==='B'?'描画モード：Engine B（Three.js）':'描画モード：Engine A/B比較・共通Snapshot');
   write('npc-render-warning',s.testWarning);
  };
  bind(find('reset'),'click',()=>act('reset',));
+ for(const button of root.querySelectorAll('[data-world]'))bind(button,'click',()=>{
+  try{const promise=act('setWorld',button.dataset.world);Promise.resolve(promise).catch(error=>{write('mode-status','ワープ失敗：'+String(error.message||error));});}
+  catch(error){write('mode-status','ワープ失敗：'+String(error.message||error));}
+ });
  for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']])
   bind(find(id),'click',()=>act('setRenderMode',mode));
  bind(find('npc-render-limit'),'input',e=>act('setNpcRenderLimit',e.currentTarget.value));
