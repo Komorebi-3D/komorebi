@@ -28,12 +28,13 @@ function top(m,p,h,t){
     if(ccw?Math.min(s1,s2,s3)>=-1e-7:Math.max(s1,s2,s3)<=1e-7){overlaps=true;break;}
    }
    if(overlaps)continue;
-   tri(m,[a[0],h,a[1]],[c[0],h,c[1]],[b[0],h,b[1]],t);
+   if(ccw)tri(m,[a[0],h,a[1]],[c[0],h,c[1]],[b[0],h,b[1]],t);
+   else tri(m,[a[0],h,a[1]],[b[0],h,b[1]],[c[0],h,c[1]],t);
    idx.splice(i,1);found=true;break;
   }
   if(!found)break;
  }
- if(idx.length===3){const a=p[idx[0]],b=p[idx[1]],c=p[idx[2]];tri(m,[a[0],h,a[1]],[c[0],h,c[1]],[b[0],h,b[1]],t);}
+ if(idx.length===3){const a=p[idx[0]],b=p[idx[1]],c=p[idx[2]];if(ccw)tri(m,[a[0],h,a[1]],[c[0],h,c[1]],[b[0],h,b[1]],t);else tri(m,[a[0],h,a[1]],[b[0],h,b[1]],[c[0],h,c[1]],t);}
 }
 function building(m,p,h,t){
  for(let i=0;i<p.length;i++){
