@@ -93,6 +93,7 @@ const BUILDING_HEIGHT_SCALE=.90;
 const HOUSE_UPPER_FLOOR_Y=3.35*BUILDING_HEIGHT_SCALE;
 const CAFE_X=-25,CAFE_Z=-20;
 const cafeRect=(id,x,z,width,depth)=>({id:'cafe-'+id,type:'rect',centerX:CAFE_X+x,centerZ:CAFE_Z+z,width,depth,enabled:true});
+/* @object:objects/forest/layout.js */
 const GAME_COLLISION_OBSTACLES = [
   // The house foundation in v12 is centered at (4.5,-4.5), 14 x 10.
   // House shell is four walls; front wall has a 2.1m open doorway.
@@ -121,6 +122,10 @@ GAME_COLLISION_OBSTACLES.push(
  cafeRect('deck-table-left',-3.1,7.05,1.4,1.3),
  cafeRect('deck-table-right',3.1,7.05,1.4,1.3)
 );
+// New forest trunks have 2D collision; small ground details are decorative.
+GAME_COLLISION_OBSTACLES.push(...FOREST_TREE_POSITIONS.map(([x,z],i)=>({
+ id:'forest-v2-'+i,type:'circle',centerX:x,centerZ:z,radius:.95,enabled:true,role:'tree'
+})));
 const groundSystem=new GroundBounds({centerX:0,centerZ:0,width:100,depth:100});
 const ground=groundSystem.getGround();
 const collisionSystem=new CollisionWorld2D({
@@ -467,7 +472,7 @@ const parts=[];function part(name,offset=[0,0,0]){const m={p:[],n:[],c:[]};parts
 const floor=part('ground');cube(floor,ground.centerX,-.22,ground.centerZ,ground.width,.22,ground.depth,0x9fce8d);/* @object:objects/trees/tree-v1.js */
 /* @object:objects/trees/tree-v2.js *//* @object:objects/trees/tree-v3.js */const avatar=part('avatar');cube(avatar,0,0,0,.7,1.25,.55,0xe6a97e);sphere(avatar,0,1.57,0,.47,0xf1d0a8);cube(avatar,0,1.92,-.06,.84,.2,.73,0x79543c);for(const x of [-.17,.17])sphere(avatar,x,1.6,-.42,.065,0x2c2a25);sphere(avatar,0,1.4,-.47,.08,0xc77c72);
 const ham=part('hamster',[4.5,0,3]),brown=0xbd854c,cream=0xf7e6c7;ellipsoid(ham,0,.77,0,.79,.84,.66,brown,12,16);ellipsoid(ham,0,.66,.43,.59,.66,.29,cream);ellipsoid(ham,0,1.67,.07,.72,.65,.63,brown);for(const x of [-.43,.43])ellipsoid(ham,x,1.47,.52,.33,.32,.22,cream);ellipsoid(ham,0,1.28,.63,.27,.18,.17,cream);for(const x of [-.51,.51]){ellipsoid(ham,x,2.19,.03,.22,.28,.14,brown);ellipsoid(ham,x,2.19,.16,.145,.19,.045,0xd99099)}for(const x of [-.29,.29])sphere(ham,x,1.76,.63,.105,0x161419);ellipsoid(ham,0,1.45,.82,.11,.075,.085,0xf09aaa);for(const x of [-.7,.7])ellipsoid(ham,x,.87,.29,.18,.29,.2,brown);for(const x of [-.46,.46])ellipsoid(ham,x,.13,.3,.27,.15,.37,cream);
-/* @object:objects/buildings/house.js *//* @object:objects/buildings/cafe.js */function hiddenPart(name){if(cafeInside&&name==='cafe-roof')return true;if(!houseLevel)return false;if(['roof','chimney'].includes(name))return true;return houseLevel===1&&['interior-upper-floor','interior-bedroom','interior-bedroom-rug'].includes(name);}
+/* @object:objects/buildings/house.js *//* @object:objects/buildings/cafe.js *//* @object:objects/forest/details.js */function hiddenPart(name){if(cafeInside&&name==='cafe-roof')return true;if(!houseLevel)return false;if(['roof','chimney'].includes(name))return true;return houseLevel===1&&['interior-upper-floor','interior-bedroom','interior-bedroom-rug'].includes(name);}
 let wallFade=1,cafeWallFade=1;
 function wallTarget(){if(!houseLevel)return 1;return Math.cos(cameraDirection())>0.025?0:1;}
 function cafeWallTarget(){if(!cafeInside)return 1;return Math.cos(cameraDirection())>0.025?0:1;}
@@ -553,6 +558,11 @@ function productRenderSnapshot(){
  // Reuse Tree v2's geometry at Tree v1's former position, without duplicating its mesh.
  const v2Index=renderParts.findIndex(p=>p.name==='tree-v2');
  if(v2Index>=0)objects.push({id:'tree-v2-original-spot',geometry:engineMeshes[v2Index],position:[-7,0,-5],yaw:0,opacity:1,visible:true});
+ // New forest trees reuse the exact same geometry in both renderers.
+ if(v2Index>=0)for(let i=0;i<FOREST_TREE_POSITIONS.length;i++){
+  const [x,z]=FOREST_TREE_POSITIONS[i];
+  objects.push({id:'forest-v2-'+i,geometry:engineMeshes[v2Index],position:[x,0,z],yaw:i*2.399963,opacity:1,visible:true});
+ }
  // Only nearby visible extras, limited by the draw-count slider, reach Renderer A or B.
  for(const a of npcManager.drawCandidates){
   objects.push({id:'npc:'+a.id,geometry:hamsterLiteGeometry,
