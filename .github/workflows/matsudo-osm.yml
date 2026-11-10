@@ -29,5 +29,17 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "Refresh Matsudo 500m OpenStreetMap snapshot"
-            git push
+            # Other development commits may land while the API download runs.
+            # Replay just the generated snapshot commit over the newest main.
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                exit 0
+              fi
+              echo "main moved during push; retrying ($attempt/5)"
+              sleep 3
+            done
+            echo "Unable to push verified OSM snapshot after retries"
+            exit 1
           fi
