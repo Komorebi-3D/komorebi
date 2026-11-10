@@ -386,7 +386,7 @@ function resetGameForTest(){
 }
 // The game owns house/stair logic; Engine owns orbit yaw, pitch, distance and pose.
 let houseLevel=0,characterY=0,cafeInside=false;
-const cameraRig=new FollowCameraRig({yaw:0,pitch:35*Math.PI/180,horizontalDistance:12,targetY:1.65,yawSpeed:1.5,pitchSpeed:1.08,followRate:5.1});
+const cameraRig=new FollowCameraRig({yaw:0,pitch:35*Math.PI/180,horizontalDistance:12,targetY:1.65,minPitch:-70*Math.PI/180,maxPitch:80*Math.PI/180,yawSpeed:1.5,pitchSpeed:1.08,followRate:5.1});
 publishRuntimeStatus('camera-status','📷 Engine Camera接続OK：右スワイプ・2指ピンチズーム・屋内外の追従');
 function cameraDirection(){return cameraRig.snapshot().yaw;}
 
@@ -401,9 +401,13 @@ function update(dt,commands){
  const drag=engineInputAdapter?.takeCameraDrag()??{x:0,y:0};
  cameraRig.state.applyInput(drag.x,drag.y,.0055);
  // Left-stick displacement defines speed; heading is relative to the free camera.
- const stickX=commands.moveX,stickY=commands.moveY,yaw=cameraRig.snapshot().yaw;
- const worldX=stickX*Math.cos(yaw)+stickY*Math.sin(yaw);
- const worldZ=-stickX*Math.sin(yaw)+stickY*Math.cos(yaw);
+ const stickX=commands.moveX,stickY=commands.moveY,{yaw,pitch}=cameraRig.snapshot();
+ // The flight vector follows the shared camera pitch. The existing Engine
+ // CharacterMotionCore2D still owns horizontal movement and map boundaries.
+ const flying=activeWorld==='matsudo';
+ const forward=stickY*(flying?Math.cos(pitch):1);
+ const worldX=stickX*Math.cos(yaw)+forward*Math.sin(yaw);
+ const worldZ=-stickX*Math.sin(yaw)+forward*Math.cos(yaw);
  if(Math.hypot(stickX,stickY)>.08){
   const targetAngle=Math.atan2(-worldX,-worldZ);
   const diff=Math.atan2(Math.sin(targetAngle-game.angle),Math.cos(targetAngle-game.angle));
@@ -413,11 +417,12 @@ function update(dt,commands){
  }
  // Undo Core's actor-relative basis so travel stays camera-relative while turning.
  const facing=core.getState().angle,co=Math.cos(facing),si=Math.sin(facing);
- core.update(dt,{x:worldX*co-worldZ*si,y:worldX*si+worldZ*co});
+ core.update(flying?dt*5:dt,{x:worldX*co-worldZ*si,y:worldX*si+worldZ*co});
+ if(flying)flightAltitude=clamp(flightAltitude-Math.sin(pitch)*stickY*.095*dt*5,0,500);
  const now=core.getState(),isStair=activeWorld==='forest'&&onStairs(now.x,now.z);
  if(activeWorld==='matsudo'){
   characterY=0;houseLevel=0;cafeInside=false;
-  cameraRig.update(commands,dt/60,{horizontalDistance:12*(engineInputAdapter?.zoomFactor??1),targetY:1.65});
+  cameraRig.update(commands,dt/60,{horizontalDistance:12*(engineInputAdapter?.zoomFactor??1),targetY:flightAltitude+1.65});
   return;
  }
  if(isStair){characterY=stairHeight(now.z);houseLevel=characterY>HOUSE_UPPER_FLOOR_Y/2?2:1;}
@@ -483,7 +488,7 @@ const parts=[];function part(name,offset=[0,0,0]){const m={p:[],n:[],c:[]};parts
 const floor=part('ground');cube(floor,ground.centerX,-.22,ground.centerZ,ground.width,.22,ground.depth,0x9fce8d);/* @object:objects/trees/tree-v1.js */
 /* @object:objects/trees/tree-v2.js *//* @object:objects/trees/tree-v3.js */const avatar=part('avatar');cube(avatar,0,0,0,.7,1.25,.55,0xe6a97e);sphere(avatar,0,1.57,0,.47,0xf1d0a8);cube(avatar,0,1.92,-.06,.84,.2,.73,0x79543c);for(const x of [-.17,.17])sphere(avatar,x,1.6,-.42,.065,0x2c2a25);sphere(avatar,0,1.4,-.47,.08,0xc77c72);
 const ham=part('hamster',[4.5,0,3]),brown=0xbd854c,cream=0xf7e6c7;ellipsoid(ham,0,.77,0,.79,.84,.66,brown,12,16);ellipsoid(ham,0,.66,.43,.59,.66,.29,cream);ellipsoid(ham,0,1.67,.07,.72,.65,.63,brown);for(const x of [-.43,.43])ellipsoid(ham,x,1.47,.52,.33,.32,.22,cream);ellipsoid(ham,0,1.28,.63,.27,.18,.17,cream);for(const x of [-.51,.51]){ellipsoid(ham,x,2.19,.03,.22,.28,.14,brown);ellipsoid(ham,x,2.19,.16,.145,.19,.045,0xd99099)}for(const x of [-.29,.29])sphere(ham,x,1.76,.63,.105,0x161419);ellipsoid(ham,0,1.45,.82,.11,.075,.085,0xf09aaa);for(const x of [-.7,.7])ellipsoid(ham,x,.87,.29,.18,.29,.2,brown);for(const x of [-.46,.46])ellipsoid(ham,x,.13,.3,.27,.15,.37,cream);
-/* @object:objects/buildings/house.js *//* @object:objects/buildings/cafe.js *//* @object:objects/forest/details.js */function hiddenPart(name){if(cafeInside&&name==='cafe-roof')return true;if(!houseLevel)return false;if(['roof','chimney'].includes(name))return true;return houseLevel===1&&['interior-upper-floor','interior-bedroom','interior-bedroom-rug'].includes(name);}
+/* @object:objects/buildings/house.js *//* @object:objects/buildings/cafe.js *//* @object:objects/forest/details.js *//* @object:objects/characters/ghost-helicopter.js */function hiddenPart(name){if(cafeInside&&name==='cafe-roof')return true;if(!houseLevel)return false;if(['roof','chimney'].includes(name))return true;return houseLevel===1&&['interior-upper-floor','interior-bedroom','interior-bedroom-rug'].includes(name);}
 let wallFade=1,cafeWallFade=1;
 function wallTarget(){if(!houseLevel)return 1;return Math.cos(cameraDirection())>0.025?0:1;}
 function cafeWallTarget(){if(!cafeInside)return 1;return Math.cos(cameraDirection())>0.025?0:1;}
@@ -559,12 +564,13 @@ const hamsterLiteGeometry=createMeshGeometry({
 
 let renderFrameId=0;
 let activeWorld='forest',matsudoMeshes=[],matsudoLabels=null,warpInProgress=false;
+let flightAltitude=0;
 function productRenderSnapshot(){
  const pose=cameraRig.getPose({x:game.x,z:game.z},0);
  if(activeWorld==='matsudo'){
-  const avatarIndex=renderParts.findIndex(p=>p.name==='avatar');
+  const ghostIndex=renderParts.findIndex(p=>p.name==='ghost-helicopter');
   const objs=matsudoMeshes.map((geometry,i)=>({id:'matsudo:'+i,geometry,position:[0,0,0],yaw:0,opacity:1,visible:true}));
-  if(avatarIndex>=0)objs.push({id:'avatar',geometry:engineMeshes[avatarIndex],position:[game.x,0,game.z],yaw:game.angle,opacity:1,visible:true});
+  if(ghostIndex>=0)objs.push({id:'ghost-helicopter',geometry:engineMeshes[ghostIndex],position:[game.x,flightAltitude,game.z],yaw:0,opacity:.55,visible:true});
   return createMeshRenderSnapshot({frameId:++renderFrameId,camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:650},objects:objs});
  }
  const objects=renderParts.map((p,i)=>({
@@ -616,6 +622,8 @@ async function setWorld(name){
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
   activeWorld=name;
   resetHouse();engineInputAdapter?.resetZoom();
+  flightAltitude=name==='matsudo'?20:0;
+  cameraRig.targetY=flightAltitude+1.65;
   npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;npcManager.actualLimit=65;
   slowRenderWindows=0;testWarning=defaultTestWarning;
   miniMapVisible=false;gameView?.setMapVisible(false);setRenderMode('B');
@@ -690,7 +698,7 @@ setRenderMode(initialMode);
 const gameApi=Object.freeze({
  getState(){
   return {
-   ...core.getState(),houseLevel,renderMode,worldId:activeWorld,
+   ...core.getState(),houseLevel,renderMode,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
    npcCount:activeWorld==='forest'?npcManager.agents.length:0,npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
    npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
    npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
@@ -720,7 +728,7 @@ function frame(t){
   const moved=Math.hypot(game.x-oldX,game.z-oldZ);
   publishRuntimeStatus('collision-status',moved<.001?'● 移動停止（障害物または地面端）':'● 移動中（壁沿い移動も確認）');
  }
- publishRuntimeStatus('pos',`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`);
+ publishRuntimeStatus('pos',activeWorld==='matsudo'?`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / 🚁 高度 ${flightAltitude.toFixed(1)}m`:`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`);
  publishRuntimeStatus('edge',(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内');
  // When the game panel is removed, keep simulation state but pause GPU drawing.
  if(gameView?.canvasB.isConnected){
