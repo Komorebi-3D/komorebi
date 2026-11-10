@@ -67,6 +67,7 @@ import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/k
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/shuma-fujita1012/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
 import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js";
 import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=slot-size-20261110";
+import {loadMatsudoWorld,createMatsudoLabels} from "./worlds/matsudo/world.js";
 (function(){var d=document.getElementById("launch-diagnostic");if(d)d.textContent="診断：JavaScript実行OK / WebGL="+(function(){try{return !!document.createElement("canvas").getContext("webgl")}catch(e){return false}})()+" / Three.js読み込みを確認中";window.addEventListener("error",function(e){if(d)d.textContent="診断：JavaScriptエラー："+e.message});window.addEventListener("unhandledrejection",function(e){if(d)d.textContent="診断：読み込みエラー："+String(e.reason)});})();
 
 const $=id=>document.getElementById(id);
@@ -126,12 +127,12 @@ GAME_COLLISION_OBSTACLES.push(
 GAME_COLLISION_OBSTACLES.push(...FOREST_TREE_POSITIONS.map(([x,z],i)=>({
  id:'forest-v2-'+i,type:'circle',centerX:x,centerZ:z,radius:.95,enabled:true,role:'tree'
 })));
-const groundSystem=new GroundBounds({centerX:0,centerZ:0,width:100,depth:100});
+let groundSystem=new GroundBounds({centerX:0,centerZ:0,width:100,depth:100});
 const ground=groundSystem.getGround();
-const collisionSystem=new CollisionWorld2D({
+let collisionSystem=new CollisionWorld2D({
  obstacles:GAME_COLLISION_OBSTACLES,characterRadius:.30,maxStep:.12
 });
-const core=new CharacterMotionCore2D({
+let core=new CharacterMotionCore2D({
  ground:groundSystem,collision:collisionSystem,
  initialState:{x:0,z:4.5,angle:.55,spin:0},
  tapRadians:.14,spinRadiansPerFrame:.025,moveUnitsPerFrame:.095,deadzone:.06
@@ -376,6 +377,7 @@ publishRuntimeStatus('input-status','🎮 タッチ操作準備OK：左側で移
 function readEngineInput(){return inputManager.poll();}
 function releaseEngineInput(){inputManager.clear();}
 function resetGameForTest(){
+ if(activeWorld==='matsudo')return setWorld('matsudo');
  core.reset();resetHouse();engineInputAdapter?.resetZoom();
  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
  npcManager.actualLimit=65;slowRenderWindows=0;testWarning=defaultTestWarning;
@@ -394,7 +396,7 @@ const insideCafe=(x,z)=>x>CAFE_X-6.82&&x<CAFE_X+6.82&&z>CAFE_Z-4.82&&z<CAFE_Z+4.
 const onStairs=(x,z)=>x>8.25&&x<10.65&&z>-8.25&&z<-.6;
 const stairHeight=z=>Math.max(0,Math.min(HOUSE_UPPER_FLOOR_Y,(-z-.6)/7.65*HOUSE_UPPER_FLOOR_Y));
 function update(dt,commands){
- const before=core.getState(),wasStair=onStairs(before.x,before.z);
+ const before=core.getState(),wasStair=activeWorld==='forest'&&onStairs(before.x,before.z);
  // Camera movement is derived from pixel deltas, not how long the finger is held.
  const drag=engineInputAdapter?.takeCameraDrag()??{x:0,y:0};
  cameraRig.state.applyInput(drag.x,drag.y,.0055);
@@ -412,7 +414,12 @@ function update(dt,commands){
  // Undo Core's actor-relative basis so travel stays camera-relative while turning.
  const facing=core.getState().angle,co=Math.cos(facing),si=Math.sin(facing);
  core.update(dt,{x:worldX*co-worldZ*si,y:worldX*si+worldZ*co});
- const now=core.getState(),isStair=onStairs(now.x,now.z);
+ const now=core.getState(),isStair=activeWorld==='forest'&&onStairs(now.x,now.z);
+ if(activeWorld==='matsudo'){
+  characterY=0;houseLevel=0;cafeInside=false;
+  cameraRig.update(commands,dt/60,{horizontalDistance:12*(engineInputAdapter?.zoomFactor??1),targetY:1.65});
+  return;
+ }
  if(isStair){characterY=stairHeight(now.z);houseLevel=characterY>HOUSE_UPPER_FLOOR_Y/2?2:1;}
  else if(wasStair&&insideHouse(now.x,now.z)){houseLevel=characterY>HOUSE_UPPER_FLOOR_Y/2?2:1;characterY=houseLevel===2?HOUSE_UPPER_FLOOR_Y:0;}
  else if(!insideHouse(now.x,now.z)){houseLevel=0;characterY=0;}
@@ -437,14 +444,16 @@ npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
 const defaultTestWarning='高い描画数はiPhoneに負荷がかかります。描画数の増加は段階的に反映します。';
 let testWarning=defaultTestWarning;
 function setNpcRenderLimit(v){
+ if(activeWorld!=='forest')return;
  const n=Number(v);if(!Number.isFinite(n))return;
  npcManager.maxDrawn=Math.max(1,Math.min(1000,Math.round(n)));publishGameState();
 }
 function setNpcRenderDistance(v){
+ if(activeWorld!=='forest')return;
  const n=Number(v);if(!Number.isFinite(n))return;
  npcManager.maxDrawDistance=Math.max(5,Math.min(150,n));publishGameState();
 }
-function setNpcCount(v){npcManager.setPopulation(v);publishGameState();}
+function setNpcCount(v){if(activeWorld!=='forest')return;npcManager.setPopulation(v);publishGameState();}
 // Semi-transparent game overlay: draw every simulated NPC, including hidden 3D meshes.
 // 5Hz canvas redraw is decoupled from the 3D renderer, with pointer-events disabled.
 let miniMapVisible=false,lastMiniMapFrame=-1000;
@@ -453,6 +462,7 @@ function paintDebugMap(){
  gameView.paintMap(npcManager.agents,game.x,game.z,CAFE_X,CAFE_Z);
 }
 function setMiniMapVisible(value){
+ if(activeWorld==='matsudo')return;
  miniMapVisible=Boolean(value);
  gameView?.setMapVisible(miniMapVisible);
  if(miniMapVisible)paintDebugMap();publishGameState();
@@ -460,6 +470,7 @@ function setMiniMapVisible(value){
 const spots={front:[0,4.5],tree:[-8.4,-5],side:[-2.9,2],cafe:[CAFE_X,CAFE_Z+10.5],west:[-49.2,5],east:[49.2,6],north:[-8,-49.2],south:[0,49.2]};
 const spotNames={front:'🏡 家の前',tree:'🌳 木の近く',side:'↔ 壁沿い',cafe:'☕ カフェ前',west:'西端',east:'東端',north:'奥端',south:'手前端'};
 function teleportToTestSpot(name){
+ if(activeWorld!=='forest')return false;
  const point=spots[name];if(!point)return false;
  if(collisionSystem.collides(...point)){
   publishRuntimeStatus('collision-status','配置エラー：障害物内');return false;
@@ -547,8 +558,15 @@ const hamsterLiteGeometry=createMeshGeometry({
 });
 
 let renderFrameId=0;
+let activeWorld='forest',matsudoMeshes=[],matsudoLabels=null,warpInProgress=false;
 function productRenderSnapshot(){
  const pose=cameraRig.getPose({x:game.x,z:game.z},0);
+ if(activeWorld==='matsudo'){
+  const avatarIndex=renderParts.findIndex(p=>p.name==='avatar');
+  const objs=matsudoMeshes.map((geometry,i)=>({id:'matsudo:'+i,geometry,position:[0,0,0],yaw:0,opacity:1,visible:true}));
+  if(avatarIndex>=0)objs.push({id:'avatar',geometry:engineMeshes[avatarIndex],position:[game.x,0,game.z],yaw:game.angle,opacity:1,visible:true});
+  return createMeshRenderSnapshot({frameId:++renderFrameId,camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:650},objects:objs});
+ }
  const objects=renderParts.map((p,i)=>({
    id:p.name+":"+i,geometry:engineMeshes[i],
    position:p.name==='avatar'?[game.x,characterY,game.z]:p.name==='hamster'?[hamsterNpc.drawX,0,hamsterNpc.drawZ]:p.offset,
@@ -573,6 +591,43 @@ function productRenderSnapshot(){
   camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:220},
   objects
  });
+}
+// Only the world-specific geometry changes; all Engine renderers/input/camera are reused.
+async function setWorld(name){
+ if(name!=='forest'&&name!=='matsudo')return false;
+ if(warpInProgress)return false;
+ warpInProgress=true;
+ try{
+  let next=null;
+  if(name==='matsudo'){
+   publishRuntimeStatus('status','松戸のOSMデータを読み込み中');
+   next=await loadMatsudoWorld();
+   // Convert Matsudo data to the same geometry format as the forest.
+   next.geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
+  }
+  matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];
+  groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
+  collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
+  core=new CharacterMotionCore2D({ground:groundSystem,collision:collisionSystem,
+   initialState:name==='forest'?{x:0,z:4.5,angle:.55,spin:0}:{x:-42,z:28,angle:-Math.PI/2,spin:0},
+   tapRadians:.14,spinRadiansPerFrame:.025,moveUnitsPerFrame:.095,deadzone:.06});
+  activeWorld=name;
+  resetHouse();engineInputAdapter?.resetZoom();
+  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;npcManager.actualLimit=65;
+  slowRenderWindows=0;testWarning=defaultTestWarning;
+  miniMapVisible=false;gameView?.setMapVisible(false);setRenderMode('B');
+  if(name==='matsudo'){
+   matsudoMeshes=next.geometry;
+   if(gameView?.surface){matsudoLabels=createMatsudoLabels(gameView.surface);matsudoLabels.setLabels(next.labels);}
+   // West exit street is west (negative X) of the station.
+   cameraRig.state.applyInput(-Math.PI/2/.0055,0,.0055);
+   publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
+  }else publishRuntimeStatus('status','🌳 森にワープしました');
+  publishGameState();return true;
+ }catch(error){
+  publishRuntimeStatus('status','ワープ失敗：'+String(error.message||error));
+  throw error;
+ }finally{warpInProgress=false;}
 }
 let rendererA=null,rendererB=null,loadingA=null,loadingB=null;
 let okA=false,okB=false,renderMode='B';
@@ -632,7 +687,7 @@ setRenderMode(initialMode);
 const gameApi=Object.freeze({
  getState(){
   return {
-   ...core.getState(),houseLevel,renderMode,
+   ...core.getState(),houseLevel,renderMode,worldId:activeWorld,
    npcCount:npcManager.agents.length,npcVisible:npcManager.visibleCount,
    npcDrawn:npcManager.drawCount,npcRenderLimit:npcManager.maxDrawn,
    npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
@@ -645,7 +700,7 @@ const gameApi=Object.freeze({
   return ()=>gameStateListeners.delete(listener);
  },
  reset:resetGameForTest,setRenderMode,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
- setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot
+ setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot,setWorld
 });
 // Panel views subscribe to Game API without controlling each other.
 const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('.runtime-status'),gameApi);
@@ -668,6 +723,7 @@ function frame(t){
  if(gameView?.canvasB.isConnected){
   try{
    const snapshot=productRenderSnapshot();
+   if(activeWorld==='matsudo')matsudoLabels?.update(snapshot.camera);
    if(renderMode!=='B'&&okA)rendererA.render(snapshot);
    if(renderMode!=='A'&&okB)rendererB.render(snapshot);
    const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
@@ -683,9 +739,9 @@ function frame(t){
  if(t-start>1000){
   const fps=Math.round(frames*1000/(t-start));
   publishRuntimeStatus('fps','FPS '+fps);
-  publishRuntimeStatus('npc-status','🐹 全'+npcManager.agents.length+'匹 / 視界内'+npcManager.visibleCount+' / 距離内候補'+npcManager.candidatesInRange+' / 3D表示'+npcManager.drawCount+' / 上限'+npcManager.maxDrawn);
+  publishRuntimeStatus('npc-status','🐹 全'+(activeWorld==='forest'?npcManager.agents.length:0)+'匹 / 視界内'+npcManager.visibleCount+' / 距離内候補'+npcManager.candidatesInRange+' / 3D表示'+npcManager.drawCount+' / 上限'+npcManager.maxDrawn);
   // If a stress test becomes extremely slow, lower the requested rendering budget.
-  slowRenderWindows=(npcManager.agents.length===1000&&npcManager.drawCount>65&&fps<12)?slowRenderWindows+1:0;
+  slowRenderWindows=(activeWorld==='forest'&&npcManager.agents.length===1000&&npcManager.drawCount>65&&fps<12)?slowRenderWindows+1:0;
   if(slowRenderWindows>=2){
    const safe=Math.max(65,Math.floor(npcManager.drawCount*.60));
    npcManager.maxDrawn=safe;
