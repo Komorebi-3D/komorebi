@@ -577,7 +577,7 @@ function productRenderSnapshot(){
    id:p.name+":"+i,geometry:engineMeshes[i],
    position:p.name==='avatar'?[game.x,characterY,game.z]:p.name==='hamster'?[hamsterNpc.drawX,0,hamsterNpc.drawZ]:p.offset,
    yaw:p.name==='avatar'?game.angle:p.name==='hamster'?hamsterNpc.drawYaw:0,
-   opacity:wallOpacity(p.name),visible:p.name==='hamster'?npcManager.primaryDrawn===1:!hiddenPart(p.name)
+   opacity:wallOpacity(p.name),visible:p.name==='ghost-helicopter'?false:p.name==='hamster'?npcManager.primaryDrawn===1:!hiddenPart(p.name)
  }));
  // Reuse Tree v2's geometry at Tree v1's former position, without duplicating its mesh.
  const v2Index=renderParts.findIndex(p=>p.name==='tree-v2');
