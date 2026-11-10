@@ -16,20 +16,21 @@
 
 - **共通ゴミ箱CSSの統一（2026-11-10）:** 本番の `panels/test.css` による共通ゴミ箱のスタイル上書きを解消し、`common.css`・`dev-panel-layout.js` を正本として維持。`dev.html` の生成整合性PASSに加え、**修正後の本番開発版の実機テストもユーザーPASS（2026-11-10）**。端末別内訳・全配置や負荷の網羅検証は別。
 
-## 1A. 松戸ワールド統合（2026-11-10／実機確認待ち）
+## 1A. 松戸ワールド統合・おばけヘリ（2026-11-10）
 
-- **初回統合コードは GitHub main に反映済み。Safari実機でのワープ・描画PASSは未取得。** 開発入口は従来どおり `komorebi3d/dev.html`。初期ワールドは森。
-- テスト操作パネルの「🌳 森」「🏙️ 松戸」で切替。ワープごとに主人公・カメラ・テスト設定を初期化。同じワールドへのワープも再初期化する。
-- 松戸描画コードは `komorebi3d/worlds/matsudo/world.js`、地図は既存の `map-data.json`（ワープ時のみ取得）。建物・道路・鉄道とOSM名称ラベルをKomorebi描画Snapshotに変換する。松戸ではNPC表示・建物衝突・デッキ歩行処理なし。移動・カメラ・地面境界・描画EngineはKomorebi既存を使用、松戸のGroundBoundsは500m四方。
-- `objects/` は共通3D素材、`worlds/` はワールド固有の地図・配置とする設計方針。既存 `objects/forest/` は今回移動せず、森の個別素材定義には変更なし。
-- **検証**：JS構文チェックPASS、`dev.html` のビルド出力整合性PASS（変更後のパネルとテンプレート）、GitHubコミット反映PASS。**未実施**：GitHub Pages最新配信確認、Safariの森→松戸→森ワープ、松戸3D表示・名称ラベル、境界、A/B描画、メモリ挙動。独立版松戸ページは確認用に残す。
-- **注意**：ワープ時に共有レンダラーをdispose/再初期化して前ワールドのGPUメッシュキャッシュを解放するが、森のCPU側素材定義は現行起動HTMLに保持される（完全なCPUオンデマンド化は未実装）。Engine固定コミット・v0.7/v0.6・モックは維持。
+- **森・松戸の初回ワールド統合：ユーザーから動作PASSの報告あり（2026-11-10）。** 対象は切替後の基本動作。端末別環境や負荷テスト・すべてのA/B表示・メモリ挙動の網羅PASSまでは確認していない。
+- **👻 おばけヘリ v0.1：GitHub main実装済み／新機能のSafari実機確認待ち。** 松戸ワープ時は西口付近で高度20mから開始。左の移動・右のカメラ・ピンチズームは既存操作を維持。カメラを上に向けて前進すると上昇、下に向けて前進すると下降、入力停止時はその高度で静止。移動速度は森の主人公の約5倍、高度0〜500m、地図の水平境界500m四方。初期カメラ方向は西口の街側・水平。
+- **簡易機体：** `objects/characters/ghost-helicopter.js` を共通素材として追加（白いおばけ型／人なし／ローター固定／不透明度55%）。機体の向き変更・前後左右の傾き・ローター回転・効果音などは今回のスモール開発から除外。松戸でのみ表示し、森は従来の人間・歩行を維持。
+- **共通Engineファイルとピン留め先は無変更。** `dev.template.html` の共通FollowCameraRigインスタンスにカメラ上下角度の緩和（水平より上を向ける範囲）を設定し、森と松戸の両方に反映。既存の地上Coreで水平移動・境界を計算、飛行の高度だけゲーム側で管理。新たな入力UI、独立Engine、建物衝突なし。
+- **開発情報パネル更新済み：** `panels/build.html` に森・松戸統合、ヘリ機能、未検証状態を明記。 `build-dev.mjs` の素材リストにもゴーストヘリを追加。生成版 `dev.html` とテンプレート＋パネル＋共通素材の**完全一致を静的検証済み（飛行追加時）**。JavaScript構文チェックPASS。**未確認：新しいおばけヘリのSafari実機飛行・半透明表示・高度操作・森への復帰。**
+- 松戸のOSM地図は `worlds/matsudo/map-data.json` をワープ時のみ取得、建物・道路・鉄道・名前ラベルを `worlds/matsudo/world.js` でEngine用に生成。ワープ時にGPUレンダラーを解放・再初期化。森のCPU用メッシュ定義は現行HTML内に保持される。モック、v0.7/v0.6安定版、固定Engineは変更なし。
 
 ## 2. 未完了タスク／次に相談すること
 
 | 優先度 | タスク | 確認・完了条件 |
 | --- | --- | --- |
 | 完了 | **4パネルのチャット内モック表示・操作確認：PASS（2026-11-10）** | `mock.chat.html` は4パネル・自己完結型（28,729文字・395行）。ビルド生成一致・構造静的チェックPASS、チャット内の表示・左右の高さ保持・右テスト操作の見出しとリセット固定・本文スクロール・ⓘ・交換・削除・再追加もユーザー実機PASS。ゲームやテスト操作の動作は表示専用で、モック専用Pages/Safari追加検証は不要 |
+| P1 | **おばけヘリ v0.1 のSafari実機検証** | 松戸ワープ→20m開始→上向き前進で上昇→下向き前進で下降→停止でホバリング→0/500m制限→半透明55%→500m水平境界→森へ戻って通常歩行と共通カメラを確認 | 
 | P1 | **NPC負荷テストの個別実機検証** | 1/1000匹切替、描画数1～1000、距離5～150m、±ボタン、マップ全NPC表示、FPS/描画数・限界、カフェ/階段/移動/ピンチ/Renderer A/Bを必要に応じて確認。標準配置の一般的な実機PASSとは別の負荷検証 |
 | P1 | **自動テスト・CI** | `engine/tests/*.test.mjs` の継続実行などを整備 |
 | P1 | **回帰テスト項目の標準化** | 移動・カメラ・衝突・室内/階段・A/B描画・リセットなどを短いチェックリストにする |
@@ -42,10 +43,10 @@
 ## 3. 現行コードと依存関係
 
 - **リポジトリ:** `shuma-fujita1012/komorebi` ／ 運用ブランチは `main` のみ。
-- **開発HTML:** `komorebi3d/dev.html` は実機PASS済みの4パネル本番開発ページで変更なし。`komorebi3d/mock.html` は4パネルの軽量UI検証ページ（安定版ではない）。`build-dev.mjs` は引数なし/`--mode=product` で本番、`--mode=mock` で4パネルWebモック、`--mode=chat` で自己完結型4パネルチャット用HTML断片 `mock.chat.html` を生成する。モックのゲーム・テスト操作とランタイムの値はEngine非連動。モックの `game` と `test` は `.mock.html`/`.mock.css` に切替え、共通操作JSは `dev-panel-layout.js` が正本。
+- **開発HTML:** `komorebi3d/dev.html` は4パネルの開発ページ（森・松戸統合の基本動作はユーザーPASS、最新おばけヘリ飛行は実機未確認）。`komorebi3d/mock.html` は4パネルの軽量UI検証ページ（安定版ではない）。`build-dev.mjs` は引数なし/`--mode=product` で本番、`--mode=mock` で4パネルWebモック、`--mode=chat` で自己完結型4パネルチャット用HTML断片 `mock.chat.html` を生成する。モックのゲーム・テスト操作とランタイムの値はEngine非連動。モックの `game` と `test` は `.mock.html`/`.mock.css` に切替え、共通操作JSは `dev-panel-layout.js` が正本。
 - **パネル部品:** `komorebi3d/dev-panel-components.js`。`createGameView`、`mountTestControlsPanel`、`mountRuntimeStatusPanel` をエクスポート。ゲーム内部のDOMに依存せず、Game API経由で状態・命令を扱う。
 - **ライブ配置編集:** `komorebi3d/dev-panel-layout.js`（Engine非依存）。4スロットのDOMを保管しながら移動する。`preserveSlotSize:true` の場合、起動時の各スロットの高さを固定し、入れ替え・削除・再追加後も維持（本番とモックで有効）。
-- **ゲームAPI:** `getState()`、`subscribe()`、`reset()`、`setRenderMode()`、`setNpcCount()`、`setNpcRenderLimit()`、`setNpcRenderDistance()`、`setMapVisible()`、`teleport()`。状態変更通知の購読解除が可能。
+- **ゲームAPI:** `getState()`、`subscribe()`、`reset()`、`setRenderMode()`、`setNpcCount()`、`setNpcRenderLimit()`、`setNpcRenderDistance()`、`setMapVisible()`、`teleport()`、`setWorld()`。状態変更通知の購読解除が可能。
 - **4パネル:** build（開発情報）・game（ゲーム画面）・test（テスト操作）・runtime（実行ステータス）。
 - **配置設定:** `dev.html` の `PANEL_LAYOUT`。起動時の初期値は `{top:'build',left:'game',right:'test',bottom:'runtime'}`。初期化後の変更は `dev-panel-layout.js` が担当。現行は4種類のみ（新規の第5パネル登録・配置永続化は対象外）。
 - **共通Engine:** `engine/`。`dev.html` は固定コミット `d4a392aba35c840e0bea8b585c6852515bf58f30` のjsDelivr URLから主要8モジュールを読み込む。`main` 側のEngine更新だけでは依存先が切り替わらない。
