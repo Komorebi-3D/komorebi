@@ -39,6 +39,11 @@ for(const id of panelIds){
  const marker='<!-- @panel:'+id+' -->';
  if(!html.includes(marker))throw Error('Missing panel '+id);
  let panelHtml=read('panels/'+variant(id)+'.html').trimEnd();
+ if(mock&&id==='build'){
+  const real='id="dev-engine">d4a392a</code>';
+  if(!panelHtml.includes(real))throw Error('Missing mock Engine label');
+  panelHtml=panelHtml.replace(real,'id="dev-engine">000000</code>');
+ }
  html=html.replace(marker,panelHtml);
 }
 if(html.includes('<!-- @panel:')||html.includes('/* @component-styles */'))throw Error('Unresolved placeholder');

@@ -420,7 +420,7 @@ class OutdoorNpcManager {
   this.agents=[];
   this.ids=new Set();
   this.drawCandidates=[];this.visibleCount=0;this.drawCount=0;
-  this.maxDrawn=65;this.actualLimit=65;this.maxDrawDistance=70;this.candidatesInRange=0;this.primaryDrawn=1;
+  this.maxDrawn=65;this.maxDrawDistance=70;this.candidatesInRange=0;this.primaryDrawn=1;
   this.visibleTicks=0;
   this.offscreenTicks=0;
  }
@@ -514,8 +514,6 @@ class OutdoorNpcManager {
  }
  update(dt,view){
   const seconds=Math.max(0,Math.min(.05,dt));
-  if(this.actualLimit>this.maxDrawn)this.actualLimit=this.maxDrawn;
-  else if(this.actualLimit<this.maxDrawn)this.actualLimit=Math.min(this.maxDrawn,this.actualLimit+8);
   this.visibleCount=0;this.candidatesInRange=0;this.drawCandidates.length=0;
   for(const a of this.agents){
    a.visible=this.isVisible(a,view);
@@ -542,7 +540,7 @@ class OutdoorNpcManager {
   this.primaryDrawn=primary.visible&&
    (primary.x-view.playerX)**2+(primary.z-view.playerZ)**2<=this.maxDrawDistance*this.maxDrawDistance?1:0;
   this.drawCandidates.sort((a,b)=>a.score-b.score);
-  const extraLimit=Math.max(0,this.actualLimit-this.primaryDrawn);
+  const extraLimit=Math.max(0,this.maxDrawn-this.primaryDrawn);
   if(this.drawCandidates.length>extraLimit)this.drawCandidates.length=extraLimit;
   this.drawCount=this.drawCandidates.length+this.primaryDrawn;
  }
@@ -650,7 +648,7 @@ function resetGameForTest(){
   cameraRig.targetY=flightAltitude+1.65;
  }
  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
- npcManager.actualLimit=65;slowRenderWindows=0;testWarning=defaultTestWarning;
+ 
  matsudoNpcStressSelected=false;
  setMiniMapVisible(false);
  setRenderMode('B');
@@ -718,8 +716,6 @@ function resetHouse(){releaseEngineInput();cameraRig.reset();wallFade=1;cafeWall
 
 // Defaults are game state, not values read from the optional test panel.
 npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
-const defaultTestWarning='高い描画数はiPhoneに負荷がかかります。描画数の増加は段階的に反映します。';
-let testWarning=defaultTestWarning;
 function setNpcRenderLimit(v){
  if(activeWorld!=='forest')return;
  const n=Number(v);if(!Number.isFinite(n))return;
@@ -1140,9 +1136,9 @@ async function setWorld(name){
   resetHouse();engineInputAdapter?.resetZoom();
   flightAltitude=name==='matsudo'?20:0;
   cameraRig.targetY=flightAltitude+1.65;
-  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;npcManager.actualLimit=65;
+  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
   matsudoNpcStressSelected=false;
-  slowRenderWindows=0;testWarning=defaultTestWarning;
+  
   miniMapVisible=false;gameView?.setMapVisible(false);setRenderMode('B');
   if(name==='matsudo'){
    // Start facing west across town and allow flight before the map is ready.
@@ -1225,7 +1221,7 @@ const gameApi=Object.freeze({
    npcCount:activeWorld==='forest'?npcManager.agents.length:(matsudoNpcStressSelected?1000:0),npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
    npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
    npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
-   testWarning,status:Object.fromEntries(runtimeStatusValues)
+   status:Object.fromEntries(runtimeStatusValues)
   };
  },
  subscribe(listener){
@@ -1242,7 +1238,6 @@ const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('
 const unmountTestControlsPanel=mountTestControlsPanel(document.querySelector('#test-ops-panel'),gameApi);
 // Reparent existing nodes only; Game API subscriptions and canvases survive edits.
 mountPanelLayoutEditor(document,PANEL_LAYOUT,{preserveSlotSize:true});
-let slowRenderWindows=0;
 function frame(t){
  const dt=Math.min(2,(t-last)/16.67||1);last=t;
  const commands=readEngineInput(),oldX=game.x,oldZ=game.z;
@@ -1283,15 +1278,6 @@ function frame(t){
   const fps=Math.round(frames*1000/(t-start));
   publishRuntimeStatus('fps','FPS '+fps);
   publishRuntimeStatus('npc-status','🐹 全'+(activeWorld==='forest'?npcManager.agents.length:0)+'匹 / 視界内'+npcManager.visibleCount+' / 距離内候補'+npcManager.candidatesInRange+' / 3D表示'+npcManager.drawCount+' / 上限'+npcManager.maxDrawn);
-  // If a stress test becomes extremely slow, lower the requested rendering budget.
-  slowRenderWindows=(activeWorld==='forest'&&npcManager.agents.length===1000&&npcManager.drawCount>65&&fps<12)?slowRenderWindows+1:0;
-  if(slowRenderWindows>=2){
-   const safe=Math.max(65,Math.floor(npcManager.drawCount*.60));
-   npcManager.maxDrawn=safe;
-   testWarning='⚠️ '+fps+'FPSが続いたため、描画上限を'+safe+'匹に自動調整しました。';
-   publishGameState();
-   slowRenderWindows=0;
-  }
   start=t;frames=0;
  }
  if(miniMapVisible&&t-lastMiniMapFrame>=200){paintDebugMap();lastMiniMapFrame=t;}

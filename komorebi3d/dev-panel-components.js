@@ -98,8 +98,7 @@ export function mountTestControlsPanel(root,api){
   npcRenderDistance:Number(find('npc-render-distance')?.defaultValue ?? 70),
   renderMode:find('mode-a')?.getAttribute('aria-pressed')==='true'?'A':
    find('mode-compare')?.getAttribute('aria-pressed')==='true'?'compare':'B',
-  mapVisible:find('map-toggle')?.getAttribute('aria-pressed')==='true',
-  testWarning:find('npc-render-warning')?.textContent ?? ''
+  mapVisible:find('map-toggle')?.getAttribute('aria-pressed')==='true'
  });
  let localState={...initial};
  const readState=()=>api?api.getState():localState;
@@ -128,11 +127,6 @@ export function mountTestControlsPanel(root,api){
    stressButton.setAttribute('aria-pressed',String(stress));
    stressButton.classList.toggle('selected',stress);
   }
-  write('npc-stress-info',s.worldId==='matsudo'?
-   '松戸ではボタンの選択表示のみ切り替わります。ハムスターの計算・描画は行いません。':
-   stress?
-   '1,000匹が移動計算中。3D表示は表示距離・同時描画上限スライダーで調整できます。1匹に戻すことも可能。':
-   '通常1匹。×1000で1,000匹に増やし、表示距離と同時描画上限を調節できます。');
   const mapButton=find('map-toggle');
   if(mapButton){
    mapButton.textContent=s.mapVisible?'🗺️ マップを閉じる':'🗺️ マップ表示';
@@ -151,7 +145,6 @@ export function mountTestControlsPanel(root,api){
    button.classList.toggle('selected',selected);
   }
   write('mode-status',s.renderMode==='A'?'描画モード：Engine A（WebGL）':s.renderMode==='B'?'描画モード：Engine B（Three.js）':'描画モード：Engine A/B比較・共通Snapshot');
-  write('npc-render-warning',s.testWarning);
  };
  bind(find('reset'),'click',()=>act('reset',));
  for(const button of root.querySelectorAll('[data-world]'))bind(button,'click',()=>{
@@ -173,7 +166,7 @@ export function mountTestControlsPanel(root,api){
  }
  bind(find('npc-stress-toggle'),'click',()=>{
   try{act('setNpcCount',readState().npcCount===1000?1:1000);}
-  catch(error){write('npc-stress-info','NPC負荷テストエラー：'+String(error.message||error));}
+  catch(error){console.error('NPC負荷テストエラー',error);}
  });
  bind(find('map-toggle'),'click',()=>act('setMapVisible',!readState().mapVisible));
  for(const button of root.querySelectorAll('[data-spot]'))
