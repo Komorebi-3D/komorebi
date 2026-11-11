@@ -1,6 +1,6 @@
 {
   "engine": "d4a392a",
   "forest": "更新履歴なし",
-  "matsudo": "屋上名にOSMタグを複数表示しosm-tags.ignoreで除外可能に変更",
+  "matsudo": "OSMタグ表示に必要な地図生成モジュールのSafariキャッシュ更新を修正",
   "common": "モック表示の整理とNPC描画上限の自動制御を廃止"
 }
