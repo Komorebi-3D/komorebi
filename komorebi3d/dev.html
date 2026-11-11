@@ -1020,7 +1020,7 @@ const hamsterLiteGeometry=createMeshGeometry({
 
 let renderFrameId=0;
 const SAVED_WORLD_KEY='komorebi3d-last-world-dev';
-let activeWorld='forest',matsudoMeshes=[],matsudoLabels=null,warpInProgress=false;
+let activeWorld='forest',matsudoMeshes=[],matsudoLabels=null,warpInProgress=false,worldGeneration=0;
 let flightAltitude=0;
 function productRenderSnapshot(){
  const pose=cameraRig.getPose({x:game.x,z:game.z},0);
@@ -1055,28 +1055,42 @@ function productRenderSnapshot(){
   objects
  });
 }
-// Only the world-specific geometry changes; all Engine renderers/input/camera are reused.
+// Load the town after the helicopter is controllable; never apply stale results to another world.
+async function loadMatsudoMapInBackground(generation){
+ try{
+  const next=await loadMatsudoWorld();
+  if(generation!==worldGeneration||activeWorld!=='matsudo')return;
+  const geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
+  if(generation!==worldGeneration||activeWorld!=='matsudo')return;
+  matsudoMeshes=geometry;
+  if(gameView?.surface){matsudoLabels=createMatsudoLabels(gameView.surface);matsudoLabels.setLabels(next.labels);}
+  publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
+  publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
+ }catch(error){
+  if(generation!==worldGeneration||activeWorld!=='matsudo')return;
+  // Map failures do not interrupt the helicopter; no automatic retry.
+  publishRuntimeStatus('status','🏙️ 地図読込失敗（飛行は継続）：'+String(error.message||error));
+  publishRuntimeStatus('label-status','🏙️ 屋上名：地図読込失敗');
+ }
+}
+// Only world-specific geometry changes; the common Engine input/camera are reused.
 async function setWorld(name){
  if(name!=='forest'&&name!=='matsudo')return false;
  if(warpInProgress)return false;
  warpInProgress=true;
  try{
-  let next=null;
-  if(name==='matsudo'){
-   next=await loadMatsudoWorld();
-   // Convert Matsudo data to the same geometry format as the forest.
-   next.geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
-  }
+  // Reinitialize the common renderer to release the previous world's GPU meshes.
+  await Promise.allSettled([loadingA,loadingB].filter(Boolean));
+  rendererA?.dispose?.();rendererB?.dispose?.();
+  rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
+  // Invalidate any outstanding Matsudo map load before changing the active world.
+  const generation=++worldGeneration;
   matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];
   groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
   collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
   core=new CharacterMotionCore2D({ground:groundSystem,collision:collisionSystem,
    initialState:name==='forest'?{x:0,z:4.5,angle:.55,spin:0}:{x:-42,z:28,angle:-Math.PI/2,spin:0},
    tapRadians:.14,spinRadiansPerFrame:.025,moveUnitsPerFrame:.095,deadzone:.06});
-  // Reinitialize the common renderer on each warp to release the previous world's GPU meshes.
-  await Promise.allSettled([loadingA,loadingB].filter(Boolean));
-  rendererA?.dispose?.();rendererB?.dispose?.();
-  rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
   activeWorld=name;
   resetHouse();engineInputAdapter?.resetZoom();
   flightAltitude=name==='matsudo'?20:0;
@@ -1085,15 +1099,17 @@ async function setWorld(name){
   slowRenderWindows=0;testWarning=defaultTestWarning;
   miniMapVisible=false;gameView?.setMapVisible(false);setRenderMode('B');
   if(name==='matsudo'){
-   matsudoMeshes=next.geometry;
-   if(gameView?.surface){matsudoLabels=createMatsudoLabels(gameView.surface);matsudoLabels.setLabels(next.labels);}
-   publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
-   // Start facing west across the town, with a level flight direction.
+   // Start facing west across town and allow flight before the map is ready.
    cameraRig.state.pitch=0;
-   cameraRig.state.applyInput(Math.PI/2/.0055,0,.0055);
-   publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
+   cameraRig.state.yaw=Math.PI/2;
+   publishRuntimeStatus('status','🏙️ 松戸：地図読み込み中（飛行できます）');
+   publishRuntimeStatus('label-status','🏙️ 屋上名：地図読み込み中');
+   // Give the renderer an opportunity to show the helicopter before map work begins.
+   requestAnimationFrame(()=>setTimeout(()=>{
+    if(generation===worldGeneration&&activeWorld==='matsudo')void loadMatsudoMapInBackground(generation);
+   },0));
   }else {publishRuntimeStatus('status','🌳 森にワープしました');publishRuntimeStatus('label-status','🏙️ 屋上名：森ワールドでは非表示');}
-  // Save only after a successful warp; failed Matsudo loads never get persisted.
+  // Persist the selected world; map loading is independent of flight.
   try{localStorage.setItem(SAVED_WORLD_KEY,name)}catch(_){/* storage unavailable */}
   publishGameState();return true;
  }catch(error){
