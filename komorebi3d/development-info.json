@@ -1,6 +1,6 @@
 {
   "engine": "d4a392a",
   "forest": "更新履歴なし",
-  "matsudo": "OSM屋上ラベルの除外対象に標高タグeleを追加",
+  "matsudo": "松戸500mのOSM取得に店舗・施設のnode/way/relationを追加",
   "common": "モック表示の整理とNPC描画上限の自動制御を廃止"
 }
