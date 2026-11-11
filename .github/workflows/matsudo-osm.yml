@@ -1,4 +1,5 @@
 name: Refresh Matsudo OSM snapshot
+# Manual refresh requested: check level=0 at OSM node 8513150521 (2026-11-12).
 on:
   workflow_dispatch:
   push:
