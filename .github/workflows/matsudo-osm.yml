@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -24,22 +25,29 @@ jobs:
         run: python komorebi3d/maps/fetch-map.py
       - name: Commit verified static snapshot only if changed
         run: |
-          git add komorebi3d/maps/data/matsudo.json
-          if ! git diff --cached --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Keep the downloaded snapshot while rebasing the WORKTREE (not a commit)
+          # onto the latest main. A re-run of an old Actions run must not replay
+          # a stale JSON snapshot commit and cause a merge conflict.
+          snapshot="$(mktemp)"
+          trap 'rm -f "$snapshot"' EXIT
+          cp komorebi3d/maps/data/matsudo.json "$snapshot"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$snapshot" komorebi3d/maps/data/matsudo.json
+            git add komorebi3d/maps/data/matsudo.json
+            if git diff --cached --quiet; then
+              echo "OSM snapshot is already current"
+              exit 0
+            fi
             git commit -m "Refresh Matsudo 500m OpenStreetMap snapshot"
-            # Other development commits may land while the API download runs.
-            # Replay just the generated snapshot commit over the newest main.
-            for attempt in 1 2 3 4 5; do
-              git fetch origin main
-              git rebase origin/main
-              if git push origin HEAD:main; then
-                exit 0
-              fi
-              echo "main moved during push; retrying ($attempt/5)"
-              sleep 3
-            done
-            echo "Unable to push verified OSM snapshot after retries"
-            exit 1
-          fi
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "main moved during push; retrying ($attempt/5)"
+            sleep 3
+          done
+          echo "Unable to push verified OSM snapshot after retries"
+          exit 1
