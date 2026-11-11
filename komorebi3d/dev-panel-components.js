@@ -26,10 +26,15 @@ export function createGameView(root){
    elements.map.hidden=!visible;
    elements.map.setAttribute('aria-hidden',String(!visible));
   },
-  paintMap(agents,playerX,playerZ,cafeX,cafeZ){
+  paintMap({worldId,playerX,playerZ,agents=[],cafeX=0,cafeZ=0,features=null}){
    if(!ctx)return;
+   const town=worldId==='matsudo',span=town?500:100,half=span/2;
    const w=elements.mapCanvas.width,h=elements.mapCanvas.height;
-   const wx=x=>(x+50)*w/100,wz=z=>(z+50)*h/100;
+   const wx=x=>(x+half)*w/span,wz=z=>(z+half)*h/span;
+   const title=elements.map.querySelector('.debug-map-title');
+   const legend=elements.map.querySelector('.debug-map-legend');
+   if(title)title.textContent=town?'🗺️ 松戸 500m × 500m':'🗺️ 100m × 100m / 全NPC位置';
+   if(legend)legend.textContent=town?'🔴 おばけヘリ　▧ 建物　━ 道路・鉄道':'🔴 主人公　🟡 ハム全員（3D非表示も）';
    ctx.clearRect(0,0,w,h);
    ctx.fillStyle='rgba(15,36,27,.74)';ctx.fillRect(0,0,w,h);
    ctx.strokeStyle='rgba(225,248,228,.20)';ctx.lineWidth=1;
@@ -37,13 +42,28 @@ export function createGameView(root){
     const v=n*w/4;ctx.beginPath();ctx.moveTo(v,0);ctx.lineTo(v,h);
     ctx.moveTo(0,v);ctx.lineTo(w,v);ctx.stroke();
    }
-   ctx.fillStyle='rgba(230,216,174,.38)';
-   ctx.fillRect(wx(-2.5),wz(-9.5),14*w/100,10*h/100);
-   ctx.fillStyle='rgba(228,163,111,.47)';
-   ctx.fillRect(wx(cafeX-7),wz(cafeZ-5),14*w/100,10*h/100);
-   ctx.fillStyle='#7cb78b';ctx.beginPath();ctx.arc(wx(-7),wz(-5),3,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle='#ffe04c';
-   for(const a of agents)ctx.fillRect(wx(a.x)-1.2,wz(a.z)-1.2,2.4,2.4);
+   if(town){
+    // Reuse the same canvas and player marker; the town supplies only its geometry.
+    for(const feature of features||[]){
+     const points=feature.points;if(points.length<2)continue;
+     ctx.beginPath();ctx.moveTo(wx(points[0][0]),wz(points[0][1]));
+     for(let i=1;i<points.length;i++)ctx.lineTo(wx(points[i][0]),wz(points[i][1]));
+     if(feature.type==='building'){
+      ctx.closePath();ctx.fillStyle='rgba(192,194,173,.55)';ctx.fill();
+     }else{
+      ctx.strokeStyle=feature.type==='rail'?'rgba(213,158,135,.9)':'rgba(181,203,205,.78)';
+      ctx.lineWidth=feature.type==='rail'?1.2:1.7;ctx.stroke();
+     }
+    }
+   }else{
+    ctx.fillStyle='rgba(230,216,174,.38)';
+    ctx.fillRect(wx(-2.5),wz(-9.5),14*w/100,10*h/100);
+    ctx.fillStyle='rgba(228,163,111,.47)';
+    ctx.fillRect(wx(cafeX-7),wz(cafeZ-5),14*w/100,10*h/100);
+    ctx.fillStyle='#7cb78b';ctx.beginPath();ctx.arc(wx(-7),wz(-5),3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffe04c';
+    for(const a of agents)ctx.fillRect(wx(a.x)-1.2,wz(a.z)-1.2,2.4,2.4);
+   }
    ctx.fillStyle='#fb4343';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.3;
    ctx.beginPath();ctx.arc(wx(playerX),wz(playerZ),4,0,Math.PI*2);ctx.fill();ctx.stroke();
    ctx.font='bold 11px system-ui';ctx.fillStyle='rgba(255,255,255,.88)';
