@@ -74,7 +74,7 @@ export function matchConvenienceBuildings(elements,project,halfSize){
   if(minX>halfSize||maxX< -halfSize||minZ>halfSize||maxZ< -halfSize)continue;
   candidates.push({id:element.id,points,area,minX,maxX,minZ,maxZ});
  }
- const matched=new Map(),conflicts=new Set();
+ const matched=new Map();
  const toleranceMetres=CONVENIENCE_MATCH_TOLERANCE_CM/100;
  for(const element of elements){
   if(element.type!=='node'||!Number.isFinite(element.lat)||!Number.isFinite(element.lon))continue;
@@ -89,7 +89,6 @@ export function matchConvenienceBuildings(elements,project,halfSize){
    if(!best||building.area<best.area)best=building;
   }
   if(!best&&toleranceMetres>0){
-   // Do not guess when two or more building outlines are nearby.
    const nearby=[];
    for(const building of candidates){
     if(point[0]<building.minX-toleranceMetres||point[0]>building.maxX+toleranceMetres||
@@ -100,28 +99,90 @@ export function matchConvenienceBuildings(elements,project,halfSize){
    if(nearby.length===1)best=nearby[0];
   }
   if(!best)continue;
-  const previous=matched.get(best.id);
-  if(previous&&previous.id!==brand.id)conflicts.add(best.id);
-  else matched.set(best.id,brand);
+  if(!matched.has(best.id))matched.set(best.id,[]);
+  matched.get(best.id).push({brand,level:element.tags?.level});
  }
- for(const id of conflicts)matched.delete(id);
  return matched;
 }
-// Repeat brand colours across the entire exterior wall, without changing the footprint.
-export function paintConvenienceWall(quad,mesh,a,b,height,baseColor,brand){
- if(!brand){
-  quad(mesh,[a[0],0,a[1]],[b[0],0,b[1]],[b[0],height,b[1]],[a[0],height,a[1]],baseColor);
-  return;
- }
- const cycleHeight=3;
- for(let start=0;start<height;start+=cycleHeight){
-  let bottom=start;
-  for(const stripe of brand.stripes){
-   const top=Math.min(height,bottom+stripe.height*cycleHeight);
-   if(top>bottom+1e-8)
-    quad(mesh,[a[0],bottom,a[1]],[b[0],bottom,b[1]],[b[0],top,b[1]],[a[0],top,a[1]],stripe.color);
-   bottom=top;
-   if(bottom>=height-1e-8)break;
+// A valid OSM level is a zero-based integer; semicolons specify multiple floors.
+// Unknown/malformed values deliberately paint the whole building to reveal map issues.
+function parseLevels(raw){
+ if(raw===undefined||raw===null||String(raw).trim()==='')return null;
+ const parts=String(raw).split(';').map(value=>value.trim());
+ if(parts.some(value=>!/^[-+]?\\d+$/.test(value)))return 'invalid';
+ const values=parts.map(Number);
+ if(values.some(value=>!Number.isSafeInteger(value)))return 'invalid';
+ return [...new Set(values)];
+}
+function validPositiveNumber(value){
+ if(value===undefined||value===null||!/^\\d+(?:\\.\\d+)?$/.test(String(value).trim()))return null;
+ const n=Number(value);
+ return Number.isFinite(n)&&n>0?n:null;
+}
+// Return sorted wall spans. Null brand means the ordinary building facade.
+// A missing or contradictory height/level falls back to whole-wall brand colours.
+export function resolveConveniencePaint(stores,tags,height){
+ if(!stores?.length)return [];
+ const whole=brand=>[{bottom:0,top:height,brand}];
+ const first=stores[0].brand;
+ if('min_height'in tags||'building:min_level'in tags)return whole(first);
+ const explicitHeight=validPositiveNumber(tags.height);
+ const declaredLevels=tags['building:levels'];
+ const levelCount=declaredLevels===undefined?null:validPositiveNumber(declaredLevels);
+ if(explicitHeight===null||declaredLevels!==undefined&&(levelCount===null||!Number.isInteger(levelCount)))return whole(first);
+ const floorHeight=levelCount===null?3:height/levelCount;
+ if(!Number.isFinite(floorHeight)||floorHeight<=0)return whole(first);
+ const spans=[];
+ for(const store of stores){
+  const levels=parseLevels(store.level);
+  if(levels===null||levels==='invalid')return whole(first);
+  for(const level of levels){
+   if(level<0)continue; // Underground geometry does not exist yet.
+   const bottom=level*floorHeight,top=Math.min(height,(level+1)*floorHeight);
+   if(levelCount!==null&&level>=levelCount||bottom>=height-1e-8||top<=bottom)return whole(first);
+   spans.push({bottom,top,brand:store.brand});
   }
  }
+ spans.sort((a,b)=>a.bottom-b.bottom||a.top-b.top);
+ for(let i=0;i<spans.length;i++){
+  for(let j=i+1;j<spans.length&&spans[j].bottom<spans[i].top-1e-8;j++){
+   if(spans[i].brand.id!==spans[j].brand.id)return whole(first);
+  }
+ }
+ // Duplicate same-brand store nodes or levels must not double-paint a wall.
+ const unique=[];
+ for(const span of spans){
+  const previous=unique[unique.length-1];
+  if(previous&&previous.brand.id===span.brand.id&&span.bottom<=previous.top+1e-8)
+   previous.top=Math.max(previous.top,span.top);
+  else unique.push({...span});
+ }
+ return unique;
+}
+// Preserve each brand's stripe proportions, with a repeating 1m physical cycle.
+function paintBrandStripe(quad,mesh,a,b,bottom,top,brand){
+ const cycleHeight=1;
+ for(let start=bottom;start<top-1e-8;start+=cycleHeight){
+  let y=start;
+  for(const stripe of brand.stripes){
+   const next=Math.min(top,y+stripe.height*cycleHeight);
+   if(next>y+1e-8)
+    quad(mesh,[a[0],y,a[1]],[b[0],y,b[1]],[b[0],next,b[1]],[a[0],next,a[1]],stripe.color);
+   y=next;
+   if(y>=top-1e-8)break;
+  }
+ }
+}
+export function paintConvenienceWall(quad,mesh,a,b,height,baseColor,spans){
+ const wall=(bottom,top,color)=>{
+  if(top>bottom+1e-8)
+   quad(mesh,[a[0],bottom,a[1]],[b[0],bottom,b[1]],[b[0],top,b[1]],[a[0],top,a[1]],color);
+ };
+ let cursor=0;
+ for(const span of spans||[]){
+  if(span.bottom>cursor)wall(cursor,span.bottom,baseColor);
+  paintBrandStripe(quad,mesh,a,b,span.bottom,span.top,span.brand);
+  cursor=Math.max(cursor,span.top);
+ }
+ if(cursor<height)wall(cursor,height,baseColor);
 }
