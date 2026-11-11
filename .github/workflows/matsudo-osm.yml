@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/matsudo-osm.yml'
-      - 'komorebi3d/worlds/matsudo/fetch-map.py'
+      - 'komorebi3d/maps/fetch-map.py'
   schedule:
     - cron: '20 3 1 * *'
 permissions:
@@ -21,10 +21,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Download real Matsudo OSM data
-        run: python komorebi3d/worlds/matsudo/fetch-map.py
+        run: python komorebi3d/maps/fetch-map.py
       - name: Commit verified static snapshot only if changed
         run: |
-          git add komorebi3d/worlds/matsudo/map-data.json
+          git add komorebi3d/maps/data/matsudo.json
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
