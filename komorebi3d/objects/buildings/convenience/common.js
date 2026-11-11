@@ -2,18 +2,28 @@
 // The brand modules can later provide signs, doors, shelves and interiors.
 import {sevenEleven} from './seven-eleven.js?v=convenience-v1-20261112';
 import {familymart} from './familymart.js?v=convenience-v1-20261112';
+import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
+import {ministop} from './ministop.js?v=convenience-v4-20261112';
+import {lawson} from './lawson.js?v=convenience-v4-20261112';
 // Distance tolerance in centimetres; edit 100 to adjust the allowed POI offset.
 export const CONVENIENCE_MATCH_TOLERANCE_CM=100;
-const brands=[sevenEleven,familymart];
+// Specific Lawson sub-brands must be resolved before the general Lawson name.
+const brands=[sevenEleven,familymart,lawsonStore100,ministop,lawson];
 const normalized=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/[\s\u2010-\u2015\u2212\uff0d-]/g,'');
 function identifyBrand(tags){
  if(tags.shop!=='convenience')return null;
  const values=[tags['brand:ja'],tags.brand,tags['brand:en'],tags['name:ja'],tags.name,tags['name:en']];
- for(const value of values){
+ // Natural Lawson remains intentionally unpainted until its own brand module exists.
+ // Inspect all provided names so a generic 'LAWSON' tag cannot override it.
+ if(values.some(value=>{
   const name=normalized(value);
-  if(!name)continue;
-  const brand=brands.find(entry=>entry.names.some(alias=>name.startsWith(normalized(alias))));
-  if(brand)return brand;
+  return name.startsWith(normalized('ナチュラルローソン'))||name.startsWith('naturallawson');
+ }))return null;
+ for(const brand of brands){
+  if(values.some(value=>{
+   const name=normalized(value);
+   return name&&brand.names.some(alias=>name.startsWith(normalized(alias)));
+  }))return brand;
  }
  return null;
 }
