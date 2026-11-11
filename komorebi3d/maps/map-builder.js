@@ -74,7 +74,7 @@ function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1
    building(buildings[e.id%palette.length],p,height,palette[e.id%palette.length]);
    mapFeatures.push({type:'building',points:p});
    const name=String(tags['name:ja']||tags.name||'').trim();
-   if(name)labels.push({name,x:(minX+maxX)/2,z:(minZ+maxZ)/2,y:height+.9});
+   if(name)labels.push({name,tags:{...tags},x:(minX+maxX)/2,z:(minZ+maxZ)/2,y:height+.9});
    buildingCount++;
   }
   if(tags.highway&&!['construction','proposed'].includes(tags.highway)){

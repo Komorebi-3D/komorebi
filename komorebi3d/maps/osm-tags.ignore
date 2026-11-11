@@ -1,0 +1,10 @@
+# OSM tags hidden from rooftop label chips. One rule per line.
+# Exact key match, or trailing * for prefix match.
+# Names remain visible in the label title.
+name
+name:*
+height
+building:levels
+source
+addr:*
+contact:*

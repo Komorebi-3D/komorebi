@@ -1,6 +1,6 @@
 {
   "engine": "d4a392a",
   "forest": "更新履歴なし",
-  "matsudo": "地図取得・3D生成・屋上名をmapsの汎用モジュールへ分離",
+  "matsudo": "屋上名にOSMタグを複数表示しosm-tags.ignoreで除外可能に変更",
   "common": "モック表示の整理とNPC描画上限の自動制御を廃止"
 }
