@@ -15,6 +15,7 @@ export function createGameView(root){
  return {
   movePad:elements.movePad,cameraPad:elements.cameraPad,
   canvasA:elements.canvasA,canvasB:elements.canvasB,
+  surface:elements.surface,
   setRenderMode(mode){
    const showA=mode!=='B',showB=mode!=='A';
    elements.panelA.classList.toggle('off',!showA);
