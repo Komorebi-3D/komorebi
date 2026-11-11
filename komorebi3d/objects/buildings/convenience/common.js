@@ -70,20 +70,21 @@ export function matchConvenienceBuildings(elements,project,halfSize){
  for(const id of conflicts)matched.delete(id);
  return matched;
 }
-// Split existing wall faces at ground-floor stripe heights.
-// No overlay meshes or wall-shape changes; upper walls use the original colour.
+// Repeat brand colours across the entire exterior wall, without changing the footprint.
 export function paintConvenienceWall(quad,mesh,a,b,height,baseColor,brand){
  if(!brand){
   quad(mesh,[a[0],0,a[1]],[b[0],0,b[1]],[b[0],height,b[1]],[a[0],height,a[1]],baseColor);
   return;
  }
- const decoratedHeight=Math.min(3,height);
- let bottom=0;
- for(const stripe of brand.stripes){
-  const top=bottom+stripe.height*decoratedHeight;
-  quad(mesh,[a[0],bottom,a[1]],[b[0],bottom,b[1]],[b[0],top,b[1]],[a[0],top,a[1]],stripe.color);
-  bottom=top;
+ const cycleHeight=3;
+ for(let start=0;start<height;start+=cycleHeight){
+  let bottom=start;
+  for(const stripe of brand.stripes){
+   const top=Math.min(height,bottom+stripe.height*cycleHeight);
+   if(top>bottom+1e-8)
+    quad(mesh,[a[0],bottom,a[1]],[b[0],bottom,b[1]],[b[0],top,b[1]],[a[0],top,a[1]],stripe.color);
+   bottom=top;
+   if(bottom>=height-1e-8)break;
+  }
  }
- if(decoratedHeight<height)
-  quad(mesh,[a[0],decoratedHeight,a[1]],[b[0],decoratedHeight,b[1]],[b[0],height,b[1]],[a[0],height,a[1]],baseColor);
 }
