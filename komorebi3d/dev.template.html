@@ -28,31 +28,65 @@ function applyPanelLayout(layout){
 }
 applyPanelLayout(PANEL_LAYOUT);
 
-(function () {
+(async function () {
   const hash = document.getElementById('github-commit');
   const time = document.getElementById('github-commit-time');
   if (!hash || !time) return;
-  const url = 'https://api.github.com/repos/shuma-fujita1012/komorebi/commits/main';
+  const categories = ['forest', 'matsudo', 'common'];
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
-  fetch(url, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store', signal: controller.signal })
-    .then(response => { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
-    .then(commit => {
-      const sha = typeof commit.sha === 'string' ? commit.sha.slice(0, 7) : null;
-      const iso = commit.commit && (commit.commit.committer?.date || commit.commit.author?.date);
-      if (!sha || !iso || Number.isNaN(new Date(iso).getTime())) throw new Error('コミット情報なし');
-      const jst = new Intl.DateTimeFormat('ja-JP', {
-        timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit',
-        day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
-      }).format(new Date(iso));
-      hash.textContent = 'GitHub main最新：' + sha;
-      time.textContent = '最終コミット：' + jst + ' JST';
-    })
-    .catch(() => {
-      hash.textContent = 'GitHub main最新：取得できません';
-      time.textContent = '最終コミット：取得できません';
-    })
-    .finally(() => clearTimeout(timeout));
+  // Saved descriptions and live commit metadata are independent fetches.
+  // A GitHub API failure must not erase the saved descriptions.
+  const infoRequest = fetch('./development-info.json', {cache:'no-store'})
+    .then(response => { if (!response.ok) throw new Error('development-info HTTP '+response.status); return response.json(); });
+  const commitRequest = fetch('https://api.github.com/repos/shuma-fujita1012/komorebi/commits/main', {
+    headers:{Accept:'application/vnd.github+json'},cache:'no-store',signal:controller.signal
+  }).then(response => { if (!response.ok) throw new Error('GitHub HTTP '+response.status); return response.json(); });
+  const [infoResult, commitResult] = await Promise.allSettled([infoRequest, commitRequest]);
+  clearTimeout(timeout);
+  const info = infoResult.status === 'fulfilled' ? infoResult.value : null;
+  for (const category of categories) {
+    const target = document.getElementById('dev-'+category);
+    const value = info && info[category];
+    if (target && typeof value === 'string' && value.trim()) target.textContent = value.trim();
+  }
+  const engine = document.getElementById('dev-engine');
+  if (engine && info && typeof info.engine === 'string' && /^[a-f0-9]{7,40}$/i.test(info.engine))
+    engine.textContent = info.engine;
+  if (commitResult.status !== 'fulfilled') {
+    hash.textContent = 'GitHub main最新：取得できません';
+    time.textContent = '最終コミット：取得できません';
+    return;
+  }
+  try {
+    const commit = commitResult.value;
+    const sha = typeof commit.sha === 'string' ? commit.sha.slice(0,7) : null;
+    const iso = commit.commit && (commit.commit.committer?.date || commit.commit.author?.date);
+    if (!sha || !iso || Number.isNaN(new Date(iso).getTime())) throw new Error('コミット情報なし');
+    const jst = new Intl.DateTimeFormat('ja-JP', {
+      timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',
+      day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false
+    }).format(new Date(iso));
+    hash.textContent = 'GitHub main最新：' + sha;
+    time.textContent = '最終コミット：' + jst + ' JST';
+    // Only the newest commit determines which headings receive 🆕.
+    // Check the subject and body, allowing multiple category lines in one commit.
+    const message = String(commit.commit?.message || '');
+    const changed = new Set();
+    for (const line of message.split(/\r?\n/)) {
+      const match = /^\s*(forest|matsudo|common):\s*\S/i.exec(line);
+      if (match) changed.add(match[1].toLowerCase());
+    }
+    for (const category of categories) {
+      const badge = document.getElementById('dev-'+category+'-new');
+      const description = document.getElementById('dev-'+category);
+      if (badge) badge.hidden = !(info && changed.has(category) && description &&
+        description.textContent.trim() !== '更新履歴なし');
+    }
+  } catch (_) {
+    hash.textContent = 'GitHub main最新：取得できません';
+    time.textContent = '最終コミット：取得できません';
+  }
 })();
 
 // Live panel help/gestures are initialized after the Game API mounts.
