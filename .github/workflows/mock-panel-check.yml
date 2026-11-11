@@ -1,22 +1,7 @@
 name: Check generated panel pages
+# TEMPORARY: disable automatic checks during GitHub Actions / Pages incident.
+# Restore push and pull_request triggers after isolation is complete.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'komorebi3d/dev.html'
-      - 'komorebi3d/dev.template.html'
-      - 'komorebi3d/common.css'
-      - 'komorebi3d/panels/**'
-      - 'komorebi3d/build-dev.mjs'
-      - 'komorebi3d/dev-panel-components.js'
-      - 'komorebi3d/dev-panel-layout.js'
-      - 'komorebi3d/build-mock-panel.mjs'
-      - 'komorebi3d/mock-panel.html'
-      - '.github/workflows/mock-panel-check.yml'
-  pull_request:
-    paths:
-      - 'komorebi3d/**'
-      - '.github/workflows/mock-panel-check.yml'
   workflow_dispatch:
 permissions:
   contents: read
