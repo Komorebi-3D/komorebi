@@ -58,7 +58,7 @@ export async function loadMatsudoWorld(){
  const map=await response.json();
  if(map.source!=='OpenStreetMap contributors'||!Array.isArray(map.elements)||map.elements.length<20)
   throw new Error('松戸OSMデータの形式が不正');
- const buildings=palette.map(builder),roads=builder(),walks=builder(),rails=builder(),floor=builder(),labels=[];
+ const buildings=palette.map(builder),roads=builder(),walks=builder(),rails=builder(),floor=builder(),labels=[],mapFeatures=[];
  rectangle(floor,-HALF,-HALF,HALF,HALF,0x9fce8d);
  let buildingCount=0,roadCount=0,railCount=0;
  for(const e of map.elements){
@@ -76,6 +76,7 @@ export async function loadMatsudoWorld(){
     height=Number.isFinite(levels)&&levels>0?Math.min(60,levels*3):9;
    }
    building(buildings[e.id%palette.length],p,height,palette[e.id%palette.length]);
+   mapFeatures.push({type:'building',points:p});
    const name=String(tags['name:ja']||tags.name||'').trim();
    if(name)labels.push({name,x:(minX+maxX)/2,z:(minZ+maxZ)/2,y:height+.9});
    buildingCount++;
@@ -84,13 +85,14 @@ export async function loadMatsudoWorld(){
    const pedestrian=['footway','pedestrian','path','steps','cycleway','corridor','living_street'].includes(tags.highway);
    const width=pedestrian?(tags.highway==='pedestrian'?6:2.2):['primary','secondary','tertiary','trunk'].includes(tags.highway)?10:['service','residential','unclassified'].includes(tags.highway)?5.5:3.2;
    strip(pedestrian?walks:roads,p,width,pedestrian?0xc7c6b4:0x596570,pedestrian?.052:.047);
+   mapFeatures.push({type:'road',points:p});
    roadCount++;
   }else if(tags.railway&&['rail','light_rail','tram'].includes(tags.railway)){
-   strip(rails,p,3.1,0x806e65,.075);railCount++;
+   strip(rails,p,3.1,0x806e65,.075);mapFeatures.push({type:'rail',points:p});railCount++;
   }
  }
  const meshes=[floor,...buildings,roads,walks,rails].filter(m=>m.positions.length>0);
- return {meshes,labels,counts:{buildings:buildingCount,roads:roadCount,rails:railCount}};
+ return {meshes,labels,mapFeatures,counts:{buildings:buildingCount,roads:roadCount,rails:railCount}};
 }
 // Lightweight screen-facing HUD labels, anchored to OSM building rooftops.
 export function createMatsudoLabels(host){
