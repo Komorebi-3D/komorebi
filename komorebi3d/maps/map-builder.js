@@ -1,4 +1,4 @@
-import {matchConvenienceBuildings,paintConvenienceWall} from '../objects/buildings/convenience/common.js?v=convenience-v4-20261112';
+import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall} from '../objects/buildings/convenience/common.js?v=convenience-levels-v1-20261112';
 // Convert verified OSM map data into renderer-independent meshes and roof labels.
 // Defaults preserve the original Matsudo 500m test snapshot.
 export function buildMap(map,{latitude=35.78444,longitude=139.90061,halfSize=250}={}){
@@ -39,10 +39,10 @@ function top(m,p,h,t){
  }
  if(idx.length===3){const a=p[idx[0]],b=p[idx[1]],c=p[idx[2]];if(ccw)tri(m,[a[0],h,a[1]],[c[0],h,c[1]],[b[0],h,b[1]],t);else tri(m,[a[0],h,a[1]],[b[0],h,b[1]],[c[0],h,c[1]],t);}
 }
-function building(m,p,h,t,brand){
+function building(m,p,h,t,spans){
  for(let i=0;i<p.length;i++){
   const a=p[i],b=p[(i+1)%p.length];
-  paintConvenienceWall(quad,m,a,b,h,t,brand);
+  paintConvenienceWall(quad,m,a,b,h,t,spans);
  }
  top(m,p,h,t);
 }
@@ -87,7 +87,7 @@ function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1
     const levels=Number.parseFloat(tags['building:levels']);
     height=Number.isFinite(levels)&&levels>0?Math.min(60,levels*3):9;
    }
-   building(buildings[e.id%palette.length],p,height,palette[e.id%palette.length],convenienceBuildings.get(e.id));
+   building(buildings[e.id%palette.length],p,height,palette[e.id%palette.length],resolveConveniencePaint(convenienceBuildings.get(e.id),tags,height));
    mapFeatures.push({type:'building',points:p});
    const name=String(tags['name:ja']||tags.name||'').trim();
    if(name)labels.push({kind:'building',name,tags:{...tags},x:(minX+maxX)/2,z:(minZ+maxZ)/2,y:height+.9});
