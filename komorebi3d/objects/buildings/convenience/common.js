@@ -109,13 +109,13 @@ export function matchConvenienceBuildings(elements,project,halfSize){
 function parseLevels(raw){
  if(raw===undefined||raw===null||String(raw).trim()==='')return null;
  const parts=String(raw).split(';').map(value=>value.trim());
- if(parts.some(value=>!/^[-+]?\\d+$/.test(value)))return 'invalid';
+ if(parts.some(value=>!/^[-+]?\d+$/.test(value)))return 'invalid';
  const values=parts.map(Number);
  if(values.some(value=>!Number.isSafeInteger(value)))return 'invalid';
  return [...new Set(values)];
 }
 function validPositiveNumber(value){
- if(value===undefined||value===null||!/^\\d+(?:\\.\\d+)?$/.test(String(value).trim()))return null;
+ if(value===undefined||value===null||!/^\d+(?:\.\d+)?$/.test(String(value).trim()))return null;
  const n=Number(value);
  return Number.isFinite(n)&&n>0?n:null;
 }
@@ -153,7 +153,7 @@ export function resolveConveniencePaint(stores,tags,height){
  const unique=[];
  for(const span of spans){
   const previous=unique[unique.length-1];
-  if(previous&&previous.brand.id===span.brand.id&&span.bottom<=previous.top+1e-8)
+  if(previous&&previous.brand.id===span.brand.id&&span.bottom<previous.top-1e-8)
    previous.top=Math.max(previous.top,span.top);
   else unique.push({...span});
  }
