@@ -617,6 +617,7 @@ function resetGameForTest(){
  }
  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
  npcManager.actualLimit=65;slowRenderWindows=0;testWarning=defaultTestWarning;
+ matsudoNpcStressSelected=false;matsudoMapSelected=false;
  if(activeWorld==='matsudo'){
   miniMapVisible=false;gameView?.setMapVisible(false);
  }else setMiniMapVisible(false);
@@ -697,16 +698,27 @@ function setNpcRenderDistance(v){
  const n=Number(v);if(!Number.isFinite(n))return;
  npcManager.maxDrawDistance=Math.max(5,Math.min(150,n));publishGameState();
 }
-function setNpcCount(v){if(activeWorld!=='forest')return;npcManager.setPopulation(v);publishGameState();}
+function setNpcCount(v){
+ if(activeWorld==='matsudo'){
+  matsudoNpcStressSelected=Number(v)===1000;
+  publishGameState();return;
+ }
+ npcManager.setPopulation(v);publishGameState();
+}
 // Semi-transparent game overlay: draw every simulated NPC, including hidden 3D meshes.
 // 5Hz canvas redraw is decoupled from the 3D renderer, with pointer-events disabled.
 let miniMapVisible=false,lastMiniMapFrame=-1000;
+// Matsudo-only test-button selection: no forest NPC/map simulation is activated.
+let matsudoNpcStressSelected=false,matsudoMapSelected=false;
 function paintDebugMap(){
  if(!miniMapVisible||!gameView)return;
  gameView.paintMap(npcManager.agents,game.x,game.z,CAFE_X,CAFE_Z);
 }
 function setMiniMapVisible(value){
- if(activeWorld==='matsudo')return;
+ if(activeWorld==='matsudo'){
+  matsudoMapSelected=Boolean(value);
+  publishGameState();return;
+ }
  miniMapVisible=Boolean(value);
  gameView?.setMapVisible(miniMapVisible);
  if(miniMapVisible)paintDebugMap();publishGameState();
@@ -1098,6 +1110,7 @@ async function setWorld(name){
   flightAltitude=name==='matsudo'?20:0;
   cameraRig.targetY=flightAltitude+1.65;
   npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;npcManager.actualLimit=65;
+  matsudoNpcStressSelected=false;matsudoMapSelected=false;
   slowRenderWindows=0;testWarning=defaultTestWarning;
   miniMapVisible=false;gameView?.setMapVisible(false);setRenderMode('B');
   if(name==='matsudo'){
@@ -1178,9 +1191,9 @@ const gameApi=Object.freeze({
  getState(){
   return {
    ...core.getState(),houseLevel,renderMode,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
-   npcCount:activeWorld==='forest'?npcManager.agents.length:0,npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
+   npcCount:activeWorld==='forest'?npcManager.agents.length:(matsudoNpcStressSelected?1000:0),npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
    npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
-   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
+   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:activeWorld==='matsudo'?matsudoMapSelected:miniMapVisible,
    testWarning,status:Object.fromEntries(runtimeStatusValues)
   };
  },
