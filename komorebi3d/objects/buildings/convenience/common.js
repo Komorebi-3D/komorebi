@@ -2,6 +2,8 @@
 // The brand modules can later provide signs, doors, shelves and interiors.
 import {sevenEleven} from './seven-eleven.js?v=convenience-v1-20261112';
 import {familymart} from './familymart.js?v=convenience-v1-20261112';
+// Distance tolerance in centimetres; edit 100 to adjust the allowed POI offset.
+export const CONVENIENCE_MATCH_TOLERANCE_CM=100;
 const brands=[sevenEleven,familymart];
 const normalized=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/[\s\u2010-\u2015\u2212\uff0d-]/g,'');
 function identifyBrand(tags){
@@ -30,8 +32,21 @@ function insidePolygon(point,poly){
  }
  return inside;
 }
-// One-time POI-to-footprint matching at map load. Never colour a nearby building
-// on distance alone; nested footprints choose the smallest containing polygon.
+// Shortest planar distance from a POI to one footprint edge, in metres.
+function edgeDistance(point,a,b){
+ const dx=b[0]-a[0],dz=b[1]-a[1];
+ const lengthSquared=dx*dx+dz*dz;
+ const t=lengthSquared?Math.max(0,Math.min(1,((point[0]-a[0])*dx+(point[1]-a[1])*dz)/lengthSquared)):0;
+ return Math.hypot(point[0]-a[0]-t*dx,point[1]-a[1]-t*dz);
+}
+function footprintDistance(point,points){
+ let shortest=Infinity;
+ for(let i=0;i<points.length;i++)
+  shortest=Math.min(shortest,edgeDistance(point,points[i],points[(i+1)%points.length]));
+ return shortest;
+}
+// One-time matching. Containing footprints take priority; an outside POI may
+// match only if exactly one building is within the configurable tolerance.
 export function matchConvenienceBuildings(elements,project,halfSize){
  const candidates=[];
  for(const element of elements){
@@ -50,6 +65,7 @@ export function matchConvenienceBuildings(elements,project,halfSize){
   candidates.push({id:element.id,points,area,minX,maxX,minZ,maxZ});
  }
  const matched=new Map(),conflicts=new Set();
+ const toleranceMetres=CONVENIENCE_MATCH_TOLERANCE_CM/100;
  for(const element of elements){
   if(element.type!=='node'||!Number.isFinite(element.lat)||!Number.isFinite(element.lon))continue;
   const brand=identifyBrand(element.tags||{});
@@ -61,6 +77,17 @@ export function matchConvenienceBuildings(elements,project,halfSize){
    if(point[0]<building.minX||point[0]>building.maxX||point[1]<building.minZ||point[1]>building.maxZ)continue;
    if(!insidePolygon(point,building.points))continue;
    if(!best||building.area<best.area)best=building;
+  }
+  if(!best&&toleranceMetres>0){
+   // Do not guess when two or more building outlines are nearby.
+   const nearby=[];
+   for(const building of candidates){
+    if(point[0]<building.minX-toleranceMetres||point[0]>building.maxX+toleranceMetres||
+       point[1]<building.minZ-toleranceMetres||point[1]>building.maxZ+toleranceMetres)continue;
+    if(footprintDistance(point,building.points)<=toleranceMetres)nearby.push(building);
+    if(nearby.length>1)break;
+   }
+   if(nearby.length===1)best=nearby[0];
   }
   if(!best)continue;
   const previous=matched.get(best.id);
