@@ -108,7 +108,9 @@ export function mountTestControlsPanel(root,api){
    stressButton.setAttribute('aria-pressed',String(stress));
    stressButton.classList.toggle('selected',stress);
   }
-  write('npc-stress-info',stress?
+  write('npc-stress-info',s.worldId==='matsudo'?
+   '松戸ではボタンの選択表示のみ切り替わります。ハムスターの計算・描画は行いません。':
+   stress?
    '1,000匹が移動計算中。3D表示は表示距離・同時描画上限スライダーで調整できます。1匹に戻すことも可能。':
    '通常1匹。×1000で1,000匹に増やし、表示距離と同時描画上限を調節できます。');
   const mapButton=find('map-toggle');
