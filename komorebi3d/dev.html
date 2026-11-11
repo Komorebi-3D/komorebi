@@ -605,11 +605,20 @@ publishRuntimeStatus('input-status','🎮 タッチ操作準備OK：左側で移
 function readEngineInput(){return inputManager.poll();}
 function releaseEngineInput(){inputManager.clear();}
 function resetGameForTest(){
- if(activeWorld==='matsudo')return setWorld('matsudo');
+ // Reset controls and actor without reloading the selected world or its renderer.
  core.reset();resetHouse();engineInputAdapter?.resetZoom();
+ if(activeWorld==='matsudo'){
+  flightAltitude=20;
+  cameraRig.state.pitch=0;
+  cameraRig.state.yaw=Math.PI/2;
+  cameraRig.targetY=flightAltitude+1.65;
+ }
  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
  npcManager.actualLimit=65;slowRenderWindows=0;testWarning=defaultTestWarning;
- setMiniMapVisible(false);setRenderMode('B');
+ if(activeWorld==='matsudo'){
+  miniMapVisible=false;gameView?.setMapVisible(false);
+ }else setMiniMapVisible(false);
+ setRenderMode('B');
  publishRuntimeStatus('collision-status','衝突判定：待機中');publishGameState();
 }
 // The game owns house/stair logic; Engine owns orbit yaw, pitch, distance and pose.
