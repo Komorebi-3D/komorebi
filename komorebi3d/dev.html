@@ -167,7 +167,7 @@ button.slider-step:active{background:#c4dec1}
  .runtime-status{margin-top:12px;padding:12px;background:#eff2ec;border:1px solid #c6d0c3;border-radius:9px;color:#455a49}
  .runtime-status-heading{display:block;font-size:13px;margin:0 0 8px}
  .runtime-status .stats{margin-top:8px}
-}</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div class="landscape-hero"><div class="site-heading" style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><div id="build-info" data-panel-id="build" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜森・松戸統合＋👻おばけヘリ／🏙️屋上HUDラベル v0.1（F5ワールド復元追加・屋上ラベルは調査保留）</strong><span class="build-line">Engine固定：<code>d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🌳 森：従来の歩行・住宅・カフェ・NPC / 100m × 100m</span><span class="build-line">🏙️ 松戸：OSM建物・道路・鉄道 / 屋上HUDラベル v0.1（背景75%・200m以内・主人公から近い順20件・細線＋点） / 500m × 500m / NPCなし</span><span class="build-line">👻 おばけヘリ：半透明55%・固定ローター・20m開始・0〜500m・約5倍速 / 左で移動・右で視点・上向き前進で上昇・停止でホバリング / 🔄 F5更新で直前の森・松戸を復元（位置・高度は初期化）</span><span class="build-line">🛠️ 共通Engine固定・共通カメラ角度緩和 / おばけヘリは端末実機確認待ち</span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><div class="landscape-game" data-panel-id="game"><div class="play-surface" id="play-surface"><div class="debug-map" id="debug-map" hidden aria-hidden="true"><div class="debug-map-title">🗺️ 100m × 100m / 全NPC位置</div><canvas id="debug-map-canvas" width="256" height="256" role="img" aria-label="主人公が赤い点、全ハムスターが黄色い点のデバッグマップ"></canvas><div class="debug-map-legend"><span>🔴 主人公</span><span>🟡 ハム全員（3D非表示も）</span></div></div><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div><button type="button" id="game-help-button" class="panel-help-button game-help-button" aria-label="このエリアの名前：ゲーム画面" aria-describedby="game-help-overlay"><span>ⓘ</span></button><div id="game-help-overlay" class="panel-help-overlay game-help-overlay" role="tooltip" hidden><div class="panel-help-label game-help-label">🎮 ゲーム画面</div></div></div></div><div class="panel-slot panel-slot-main" data-panel-slot="right"><section id="test-ops-panel" data-panel-id="test" class="test-panel" role="region" aria-label="テスト操作パネル">
+}</style></head><body><div class="shell"><div id="launch-diagnostic" style="padding:10px;margin:8px 0;background:#fff3c8;border-radius:8px;font-size:13px">診断：JavaScript未実行。iPhoneのファイルプレビューでは動かない場合があります。SafariでHTTPS配信されたページを開いてください。</div><div class="landscape-hero"><div class="site-heading" style="display:flex;justify-content:space-between"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><div id="build-info" data-panel-id="build" class="build-info" role="region" aria-label="開発情報パネル" aria-live="polite"><strong>🧪 開発情報｜Komorebi 3D</strong><span class="build-line">Engine固定：<code id="dev-engine">d4a392a</code></span><span id="github-commit" class="build-line">GitHub main最新：確認中…</span><span id="github-commit-time" class="build-line">最終コミット：確認中…</span><span class="build-line">🌳 森：<span id="dev-forest-new" hidden>🆕</span><span id="dev-forest">更新履歴なし</span></span><span class="build-line">🏙️ 松戸：<span id="dev-matsudo-new" hidden>🆕</span><span id="dev-matsudo">更新履歴なし</span></span><span class="build-line">⚙️ 共通：<span id="dev-common-new" hidden>🆕</span><span id="dev-common">更新履歴なし</span></span><button id="build-help-button" class="panel-help-button build-help-button" type="button" aria-label="このエリアの名前：開発情報パネル" aria-describedby="build-help-overlay"><span>ⓘ</span></button><div id="build-help-overlay" class="panel-help-overlay build-help-overlay" role="tooltip" hidden><div class="panel-help-label build-help-label">🧪 開発情報パネル</div></div></div></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><div class="landscape-game" data-panel-id="game"><div class="play-surface" id="play-surface"><div class="debug-map" id="debug-map" hidden aria-hidden="true"><div class="debug-map-title">🗺️ 100m × 100m / 全NPC位置</div><canvas id="debug-map-canvas" width="256" height="256" role="img" aria-label="主人公が赤い点、全ハムスターが黄色い点のデバッグマップ"></canvas><div class="debug-map-legend"><span>🔴 主人公</span><span>🟡 ハム全員（3D非表示も）</span></div></div><div class="views single" id="views"><div class="view-panel off" id="panel-a"><canvas id="a"></canvas></div><div class="view-panel" id="panel-b"><canvas id="b"></canvas></div></div><div class="touch-layer"><div class="touch-zone" id="pad" aria-label="左半分：キャラクター移動"></div><div class="touch-zone" id="camera-pad" aria-label="右半分：カメラ操作"></div></div></div><button type="button" id="game-help-button" class="panel-help-button game-help-button" aria-label="このエリアの名前：ゲーム画面" aria-describedby="game-help-overlay"><span>ⓘ</span></button><div id="game-help-overlay" class="panel-help-overlay game-help-overlay" role="tooltip" hidden><div class="panel-help-label game-help-label">🎮 ゲーム画面</div></div></div></div><div class="panel-slot panel-slot-main" data-panel-slot="right"><section id="test-ops-panel" data-panel-id="test" class="test-panel" role="region" aria-label="テスト操作パネル">
 <div class="test-panel-header">
 <strong class="test-panel-heading">🧪 テスト操作（開発用）</strong>
 <button type="button" class="panel-help-button test-help-button" id="test-help-button" aria-label="このエリアの名前：テスト操作パネル" aria-describedby="test-help-overlay"><span>ⓘ</span></button>
@@ -224,31 +224,65 @@ function applyPanelLayout(layout){
 }
 applyPanelLayout(PANEL_LAYOUT);
 
-(function () {
+(async function () {
   const hash = document.getElementById('github-commit');
   const time = document.getElementById('github-commit-time');
   if (!hash || !time) return;
-  const url = 'https://api.github.com/repos/shuma-fujita1012/komorebi/commits/main';
+  const categories = ['forest', 'matsudo', 'common'];
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
-  fetch(url, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store', signal: controller.signal })
-    .then(response => { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
-    .then(commit => {
-      const sha = typeof commit.sha === 'string' ? commit.sha.slice(0, 7) : null;
-      const iso = commit.commit && (commit.commit.committer?.date || commit.commit.author?.date);
-      if (!sha || !iso || Number.isNaN(new Date(iso).getTime())) throw new Error('コミット情報なし');
-      const jst = new Intl.DateTimeFormat('ja-JP', {
-        timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit',
-        day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
-      }).format(new Date(iso));
-      hash.textContent = 'GitHub main最新：' + sha;
-      time.textContent = '最終コミット：' + jst + ' JST';
-    })
-    .catch(() => {
-      hash.textContent = 'GitHub main最新：取得できません';
-      time.textContent = '最終コミット：取得できません';
-    })
-    .finally(() => clearTimeout(timeout));
+  // Saved descriptions and live commit metadata are independent fetches.
+  // A GitHub API failure must not erase the saved descriptions.
+  const infoRequest = fetch('./development-info.json', {cache:'no-store'})
+    .then(response => { if (!response.ok) throw new Error('development-info HTTP '+response.status); return response.json(); });
+  const commitRequest = fetch('https://api.github.com/repos/shuma-fujita1012/komorebi/commits/main', {
+    headers:{Accept:'application/vnd.github+json'},cache:'no-store',signal:controller.signal
+  }).then(response => { if (!response.ok) throw new Error('GitHub HTTP '+response.status); return response.json(); });
+  const [infoResult, commitResult] = await Promise.allSettled([infoRequest, commitRequest]);
+  clearTimeout(timeout);
+  const info = infoResult.status === 'fulfilled' ? infoResult.value : null;
+  for (const category of categories) {
+    const target = document.getElementById('dev-'+category);
+    const value = info && info[category];
+    if (target && typeof value === 'string' && value.trim()) target.textContent = value.trim();
+  }
+  const engine = document.getElementById('dev-engine');
+  if (engine && info && typeof info.engine === 'string' && /^[a-f0-9]{7,40}$/i.test(info.engine))
+    engine.textContent = info.engine;
+  if (commitResult.status !== 'fulfilled') {
+    hash.textContent = 'GitHub main最新：取得できません';
+    time.textContent = '最終コミット：取得できません';
+    return;
+  }
+  try {
+    const commit = commitResult.value;
+    const sha = typeof commit.sha === 'string' ? commit.sha.slice(0,7) : null;
+    const iso = commit.commit && (commit.commit.committer?.date || commit.commit.author?.date);
+    if (!sha || !iso || Number.isNaN(new Date(iso).getTime())) throw new Error('コミット情報なし');
+    const jst = new Intl.DateTimeFormat('ja-JP', {
+      timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',
+      day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false
+    }).format(new Date(iso));
+    hash.textContent = 'GitHub main最新：' + sha;
+    time.textContent = '最終コミット：' + jst + ' JST';
+    // Only the newest commit determines which headings receive 🆕.
+    // Check the subject and body, allowing multiple category lines in one commit.
+    const message = String(commit.commit?.message || '');
+    const changed = new Set();
+    for (const line of message.split(/\r?\n/)) {
+      const match = /^\s*(forest|matsudo|common):\s*\S/i.exec(line);
+      if (match) changed.add(match[1].toLowerCase());
+    }
+    for (const category of categories) {
+      const badge = document.getElementById('dev-'+category+'-new');
+      const description = document.getElementById('dev-'+category);
+      if (badge) badge.hidden = !(info && changed.has(category) && description &&
+        description.textContent.trim() !== '更新履歴なし');
+    }
+  } catch (_) {
+    hash.textContent = 'GitHub main最新：取得できません';
+    time.textContent = '最終コミット：取得できません';
+  }
 })();
 
 // Live panel help/gestures are initialized after the Game API mounts.
