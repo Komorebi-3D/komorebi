@@ -1079,12 +1079,12 @@ async function setWorld(name){
  if(warpInProgress)return false;
  warpInProgress=true;
  try{
+  // Invalidate outstanding map loads as soon as a world switch begins.
+  const generation=++worldGeneration;
   // Reinitialize the common renderer to release the previous world's GPU meshes.
   await Promise.allSettled([loadingA,loadingB].filter(Boolean));
   rendererA?.dispose?.();rendererB?.dispose?.();
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
-  // Invalidate any outstanding Matsudo map load before changing the active world.
-  const generation=++worldGeneration;
   matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];
   groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
   collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
