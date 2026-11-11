@@ -39,11 +39,6 @@ for(const id of panelIds){
  const marker='<!-- @panel:'+id+' -->';
  if(!html.includes(marker))throw Error('Missing panel '+id);
  let panelHtml=read('panels/'+variant(id)+'.html').trimEnd();
- if(mock&&id==='runtime'){
-  const endHeading='</h2>';
-  if(!panelHtml.includes(endHeading))throw Error('Missing runtime heading');
-  panelHtml=panelHtml.replace(endHeading,endHeading+'<p class="mock-runtime-notice">🧪 モック表示：下記のステータスは実際のEngineとは連動していません。</p>');
- }
  html=html.replace(marker,panelHtml);
 }
 if(html.includes('<!-- @panel:')||html.includes('/* @component-styles */'))throw Error('Unresolved placeholder');
