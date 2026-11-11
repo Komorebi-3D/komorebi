@@ -1,4 +1,4 @@
-// Project roof labels from the shared camera into the actual A/B viewport rectangles.
+// Project building and ground-level POI labels using shared A/B viewport camera information.
 // Uses a plain-text ignore file; no special handling of newly discovered OSM tag keys.
 export function parseOsmTagIgnore(source){
  return String(source).split(/\r?\n/).map(line=>line.trim())
@@ -22,8 +22,10 @@ export function createMapLabels(host,ignoreRules=[]){
  function setLabels(labels){
   layer.replaceChildren();
   entries=labels.map(label=>({...label,visibleTags:visibleOsmTags(label.tags,ignoreRules)}));
-  for(const viewport of viewports){
-   viewport.items=entries.map(item=>{
+  for(const viewport of viewports)viewport.items=entries.map(()=>null);
+ }
+ // Instantiate HTML only when a feature enters the screen, not for every OSM POI.
+ function createItem(item){
     const el=document.createElement('div');
     el.style.cssText='position:absolute;display:none;pointer-events:none;transform:translate(-50%,-100%);flex-direction:column;align-items:center;white-space:normal;';
     const card=document.createElement('div');
@@ -53,10 +55,8 @@ export function createMapLabels(host,ignoreRules=[]){
     el.style.display='none';
     el.style.visibility='';
     return {...item,el,width,height};
-   });
-  }
  }
- function update(camera,player){
+  function update(camera,player){
   const empty={total:entries.length,inRange:0,inView:0,shown:0};
   if(!camera||!layer.isConnected)return empty;
   const [ex,ey,ez]=camera.eye,[tx,ty,tz]=camera.target;
@@ -79,7 +79,7 @@ export function createMapLabels(host,ignoreRules=[]){
   let inView=0,shown=0;
   const hostRect=host.getBoundingClientRect();
   for(const viewport of viewports){
-   for(const item of viewport.items)item.el.style.display='none';
+   for(const item of viewport.items)if(item)item.el.style.display='none';
    const rect=viewport.canvas.getBoundingClientRect();
    if(rect.width<1||rect.height<1)continue;
    const scale=rect.height/(2*tanHalf),occupied=[];
@@ -91,7 +91,9 @@ export function createMapLabels(host,ignoreRules=[]){
     if(depth<=.2)continue;
     const x=rect.width/2+(vx*rx+vz*rz)*scale/depth;
     const y=rect.height/2-(vx*ux+vy*uy+vz*uz)*scale/depth;
-    const measured=viewport.items[i],wd=measured.width,top=y-measured.height;
+    if(x<0||x>rect.width||y<0||y>rect.height)continue;
+    const measured=viewport.items[i]||(viewport.items[i]=createItem(item));
+    const wd=measured.width,top=y-measured.height;
     if(x>=0&&x<=rect.width&&y>=0&&y<=rect.height)inView++;
     if(x<wd/2+4||x>rect.width-wd/2-4||top<4||y>rect.height-4||
       occupied.some(p=>x-wd/2<p.right+8&&x+wd/2>p.left-8&&top<p.bottom+8&&y>p.top-8))continue;
