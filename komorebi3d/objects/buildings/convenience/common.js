@@ -120,7 +120,7 @@ function validPositiveNumber(value){
  return Number.isFinite(n)&&n>0?n:null;
 }
 // Return sorted wall spans. Null brand means the ordinary building facade.
-// A missing or contradictory height/level falls back to whole-wall brand colours.
+// Missing both height and floor count, or contradictory metadata, paints the whole wall.
 export function resolveConveniencePaint(stores,tags,height){
  if(!stores?.length)return [];
  const whole=brand=>[{bottom:0,top:height,brand}];
@@ -129,7 +129,8 @@ export function resolveConveniencePaint(stores,tags,height){
  const explicitHeight=validPositiveNumber(tags.height);
  const declaredLevels=tags['building:levels'];
  const levelCount=declaredLevels===undefined?null:validPositiveNumber(declaredLevels);
- if(explicitHeight===null||declaredLevels!==undefined&&(levelCount===null||!Number.isInteger(levelCount)))return whole(first);
+ if((explicitHeight===null&&levelCount===null)||
+    (declaredLevels!==undefined&&(levelCount===null||!Number.isInteger(levelCount))))return whole(first);
  const floorHeight=levelCount===null?3:height/levelCount;
  if(!Number.isFinite(floorHeight)||floorHeight<=0)return whole(first);
  const spans=[];
