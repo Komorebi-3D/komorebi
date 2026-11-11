@@ -106,6 +106,7 @@ export function mountTestControlsPanel(root,api){
   if(stressButton){
    stressButton.textContent=stress?'🐹 1匹に戻す':'🐹 ハムスター ×1000';
    stressButton.setAttribute('aria-pressed',String(stress));
+   stressButton.classList.toggle('selected',stress);
   }
   write('npc-stress-info',stress?
    '1,000匹が移動計算中。3D表示は表示距離・同時描画上限スライダーで調整できます。1匹に戻すことも可能。':
@@ -114,6 +115,7 @@ export function mountTestControlsPanel(root,api){
   if(mapButton){
    mapButton.textContent=s.mapVisible?'🗺️ マップを閉じる':'🗺️ マップ表示';
    mapButton.setAttribute('aria-pressed',String(s.mapVisible));
+   mapButton.classList.toggle('selected',Boolean(s.mapVisible));
   }
   for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']]){
    const button=find(id);if(!button)continue;
@@ -121,7 +123,11 @@ export function mountTestControlsPanel(root,api){
    button.classList.toggle('selected',selected);
    button.setAttribute('aria-pressed',String(selected));
   }
-  for(const button of root.querySelectorAll('[data-world]'))button.setAttribute('aria-pressed',String((s.worldId||'forest')===button.dataset.world));
+  for(const button of root.querySelectorAll('[data-world]')){
+   const selected=(s.worldId||'forest')===button.dataset.world;
+   button.setAttribute('aria-pressed',String(selected));
+   button.classList.toggle('selected',selected);
+  }
   write('mode-status',s.renderMode==='A'?'描画モード：Engine A（WebGL）':s.renderMode==='B'?'描画モード：Engine B（Three.js）':'描画モード：Engine A/B比較・共通Snapshot');
   write('npc-render-warning',s.testWarning);
  };
