@@ -387,10 +387,8 @@ function resetGameForTest(){
  }
  npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;
  npcManager.actualLimit=65;slowRenderWindows=0;testWarning=defaultTestWarning;
- matsudoNpcStressSelected=false;matsudoMapSelected=false;
- if(activeWorld==='matsudo'){
-  miniMapVisible=false;gameView?.setMapVisible(false);
- }else setMiniMapVisible(false);
+ matsudoNpcStressSelected=false;
+ setMiniMapVisible(false);
  setRenderMode('B');
  publishRuntimeStatus('collision-status','衝突判定：待機中');publishGameState();
 }
@@ -478,17 +476,15 @@ function setNpcCount(v){
 // Semi-transparent game overlay: draw every simulated NPC, including hidden 3D meshes.
 // 5Hz canvas redraw is decoupled from the 3D renderer, with pointer-events disabled.
 let miniMapVisible=false,lastMiniMapFrame=-1000;
-// Matsudo-only test-button selection: no forest NPC/map simulation is activated.
-let matsudoNpcStressSelected=false,matsudoMapSelected=false;
+// Matsudo hamster stress remains a button-only test state; the map works in both worlds.
+let matsudoNpcStressSelected=false,matsudoMapFeatures=null;
 function paintDebugMap(){
  if(!miniMapVisible||!gameView)return;
- gameView.paintMap(npcManager.agents,game.x,game.z,CAFE_X,CAFE_Z);
+ gameView.paintMap({worldId:activeWorld,playerX:game.x,playerZ:game.z,
+  agents:activeWorld==='forest'?npcManager.agents:[],cafeX:CAFE_X,cafeZ:CAFE_Z,
+  features:activeWorld==='matsudo'?matsudoMapFeatures:null});
 }
 function setMiniMapVisible(value){
- if(activeWorld==='matsudo'){
-  matsudoMapSelected=Boolean(value);
-  publishGameState();return;
- }
  miniMapVisible=Boolean(value);
  gameView?.setMapVisible(miniMapVisible);
  if(miniMapVisible)paintDebugMap();publishGameState();
@@ -627,7 +623,8 @@ async function loadMatsudoMapInBackground(generation){
   if(generation!==worldGeneration||activeWorld!=='matsudo')return;
   const geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
   if(generation!==worldGeneration||activeWorld!=='matsudo')return;
-  matsudoMeshes=geometry;
+  matsudoMeshes=geometry;matsudoMapFeatures=next.mapFeatures;
+  if(miniMapVisible)paintDebugMap();
   if(gameView?.surface){matsudoLabels=createMatsudoLabels(gameView.surface);matsudoLabels.setLabels(next.labels);}
   publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
   publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
@@ -650,7 +647,7 @@ async function setWorld(name){
   await Promise.allSettled([loadingA,loadingB].filter(Boolean));
   rendererA?.dispose?.();rendererB?.dispose?.();
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
-  matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];
+  matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];matsudoMapFeatures=null;
   groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
   collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
   core=new CharacterMotionCore2D({ground:groundSystem,collision:collisionSystem,
@@ -661,7 +658,7 @@ async function setWorld(name){
   flightAltitude=name==='matsudo'?20:0;
   cameraRig.targetY=flightAltitude+1.65;
   npcManager.setPopulation(1);npcManager.maxDrawn=65;npcManager.maxDrawDistance=70;npcManager.actualLimit=65;
-  matsudoNpcStressSelected=false;matsudoMapSelected=false;
+  matsudoNpcStressSelected=false;
   slowRenderWindows=0;testWarning=defaultTestWarning;
   miniMapVisible=false;gameView?.setMapVisible(false);setRenderMode('B');
   if(name==='matsudo'){
@@ -744,7 +741,7 @@ const gameApi=Object.freeze({
    ...core.getState(),houseLevel,renderMode,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
    npcCount:activeWorld==='forest'?npcManager.agents.length:(matsudoNpcStressSelected?1000:0),npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
    npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
-   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:activeWorld==='matsudo'?matsudoMapSelected:miniMapVisible,
+   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
    testWarning,status:Object.fromEntries(runtimeStatusValues)
   };
  },
