@@ -99,7 +99,7 @@ function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1
    if(name&&Number.isFinite(e.lat)&&Number.isFinite(e.lon)){
     const [x,z]=xy(e);
     if(Math.abs(x)<=HALF&&Math.abs(z)<=HALF)
-     poiLabels.push({kind:'poi',name,tags:{...tags},x,z,y:.9});
+     poiLabels.push({kind:'poi',osmType:e.type,osmId:e.id,name,tags:{...tags},x,z,y:.9});
    }
   }
   if(p.length<2)continue;
@@ -117,7 +117,7 @@ function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1
    building(buildings[e.id%palette.length],p,height,palette[e.id%palette.length],resolveConveniencePaint(convenienceBuildings.get(e.id),tags,height),roadSegments,tags);
    mapFeatures.push({type:'building',points:p});
    const name=String(tags['name:ja']||tags.name||'').trim();
-   if(name)labels.push({kind:'building',name,tags:{...tags},x:(minX+maxX)/2,z:(minZ+maxZ)/2,y:height+.9});
+   if(name)labels.push({kind:'building',osmType:e.type,osmId:e.id,name,tags:{...tags},x:(minX+maxX)/2,z:(minZ+maxZ)/2,y:height+.9});
    buildingCount++;
   }
   if(tags.highway&&!['construction','proposed'].includes(tags.highway)){
@@ -138,7 +138,7 @@ function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1
   if(existing){
    existing.name=poi.name;
    existing.x=poi.x;existing.z=poi.z;existing.y=poi.y;
-   existing.kind='poi';
+   existing.kind='poi';existing.osmType=poi.osmType;existing.osmId=poi.osmId;
    existing.tags={...existing.tags,...poi.tags};
   }else labels.push(poi);
  }
