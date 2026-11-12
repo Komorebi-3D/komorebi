@@ -53,7 +53,7 @@ export async function finishOsmTestLogin(){
   const response=await fetch(OSM_TEST_ORIGIN+'/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
   if(!response.ok)throw Error('トークン取得失敗 HTTP '+response.status+': '+(await response.text()).slice(0,180));
   const data=await response.json();
-  if(!data.access_token||!String(data.scope||'').split(' ').includes('write_api'))throw Error('write_api 権限のトークンが取得できませんでした。');
+  if(!data.access_token||(data.scope&&!String(data.scope).split(' ').includes('write_api')))throw Error('write_api 権限のトークンが取得できませんでした。');
   scopedStorageSet(TOKEN_KEY,data.access_token);
  }catch(error){scopedStorageSet(ERROR_KEY,String(error.message||error));}
  finally{scopedStorageRemove(AUTH_KEY);clean();}
