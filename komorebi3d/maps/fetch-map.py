@@ -37,13 +37,13 @@ for round_index in range(2):
                 kind=e.get("type")
                 tags=e.get("tags",{})
                 if kind=="way" and len(e.get("geometry",[]))>=2:
-                    features.append({"type":"way","id":e["id"],"tags":tags,"geometry":e["geometry"]})
+                    features.append({"type":"way","id":e["id"],"version":e.get("version"),"tags":tags,"geometry":e["geometry"]})
                 elif kind=="node" and any(tags.get(key) for key in feature_keys):
-                    features.append({"type":"node","id":e["id"],"tags":tags,
+                    features.append({"type":"node","id":e["id"],"version":e.get("version"),"tags":tags,
                                      "lat":e["lat"],"lon":e["lon"]})
                 elif kind=="relation" and any(tags.get(key) for key in feature_keys):
                     # Preserve relation members for future facility rendering.
-                    features.append({"type":"relation","id":e["id"],"tags":tags,
+                    features.append({"type":"relation","id":e["id"],"version":e.get("version"),"tags":tags,
                                      "members":e.get("members",[])})
             buildings=sum(bool(e["tags"].get("building")) for e in features if e["type"]=="way")
             roads=sum(bool(e["tags"].get("highway")) for e in features if e["type"]=="way")
