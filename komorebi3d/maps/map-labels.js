@@ -70,7 +70,7 @@ export function createMapLabels(host,ignoreRules=[]){
   const copyBtnStyle='padding:9px 10px;margin:4px 4px 4px 0;border-radius:7px;border:1px solid #91aca0;background:#fff;color:#163c30;font:700 12px system-ui;';
   copyAuth.style.cssText=copyBtnStyle;
   copyExecute.style.cssText=copyBtnStyle+'background:#236c56;color:white;';
-  copyExecute.disabled=true;
+  copyExecute.disabled=false;
   const copyLink=document.createElement('a');
   copyLink.href=OSM_TEST_ORIGIN+'/oauth2/applications/new';copyLink.target='_blank';copyLink.rel='noopener noreferrer';
   copyLink.textContent='テスト環境のOAuthアプリ登録';
@@ -82,7 +82,8 @@ export function createMapLabels(host,ignoreRules=[]){
   const refreshCopyButtons=()=>{
    copyButton.disabled=copyBusy;
    copyAuth.textContent=hasOsmTestToken()?'テスト環境へ再ログイン':'テスト環境へログイン';
-   copyExecute.disabled=copyBusy||!copySource||!copyConsent.checked||!hasOsmTestToken()||copyCreated;
+   copyExecute.disabled=copyBusy||copyCreated;
+   copyExecute.style.opacity=copyExecute.disabled?'0.55':'1';
   };
   copyButton.addEventListener('click',async()=>{
    if(copyBusy)return;
@@ -102,14 +103,17 @@ export function createMapLabels(host,ignoreRules=[]){
     },null,2);
     copyStatus.textContent='コピー元を確認してください。コピー先はテスト環境です。新しいIDが発行されます。';
    }catch(e){copyStatus.textContent='コピー準備エラー: '+e.message;}
-   finally{copyBusy=false;refreshCopyButtons();}
+   finally{copyBusy=false;refreshCopyButtons();if(copySource&&!copyCreated&&!hasOsmTestToken())copyStatus.textContent+='\n※ テストサイトにログイン済みでも、KomorebiからのOAuth認証は別途必要です。';}
   });
   copyAuth.addEventListener('click',async()=>{
    try{await startOsmTestLogin(copyClient.value);}catch(e){copyStatus.textContent='認証開始エラー: '+e.message;}
   });
   copyConsent.addEventListener('change',refreshCopyButtons);
   copyExecute.addEventListener('click',async()=>{
-   if(copyBusy||!copySource||!copyConsent.checked||!hasOsmTestToken()||copyCreated)return;
+   if(copyBusy||copyCreated)return;
+   if(!copySource){copyStatus.textContent='まだコピー元を取得できていません。上の「テスト環境へコピー」を開き直して、コピー元データが表示されるか確認してください。';return;}
+   if(!hasOsmTestToken()){copyStatus.textContent='Komorebi側のOAuth認証が未完了です。テストサイトでログインするだけでなく、開発用OAuthアプリを登録し、Client IDを入力して「テスト環境へログイン」を押してください。';return;}
+   if(!copyConsent.checked){copyStatus.textContent='コピー元の内容を確認して、実際にテスト環境へ複製するチェックを入れてください。';return;}
    copyBusy=true;copyStatus.textContent='テストサーバーへコピー作成中…';refreshCopyButtons();
    try{
     const result=await createOsmTestCopy(copySource);
