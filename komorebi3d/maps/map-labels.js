@@ -13,22 +13,6 @@ export async function loadOsmTagIgnore(url='./maps/osm-tags.ignore'){
 export function visibleOsmTags(tags={},rules=[]){
  return Object.entries(tags).filter(([key])=>!rules.some(rule=>rule.exact===key||(rule.prefix!==undefined&&key.startsWith(rule.prefix))));
 }
-// A review-only XML draft. Real OSM uploads require the latest element
-// version, geometry and existing tags, plus an authenticated changeset.
-export function tenantDraftXml(draft){
- const esc=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
- const attr=(name,value)=>' '+name+'="'+esc(value)+'"';
- const type=['node','way','relation'].includes(draft.osm?.type)?draft.osm.type:'unknown';
- return [
-  '<?xml version="1.0" encoding="UTF-8"?>',
-  '<komorebiOsmDraft version="1">',
-  '  <target'+attr('type',type)+attr('id',draft.osm?.id)+' />',
-  '  <tenant'+attr('floor',draft.floor)+attr('name',draft.tenant)+attr('status',draft.status)+' />',
-  '  <notes>'+esc(draft.notes)+'</notes>',
-  '  <savedAt>'+esc(draft.savedAt)+'</savedAt>',
-  '</komorebiOsmDraft>'
- ].join('\n');
-}
 export function createMapLabels(host,ignoreRules=[]){
  const layer=document.createElement('div');
  layer.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3';
