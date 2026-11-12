@@ -1,4 +1,4 @@
-import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall} from '../objects/buildings/convenience/common.js?v=familymart-facade-v1-20261112';
+import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall} from '../objects/buildings/convenience/common.js?v=convenience-store-facade-v1-20261112';
 // Convert verified OSM map data into renderer-independent meshes and roof labels.
 // Defaults preserve the original Matsudo 500m test snapshot.
 export function buildMap(map,{latitude=35.78444,longitude=139.90061,halfSize=250}={}){
