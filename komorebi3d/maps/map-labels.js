@@ -20,21 +20,13 @@ export function createMapLabels(host,ignoreRules=[]){
  const viewports=[...host.querySelectorAll('.view-panel canvas')].map(canvas=>({canvas,items:[]}));
  let entries=[];
 
- // JSON-first local drafting. Never writes to OpenStreetMap.
+ // JSON editing and confirmation only; no persistence or OSM upload.
  let editor=null;
- const storageKey=item=>'komorebi:osm-draft:'+item.osmType+':'+item.osmId;
- function readDraft(item){
-  try{
-   const draft=JSON.parse(localStorage.getItem(storageKey(item))||'null');
-   return draft&&draft.schema==='komorebi.osm-tags-draft.v1'&&draft.tags&&typeof draft.tags==='object'?draft:null;
-  }catch(_){return null;}
- }
  function openEditor(item){
   if(!item.osmType||!item.osmId)return;
   editor?.remove();
   const baseTags={...(item.originalTags||item.tags||{})};
-  const stored=readDraft(item);
-  const initial={...(stored?.tags||item.tags||{})};
+  const initial={...baseTags};
   const mask=document.createElement('div');
   mask.style.cssText='position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(8,18,25,.72);pointer-events:auto;';
   const form=document.createElement('form');
@@ -43,7 +35,7 @@ export function createMapLabels(host,ignoreRules=[]){
   title.textContent=item.name+'｜OSMタグの編集';
   title.style.cssText='font-size:17px;line-height:1.4;margin:0 0 7px;';
   const note=document.createElement('p');
-  note.textContent='既存のJSONタグを編集します。保存先はこの端末のみ。OSMには送信されません。';
+  note.textContent='既存のJSONタグを編集し、変更内容を確認できます。保存・OSMへの送信は行いません。';
   note.style.cssText='color:#4e655b;font-size:12px;margin:0 0 8px;';
   const metadata=document.createElement('p');
   metadata.textContent='OSM '+item.osmType+'/'+item.osmId+' ／ version: '+(item.osmVersion??'未取得');
@@ -76,7 +68,7 @@ export function createMapLabels(host,ignoreRules=[]){
   review.append(previewTitle,json);
   const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px;';
   const makeButton=(label,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='flex:1;padding:11px 5px;border:1px solid #91aca0;border-radius:8px;background:'+(primary?'#236c56':'#fff')+';color:'+(primary?'white':'#163c30')+';font:700 14px system-ui;';return b;};
-  const close=makeButton('閉じる'),confirm=makeButton('内容を確認',true),back=makeButton('編集に戻る'),save=makeButton('下書きを保存',true);
+  const close=makeButton('閉じる'),confirm=makeButton('確認',true),back=makeButton('編集に戻る');
   const dismiss=()=>{mask.remove();editor=null;};
   close.addEventListener('click',dismiss);
   function collect(){
@@ -92,7 +84,7 @@ export function createMapLabels(host,ignoreRules=[]){
    for(const key of new Set([...Object.keys(baseTags),...Object.keys(tags)])){
     if(baseTags[key]!==tags[key])changed[key]=Object.prototype.hasOwnProperty.call(tags,key)?tags[key]:null;
    }
-   return {schema:'komorebi.osm-tags-draft.v1',osm:{type:item.osmType,id:String(item.osmId),version:item.osmVersion??null},baseTags,tags,changes:changed,savedAt:new Date().toISOString()};
+   return {osm:{type:item.osmType,id:String(item.osmId),version:item.osmVersion??null},tags,changes:changed};
   }
   let pending=null;
   confirm.addEventListener('click',()=>{
@@ -100,18 +92,10 @@ export function createMapLabels(host,ignoreRules=[]){
     pending=collect();error.textContent='';
     json.textContent=JSON.stringify({osm:pending.osm,changes:pending.changes,tags:pending.tags},null,2);
     rows.hidden=true;add.hidden=true;tagsHeader.hidden=true;review.hidden=false;
-    controls.replaceChildren(back,save);
+    controls.replaceChildren(back,close);
    }catch(e){error.textContent=e.message;}
   });
   back.addEventListener('click',()=>{pending=null;rows.hidden=false;add.hidden=false;tagsHeader.hidden=false;review.hidden=true;controls.replaceChildren(close,confirm);});
-  save.addEventListener('click',()=>{
-   if(!pending)return;
-   try{
-    localStorage.setItem(storageKey(item),JSON.stringify(pending));
-    dismiss();
-    setLabels(entries.map(e=>({...e,tags:e.originalTags||e.tags,name:e.originalName||e.name})));
-   }catch(_){error.textContent='保存できませんでした。ブラウザの保存設定を確認してください。';}
-  });
   form.addEventListener('submit',event=>event.preventDefault());
   mask.addEventListener('pointerdown',event=>event.stopPropagation());
   mask.addEventListener('click',event=>{event.stopPropagation();if(event.target===mask)dismiss();});
@@ -121,13 +105,7 @@ export function createMapLabels(host,ignoreRules=[]){
  }
  function setLabels(labels){
   layer.replaceChildren();
-  entries=labels.map(label=>{
-   const originalTags={...(label.originalTags||label.tags||{})};
-   const draft=readDraft(label);
-   const tags=draft?{...draft.tags}:{...originalTags};
-   const name=String(tags['name:ja']||tags.name||label.originalName||label.name);
-   return {...label,name,originalName:label.originalName||label.name,originalTags,tags,draft:!!draft,visibleTags:visibleOsmTags(tags,ignoreRules)};
-  });
+  entries=labels.map(label=>({...label,visibleTags:visibleOsmTags(label.tags,ignoreRules)}));
   for(const viewport of viewports)viewport.items=entries.map(()=>null);
  }
  // Instantiate HTML only when a feature enters the screen, not for every OSM POI.
@@ -147,7 +125,7 @@ export function createMapLabels(host,ignoreRules=[]){
     if(!item.visibleTags.length)header.style.display='none';
     const title=document.createElement('div');
     title.style.cssText='max-width:186px;overflow:hidden;text-overflow:ellipsis;color:#fff;font:600 13px/1.4 system-ui,-apple-system,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,.28);';
-    title.textContent=item.name+(item.draft?' 📝':'');
+    title.textContent=item.name;
     card.append(header,title);
     const stem=document.createElement('div');
     stem.style.cssText='width:1px;height:22px;background:#7bead8;box-shadow:0 0 4px rgba(123,234,216,.35);';
