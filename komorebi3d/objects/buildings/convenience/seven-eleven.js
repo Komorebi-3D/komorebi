@@ -20,7 +20,16 @@ const logoQuads=[
 export const sevenEleven={
  id:'seven-eleven',
  names:['セブン-イレブン','7-eleven','seven-eleven'],
- sign:{background:0xf6f8fb,upper:orange,lower:red,textColor:green,label:'ELEVEN',glyphs,logo:{quads:logoQuads}},
+ sign:{
+  background:0xf6f8fb,
+  // Normal sign modules: orange / white gap / wide green / white gap / red.
+  bands:[
+   {from:.77,to:.92,color:orange},
+   {from:.36,to:.66,color:green},
+   {from:.09,to:.21,color:red}
+  ],
+  textColor:green,label:'ELEVEN',glyphs,logo:{quads:logoQuads}
+ },
  stripes:[
   {height:0.36,color:0xffffff},
   {height:0.22,color:0x008f45},
