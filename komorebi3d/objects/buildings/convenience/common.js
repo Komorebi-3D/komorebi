@@ -146,8 +146,8 @@ export function paintConvenienceGlazing(rect,{length,bottom=0,top,side='front',b
   rect(end-frame,end,glassBottom,top,frameColor,.018);
   rect(length/2-frame/2,length/2+frame/2,glassBottom,top,frameColor,.019);
   const handleY=bottom+(top-bottom)*.46,handleH=Math.min(.32,(top-bottom)*.16);
-  rect(length/2-.12,length/2-.095,handleY,handleY+handleH,0xdfe9ec,.025);
-  rect(length/2+.095,length/2+.12,handleY,handleY+handleH,0xdfe9ec,.025);
+  rect(length/2-.12,length/2-.095,handleY,handleY+handleH,0x304957,.025);
+  rect(length/2+.095,length/2+.12,handleY,handleY+handleH,0x304957,.025);
  }
  return true;
 }
