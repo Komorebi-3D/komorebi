@@ -85,7 +85,7 @@ function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1
    let height=Number.parseFloat(tags.height);
    if(!Number.isFinite(height)||height<2||height>180){
     const levels=Number.parseFloat(tags['building:levels']);
-    height=Number.isFinite(levels)&&levels>0?Math.min(60,levels*3):9;
+    height=Number.isFinite(levels)&&levels>0?Math.min(60,levels*3):4;
    }
    building(buildings[e.id%palette.length],p,height,palette[e.id%palette.length],resolveConveniencePaint(convenienceBuildings.get(e.id),tags,height));
    mapFeatures.push({type:'building',points:p});
