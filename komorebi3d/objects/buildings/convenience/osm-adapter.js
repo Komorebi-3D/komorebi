@@ -1,5 +1,5 @@
 // OSM adapter: brand matching, OSM floor metadata and legacy storefront walls.
-import {convenienceRoofColor} from './common.js?v=convenience-common-v2-20261112';
+import {convenienceRoofColor,paintConvenienceGlazing} from './common.js?v=convenience-common-windows-v3-20261112';
 import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
@@ -161,7 +161,6 @@ export function resolveConveniencePaint(stores,tags,height){
  return unique;
 }
 
-const STORE_GLASS=0x415c6a,STORE_FRAME=0x273b47;
 function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
  const sign=brand.sign;
  if(!sign)return false;
@@ -175,7 +174,7 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
   if(x1<=x0||y1<=y0)return;
   quad(mesh,xy(x0,y0,offset),xy(x1,y0,offset),xy(x1,y1,offset),xy(x0,y1,offset),tint);
  };
- const frame=Math.min(.065,unit*.055),glassBottom=bottom+.06;
+ const frame=Math.min(.065,unit*.055);
  for(let k=0;k<panels;k++){
   const x0=k*unit,x1=(k+1)*unit;
   // Repeat the same sign/window module on each regular bay.
@@ -188,12 +187,8 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
    rect(x0,x1,top-(top-signBottom)*.20,top,sign.upper,.006);
    rect(x0,x1,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.006);
   }
-  if(side==='back')rect(x0,x1,bottom,signBottom,0xc4c9c7);
-  else rect(x0,x1,bottom,signBottom,STORE_GLASS);
-  // Align the sign panel seam exactly with the window mullion.
+  // Align the sign panel seam exactly with the shared window grid.
   if(k>0&&k!==center)rect(x0-frame/2,x0+frame/2,signBottom,top,0xc3c9cb,.008);
-  if(k>0&&!(side==='front'&&k===center))
-   rect(x0-frame/2,x0+frame/2,glassBottom,signBottom,STORE_FRAME,.008);
  }
  // One exception spans exactly two regular modules: sign+door at the front,
  // sign only on side/back. Logo panel has no central seam.
@@ -203,16 +198,8 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
   rect(logoStart,logoEnd,top-(top-signBottom)*.20,top,sign.upper,.018);
   rect(logoStart,logoEnd,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.018);
  }
- if(side==='front'){
-  rect(logoStart,logoEnd,glassBottom,signBottom,0x668995,.011);
-  rect(logoStart,logoStart+frame,glassBottom,signBottom,STORE_FRAME,.018);
-  rect(logoEnd-frame,logoEnd,glassBottom,signBottom,STORE_FRAME,.018);
-  // The two-door division stays; the two-module window mullion is removed.
-  rect(length/2-frame/2,length/2+frame/2,glassBottom,signBottom,STORE_FRAME,.019);
-  const handleY=bottom+(signBottom-bottom)*.46,handleH=Math.min(.32,(signBottom-bottom)*.16);
-  rect(length/2-.12,length/2-.095,handleY,handleY+handleH,0xdfe9ec,.025);
-  rect(length/2+.095,length/2+.12,handleY,handleY+handleH,0xdfe9ec,.025);
- }
+ // Same window and double-door primitive as Forest; OSM retains its opaque back wall.
+ paintConvenienceGlazing(rect,{length,panels,bottom,top:signBottom,side,backWall:true});
  // Pixel-built word mark, centered within the merged two-module sign.
  const label=sign.label||'',pixels=[];
  for(const ch of label){const glyph=sign.glyphs?.[ch];if(glyph)pixels.push(glyph);}
