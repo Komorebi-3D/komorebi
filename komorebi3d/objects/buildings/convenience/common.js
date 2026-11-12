@@ -1,7 +1,7 @@
 // Generic, renderer-independent convenience-store appearance.
 // The brand modules can later provide signs, doors, shelves and interiors.
 import {sevenEleven} from './seven-eleven.js?v=convenience-v1-20261112';
-import {familymart} from './familymart.js?v=convenience-v1-20261112';
+import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
 import {ministop} from './ministop.js?v=convenience-v4-20261112';
 import {lawson} from './lawson.js?v=convenience-v4-20261112';
@@ -161,17 +161,10 @@ export function resolveConveniencePaint(stores,tags,height){
  return unique;
 }
 
-const FAMILY_GLASS=0x415c6a,FAMILY_FRAME=0x273b47,FAMILY_WHITE=0xf5f7f5;
-const FAMILY_GREEN=0x00a76f,FAMILY_BLUE=0x1687bf;
-// Compact 3x5 glyphs; no textures, external fonts or renderer-specific dependencies.
-const FAMILY_GLYPHS={
- F:['111','100','110','100','100'],a:['000','011','101','111','101'],
- m:['000','110','111','101','101'],i:['010','000','010','010','010'],
- l:['100','100','100','100','011'],y:['000','101','111','001','110'],
- M:['101','111','111','101','101'],r:['000','110','101','100','100'],
- t:['010','111','010','010','011']
-};
-function familymartFacade(quad,mesh,a,b,bottom,top,side,outward){
+const STORE_GLASS=0x415c6a,STORE_FRAME=0x273b47;
+function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
+ const sign=brand.sign;
+ if(!sign)return false;
  const dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz);
  if(length<.1||top-bottom<.2)return false;
  const panels=Math.max(2,Math.min(40,Math.round(length/1.55/2)*2));
@@ -186,42 +179,42 @@ function familymartFacade(quad,mesh,a,b,bottom,top,side,outward){
  for(let k=0;k<panels;k++){
   const x0=k*unit,x1=(k+1)*unit;
   // Repeat the same sign/window module on each regular bay.
-  rect(x0,x1,signBottom,top,FAMILY_WHITE);
-  rect(x0,x1,top-(top-signBottom)*.20,top,FAMILY_GREEN,.006);
-  rect(x0,x1,signBottom,signBottom+(top-signBottom)*.11,FAMILY_BLUE,.006);
+  rect(x0,x1,signBottom,top,sign.background);
+  rect(x0,x1,top-(top-signBottom)*.20,top,sign.upper,.006);
+  rect(x0,x1,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.006);
   if(side==='back')rect(x0,x1,bottom,signBottom,0xc4c9c7);
-  else rect(x0,x1,bottom,signBottom,FAMILY_GLASS);
+  else rect(x0,x1,bottom,signBottom,STORE_GLASS);
   // Align the sign panel seam exactly with the window mullion.
   if(k>0&&k!==center)rect(x0-frame/2,x0+frame/2,signBottom,top,0xc3c9cb,.008);
   if(k>0&&!(side==='front'&&k===center))
-   rect(x0-frame/2,x0+frame/2,glassBottom,signBottom,FAMILY_FRAME,.008);
+   rect(x0-frame/2,x0+frame/2,glassBottom,signBottom,STORE_FRAME,.008);
  }
  // One exception spans exactly two regular modules: sign+door at the front,
  // sign only on side/back. Logo panel has no central seam.
  const logoStart=(center-1)*unit,logoEnd=(center+1)*unit;
- rect(logoStart,logoEnd,signBottom,top,FAMILY_WHITE,.012);
- rect(logoStart,logoEnd,top-(top-signBottom)*.20,top,FAMILY_GREEN,.018);
- rect(logoStart,logoEnd,signBottom,signBottom+(top-signBottom)*.11,FAMILY_BLUE,.018);
+ rect(logoStart,logoEnd,signBottom,top,sign.background,.012);
+ rect(logoStart,logoEnd,top-(top-signBottom)*.20,top,sign.upper,.018);
+ rect(logoStart,logoEnd,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.018);
  if(side==='front'){
   rect(logoStart,logoEnd,glassBottom,signBottom,0x668995,.011);
-  rect(logoStart,logoStart+frame,glassBottom,signBottom,FAMILY_FRAME,.018);
-  rect(logoEnd-frame,logoEnd,glassBottom,signBottom,FAMILY_FRAME,.018);
+  rect(logoStart,logoStart+frame,glassBottom,signBottom,STORE_FRAME,.018);
+  rect(logoEnd-frame,logoEnd,glassBottom,signBottom,STORE_FRAME,.018);
   // The two-door division stays; the two-module window mullion is removed.
-  rect(length/2-frame/2,length/2+frame/2,glassBottom,signBottom,FAMILY_FRAME,.019);
+  rect(length/2-frame/2,length/2+frame/2,glassBottom,signBottom,STORE_FRAME,.019);
   const handleY=bottom+(signBottom-bottom)*.46,handleH=Math.min(.32,(signBottom-bottom)*.16);
   rect(length/2-.12,length/2-.095,handleY,handleY+handleH,0xdfe9ec,.025);
   rect(length/2+.095,length/2+.12,handleY,handleY+handleH,0xdfe9ec,.025);
  }
  // Pixel-built word mark, centered within the merged two-module sign.
- const label='FamilyMart',pixels=[];
- for(const ch of label){const glyph=FAMILY_GLYPHS[ch];if(glyph)pixels.push(glyph);}
+ const label=sign.label||'',pixels=[];
+ for(const ch of label){const glyph=sign.glyphs?.[ch];if(glyph)pixels.push(glyph);}
  const cols=pixels.length*4-1,markH=(top-signBottom)*.43;
  const pixel=Math.min((logoEnd-logoStart)*.90/cols,markH/5);
  const left=(length-cols*pixel)/2,y0=signBottom+(top-signBottom)*.30;
  for(let i=0;i<pixels.length;i++)for(let j=0;j<5;j++)for(let k=0;k<3;k++)
   if(pixels[i][j][k]==='1')
    rect(left+(i*4+k)*pixel,left+(i*4+k+.89)*pixel,
-    y0+(4-j)*pixel,y0+(4-j+.89)*pixel,FAMILY_BLUE,.03);
+    y0+(4-j)*pixel,y0+(4-j+.89)*pixel,sign.textColor,.03);
  return true;
 }
 
@@ -247,7 +240,7 @@ export function paintConvenienceWall(quad,mesh,a,b,height,baseColor,spans,facade
  let cursor=0;
  for(const span of spans||[]){
   if(span.bottom>cursor)wall(cursor,span.bottom,baseColor);
-  if(span.brand.id!=='familymart'||!familymartFacade(quad,mesh,a,b,span.bottom,span.top,facadeSide,outward))
+  if(!span.brand.sign||!convenienceStoreFacade(quad,mesh,a,b,span.bottom,span.top,facadeSide,outward,span.brand))
    paintBrandStripe(quad,mesh,a,b,span.bottom,span.top,span.brand);
   cursor=Math.max(cursor,span.top);
  }
