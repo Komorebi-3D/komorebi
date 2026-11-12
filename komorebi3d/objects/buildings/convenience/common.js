@@ -1,6 +1,6 @@
 // Generic, renderer-independent convenience-store appearance.
 // The brand modules can later provide signs, doors, shelves and interiors.
-import {sevenEleven} from './seven-eleven.js?v=seven-sign-v1-20261112';
+import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
 import {ministop} from './ministop.js?v=convenience-v4-20261112';
@@ -180,8 +180,14 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
   const x0=k*unit,x1=(k+1)*unit;
   // Repeat the same sign/window module on each regular bay.
   rect(x0,x1,signBottom,top,sign.background);
-  rect(x0,x1,top-(top-signBottom)*.20,top,sign.upper,.006);
-  rect(x0,x1,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.006);
+  if(sign.bands){
+   const height=top-signBottom;
+   for(const band of sign.bands)
+    rect(x0,x1,signBottom+height*band.from,signBottom+height*band.to,band.color,.006);
+  }else{
+   rect(x0,x1,top-(top-signBottom)*.20,top,sign.upper,.006);
+   rect(x0,x1,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.006);
+  }
   if(side==='back')rect(x0,x1,bottom,signBottom,0xc4c9c7);
   else rect(x0,x1,bottom,signBottom,STORE_GLASS);
   // Align the sign panel seam exactly with the window mullion.
