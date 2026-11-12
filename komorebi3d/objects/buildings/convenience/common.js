@@ -7,77 +7,106 @@ const FOREST_SIGN_BRANDS={
  'familymart':familymart,'seven-eleven':sevenEleven,'ministop':ministop
 };
 
-// x/y are local to an 8m-wide box; positive z faces the forest visitor.
-// The sign occupies the upper 20% of the 4m storefront, like Matsudo.
-export function drawConvenienceSign(part,quad,brandId,{width=8,depth=6,height=4,faces=['front']}={}){
- const sign=FOREST_SIGN_BRANDS[brandId]?.sign;
- if(!sign)return false;
- // Each face has its own mesh, so its geometry remains independent and visible.
- for(const face of faces){
-  const mesh=part('convenience-sign-'+brandId+'-'+face);
- const low=height*.8,high=height;
- const faceWidth=face==='front'||face==='back'?width:depth;
- const facePanels=Math.max(2,Math.min(40,Math.round(faceWidth/1.34/2)*2));
- const span=faceWidth/facePanels,middle=facePanels/2;
- const place=(u,y,out=0)=>{
-  if(face==='front')return [u,y,depth/2+.012+out];
-  if(face==='back')return [-u,y,-depth/2-.012-out];
-  if(face==='left')return [-width/2-.012-out,y,u];
-  return [width/2+.012+out,y,-u];
+// Each footprint edge is an independent interval [0,length]. No corner posts or
+// offsets: every glass panel terminates at an existing polygon vertex.
+// Only entrance edges reserve a fixed 2m centre segment for the sliding doors/logo.
+export function conveniencePanelLayout(length,{entrance=false,doorWidth=2,targetWidth=1.3}={}){
+ if(!Number.isFinite(length)||length<=0)return {segments:[],entrance:false,door:null};
+ const withDoor=entrance&&length>=doorWidth-1e-7;
+ const segments=[];
+ const divide=(start,end)=>{
+  const span=end-start;
+  if(span<=1e-8)return;
+  const count=Math.max(1,Math.round(span/targetWidth));
+  for(let i=0;i<count;i++)segments.push({start:start+span*i/count,end:start+span*(i+1)/count,door:false});
  };
- const rect=(x0,x1,y0,y1,color,offset=0)=>{
-  if(x1<=x0||y1<=y0)return;
-  quad(mesh,place(x0,y0,offset),place(x1,y0,offset),
-    place(x1,y1,offset),place(x0,y1,offset),color);
- };
- const seam=Math.min(.065,span*.055);
- for(let k=0;k<facePanels;k++){
-  const x0=-faceWidth/2+k*span,x1=x0+span;
-  rect(x0,x1,low,high,sign.background);
+ if(withDoor){
+  const left=(length-doorWidth)/2,right=left+doorWidth;
+  divide(0,left);
+  segments.push({start:left,end:right,door:true});
+  divide(right,length);
+  return {segments,entrance:true,door:{start:left,end:right}};
+ }
+ divide(0,length);
+ return {segments,entrance:false,door:null};
+}
+
+// Unified sign strip: the logo is exactly the same fixed-width interval as
+// the opening underneath. Supports arbitrary planar OSM edges and Forest boxes.
+export function paintConvenienceSign(rect,quad,point,sign,{length,bottom,top,entrance=false}){
+ if(!sign||!(length>0&&top>bottom))return false;
+ const layout=conveniencePanelLayout(length,{entrance});
+ const bandHeight=top-bottom;
+ const frame=.065;
+ for(const seg of layout.segments){
+  rect(seg.start,seg.end,bottom,top,sign.background);
   if(sign.bands){
    for(const band of sign.bands)
-    rect(x0,x1,low+(high-low)*band.from,low+(high-low)*band.to,band.color,.006);
+    rect(seg.start,seg.end,bottom+bandHeight*band.from,bottom+bandHeight*band.to,band.color,.006);
   }else{
-   rect(x0,x1,high-(high-low)*.20,high,sign.upper,.006);
-   rect(x0,x1,low,low+(high-low)*.11,sign.lower,.006);
+   rect(seg.start,seg.end,top-bandHeight*.20,top,sign.upper,.006);
+   rect(seg.start,seg.end,bottom,bottom+bandHeight*.11,sign.lower,.006);
   }
-  if(k>0&&(face!=='front'||k!==middle))rect(x0-seam/2,x0+seam/2,low,high,0xc3c9cb,.008);
  }
- // Logo only above the front double doors. Side/back keep ordinary bands.
- if(face==='front'){
- const start=-span,end=span;
- rect(start,end,low,high,sign.logo?.background??sign.background,.012);
+ for(let i=1;i<layout.segments.length;i++){
+  const boundary=layout.segments[i].start;
+  if(layout.door&&Math.abs(boundary-length/2)<.00001)continue;
+  rect(boundary-frame/2,boundary+frame/2,bottom,top,0xc3c9cb,.008);
+ }
+ if(!layout.door)return true;
+ const start=layout.door.start,end=layout.door.end;
+ rect(start,end,bottom,top,sign.logo?.background??sign.background,.012);
  if(!sign.logo){
-  rect(start,end,high-(high-low)*.20,high,sign.upper,.018);
-  rect(start,end,low,low+(high-low)*.11,sign.lower,.018);
+  rect(start,end,top-bandHeight*.2,top,sign.upper,.018);
+  rect(start,end,bottom,bottom+bandHeight*.11,sign.lower,.018);
  }
  if(sign.logo){
-  const logoH=(high-low)*.91;
-  const logoW=Math.min((end-start)*.9,logoH*(sign.logo.aspect??1.24));
-  const lx=-logoW/2,ly=low+((high-low)-logoH)/2;
-  const p=([x,y],z)=>place(lx+x*logoW,ly+y*logoH,z);
-  for(const [a,b,c,d,tint,z=.033] of sign.logo.quads)
-   quad(mesh,p(a,z),p(b,z),p(c,z),p(d,z),tint);
+  const logoH=bandHeight*.91,logoW=Math.min((end-start)*.9,logoH*(sign.logo.aspect??1.24));
+  const lx=length/2-logoW/2,ly=bottom+(bandHeight-logoH)/2;
+  for(const [a,b,c,d,tint,offset=.033] of sign.logo.quads)
+   quad(point(lx+a[0]*logoW,ly+a[1]*logoH,offset),
+     point(lx+b[0]*logoW,ly+b[1]*logoH,offset),
+     point(lx+c[0]*logoW,ly+c[1]*logoH,offset),
+     point(lx+d[0]*logoW,ly+d[1]*logoH,offset),tint);
  }
  const pixels=[];
  for(const ch of sign.label||'')if(sign.glyphs?.[ch])pixels.push(sign.glyphs[ch]);
  if(pixels.length){
   const cols=pixels.length*4-1;
   const pixel=sign.logo?.wordmark?
-   Math.min((end-start)*.84/cols,(high-low)*.91*.35/5):
-   sign.logo?Math.min((high-low)*.91*1.24*1.05/cols,(high-low)*.91*.18/5):
-   Math.min((end-start)*.90/cols,(high-low)*.43/5);
-  const left=-cols*pixel/2;
-  const bottom=sign.logo?.wordmark?low+(high-low)*.30:
-    sign.logo?low+(high-low)*(.045+.91*.31):low+(high-low)*.30;
-  for(let i=0;i<pixels.length;i++)for(let j=0;j<5;j++)for(let k=0;k<3;k++){
+   Math.min((end-start)*.84/cols,bandHeight*.91*.35/5):
+   sign.logo?Math.min(bandHeight*.91*1.24*1.05/cols,bandHeight*.91*.18/5):
+   Math.min((end-start)*.90/cols,bandHeight*.43/5);
+  const left=length/2-cols*pixel/2;
+  const baseline=sign.logo?.wordmark?bottom+bandHeight*.30:
+   sign.logo?bottom+bandHeight*(.045+.91*.31):bottom+bandHeight*.30;
+  for(let i=0;i<pixels.length;i++)for(let j=0;j<5;j++)for(let k=0;k<3;k++)
    if(pixels[i][j][k]==='1')
     rect(left+(i*4+k)*pixel,left+(i*4+k+.89)*pixel,
-      bottom+(4-j)*pixel,bottom+(4-j+.89)*pixel,
-      sign.textColor,sign.logo?.05:.03);
-  }
+     baseline+(4-j)*pixel,baseline+(4-j+.89)*pixel,sign.textColor,sign.logo?.05:.03);
  }
- }
+ return true;
+}
+
+// Forest-box facade is one special case of the generic edge painter.
+export function drawConvenienceSign(part,quad,brandId,{width=8,depth=6,height=4,faces=['front']}={}){
+ const sign=FOREST_SIGN_BRANDS[brandId]?.sign;
+ if(!sign)return false;
+ for(const face of faces){
+  const mesh=part('convenience-sign-'+brandId+'-'+face);
+  const length=face==='front'||face==='back'?width:depth;
+  const point=(u,y,out=0)=>{
+   if(face==='front')return [u-length/2,y,depth/2+.012+out];
+   if(face==='back')return [length/2-u,y,-depth/2-.012-out];
+   if(face==='left')return [-width/2-.012-out,y,u-length/2];
+   return [width/2+.012+out,y,length/2-u];
+  };
+  const rect=(u0,u1,y0,y1,color,out=0)=>{
+   if(u1<=u0||y1<=y0)return;
+   quad(mesh,point(u0,y0,out),point(u1,y0,out),point(u1,y1,out),point(u0,y1,out),color);
+  };
+  paintConvenienceSign(rect,(a,b,c,d,t)=>quad(mesh,a,b,c,d,t),point,sign,
+   {length,bottom:height*.8,top:height,entrance:face==='front'});
  }
  return true;
 }
@@ -98,19 +127,18 @@ export function drawConvenienceRoof(part,quad,brandId,{width=8,depth=6,height=4,
 // Reusable geometry-only facade glazing. Coordinates are along a flat wall:
 // rect(start,end,bottom,top,color,outwardOffset). The caller supplies its wall
 // orientation; neither the glazing nor the door knows about OSM.
-export function paintConvenienceGlazing(rect,{length,panels,bottom=0,top,side='front',backWall=false}){
+export function paintConvenienceGlazing(rect,{length,bottom=0,top,side='front',backWall=false,doorWidth=2}){
  if(!(length>0&&top>bottom))return false;
- const unit=length/panels,center=panels/2;
- const frame=Math.min(.065,unit*.055),glassBottom=bottom+.06;
- const glass=0x415c6a,frameColor=0x273b47;
- for(let k=0;k<panels;k++){
-  const x0=k*unit,x1=(k+1)*unit;
-  rect(x0,x1,bottom,top,backWall&&side==='back'?0xc4c9c7:glass);
-  if(k>0&&!(side==='front'&&k===center))
-   rect(x0-frame/2,x0+frame/2,glassBottom,top,frameColor,.008);
+ const layout=conveniencePanelLayout(length,{entrance:side==='front',doorWidth});
+ const frame=.065,glassBottom=bottom+.06,glass=0x415c6a,frameColor=0x273b47;
+ for(const seg of layout.segments)
+  rect(seg.start,seg.end,bottom,top,backWall&&side==='back'?0xc4c9c7:glass);
+ for(let i=1;i<layout.segments.length;i++){
+  const x=layout.segments[i].start;
+  rect(x-frame/2,x+frame/2,glassBottom,top,frameColor,.008);
  }
- if(side==='front'){
-  const start=(center-1)*unit,end=(center+1)*unit;
+ if(layout.door){
+  const {start,end}=layout.door;
   rect(start,end,glassBottom,top,0x668995,.011);
   rect(start,start+frame,glassBottom,top,frameColor,.018);
   rect(end-frame,end,glassBottom,top,frameColor,.018);
@@ -129,7 +157,6 @@ export function drawConvenienceWindows(part,quad,brandId,{width=8,depth=6,height
  for(const face of faces){
   const mesh=part('convenience-windows-'+brandId+'-'+face);
   const faceWidth=face==='front'||face==='back'?width:depth;
-  const panels=Math.max(2,Math.min(40,Math.round(faceWidth/1.34/2)*2));
   const place=(u,y,out=0)=>{
    if(face==='front')return [u,y,depth/2+.024+out];
    if(face==='back')return [-u,y,-depth/2-.024-out];
@@ -141,7 +168,7 @@ export function drawConvenienceWindows(part,quad,brandId,{width=8,depth=6,height
    quad(mesh,place(a-faceWidth/2,y0,out),place(b-faceWidth/2,y0,out),
      place(b-faceWidth/2,y1,out),place(a-faceWidth/2,y1,out),tint);
   };
-  paintConvenienceGlazing(rect,{length:faceWidth,panels,bottom:0,top:height*.8,side:face});
+  paintConvenienceGlazing(rect,{length:faceWidth,bottom:0,top:height*.8,side:face});
  }
  return true;
 }
