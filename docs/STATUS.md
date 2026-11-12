@@ -1,3 +1,10 @@
+## OSM開発サーバー向けlevelタグ送信（2026-11-13／API送信・実機未検証）
+- `komorebi3d/maps/osm-test-api.js` を追加。固定先は `https://master.apis.dev.openstreetmap.org` のみ。本番OSMのAPI・OAuthへは送信しない。
+- OAuth2 Authorization Code + PKCE（write_api）、sessionStorage内の短期ブラウザセッション、変更セット作成・要素PUT・変更セットcloseを実装。対象は開発サーバー上で個別取得した既存のnode/way/relationで、店舗・施設タグがあり、かつlevelタグがない要素のみ。
+- 松戸側でOSMの施設POIラベルを開き、level=0〜8（1〜9階）だけを新規追加した場合にテスト専用パネルを表示。開発サーバーの要素IDを手動で指定・取得して検証、同意チェック後に実送信。既存のタグと形状・ノード参照・メンバー参照を保持し、取得したversionをそのまま送信（競合は409で停止）。
+- テストサーバーの地図データ・IDは本番OSMと別。松戸の本番店舗IDをそのまま送信しない。まずテストサーバー上に対象店舗を準備する必要がある。開発用OAuthアプリのリダイレクトURIはGitHub Pagesの`komorebi3d/dev.html`に一致させる。
+- OAuth認証・CORS・実テストAPIへの送信、GitHub Pages実配信、Safari実機操作は未確認。現時点で外部APIへ実際の書き込みを実行していない。固定Engine・安定版・モックは未変更。
+
 ## OSM JSONタグ編集・確認のみ（2026-11-13／実機未確認）
 - ユーザー指定により「下書き保存」とlocalStorage読書きを取り外し、既存OSMタグをJSONとして編集→「確認」で変更差分・全タグを閲覧するだけにした。「完了」はOSM送信実装時まで非表示。確認画面には「編集に戻る」「閉じる」を表示。
 - 旧バージョンが端末に残したlocalStorageデータは読み込まない（自動削除も行わない）。編集内容は画面を閉じるかF5で破棄される。OSMへの送信は行わない。
