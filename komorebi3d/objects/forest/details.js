@@ -32,3 +32,15 @@ for(let i=0;i<FOREST_TREE_POSITIONS.length;i++){
   treeBranch(forestDeadwood,[x,.19,z],[x+1.45,.18,z+.38],.20,.14,0x6f573f,6);
  }
 }
+
+// Forest convenience-store comparison: three untouched 8 x 6 x 4m boxes.
+// From west to east: FamilyMart, 7-Eleven, MINISTOP. Facades are added later.
+const FOREST_STORE_TEST_BOXES=[
+ {brand:'familymart',x:18,z:-12},
+ {brand:'seven-eleven',x:29,z:-12},
+ {brand:'ministop',x:40,z:-12}
+];
+for(const store of FOREST_STORE_TEST_BOXES){
+ const boxMesh=part('forest-store-test-'+store.brand,[store.x,0,store.z]);
+ cube(boxMesh,0,0,0,8,4,6,0xb9bbbd);
+}
