@@ -390,6 +390,12 @@ GAME_COLLISION_OBSTACLES.push(
 GAME_COLLISION_OBSTACLES.push(...FOREST_TREE_POSITIONS.map(([x,z],i)=>({
  id:'forest-v2-'+i,type:'circle',centerX:x,centerZ:z,radius:.95,enabled:true,role:'tree'
 })));
+// Comparison boxes are solid but have no branding or facade yet.
+GAME_COLLISION_OBSTACLES.push(...[
+ {id:'forest-store-test-familymart',centerX:18,centerZ:-12},
+ {id:'forest-store-test-seven-eleven',centerX:29,centerZ:-12},
+ {id:'forest-store-test-ministop',centerX:40,centerZ:-12}
+].map(box=>({...box,type:'rect',width:8,depth:6,enabled:true,role:'building'})));
 let groundSystem=new GroundBounds({centerX:0,centerZ:0,width:100,depth:100});
 const ground=groundSystem.getGround();
 let collisionSystem=new CollisionWorld2D({
@@ -968,6 +974,18 @@ for(let i=0;i<FOREST_TREE_POSITIONS.length;i++){
   const x=tx+2.3,z=tz+2.9;
   treeBranch(forestDeadwood,[x,.19,z],[x+1.45,.18,z+.38],.20,.14,0x6f573f,6);
  }
+}
+
+// Forest convenience-store comparison: three untouched 8 x 6 x 4m boxes.
+// From west to east: FamilyMart, 7-Eleven, MINISTOP. Facades are added later.
+const FOREST_STORE_TEST_BOXES=[
+ {brand:'familymart',x:18,z:-12},
+ {brand:'seven-eleven',x:29,z:-12},
+ {brand:'ministop',x:40,z:-12}
+];
+for(const store of FOREST_STORE_TEST_BOXES){
+ const boxMesh=part('forest-store-test-'+store.brand,[store.x,0,store.z]);
+ cube(boxMesh,0,0,0,8,4,6,0xb9bbbd);
 }
 // Shared low-poly character asset: an unanimated, pilotless ghost helicopter.
 // Game/world code owns opacity, position, flight motion and camera.
