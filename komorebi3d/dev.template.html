@@ -163,6 +163,12 @@ GAME_COLLISION_OBSTACLES.push(
 GAME_COLLISION_OBSTACLES.push(...FOREST_TREE_POSITIONS.map(([x,z],i)=>({
  id:'forest-v2-'+i,type:'circle',centerX:x,centerZ:z,radius:.95,enabled:true,role:'tree'
 })));
+// Comparison boxes are solid but have no branding or facade yet.
+GAME_COLLISION_OBSTACLES.push(...[
+ {id:'forest-store-test-familymart',centerX:18,centerZ:-12},
+ {id:'forest-store-test-seven-eleven',centerX:29,centerZ:-12},
+ {id:'forest-store-test-ministop',centerX:40,centerZ:-12}
+].map(box=>({...box,type:'rect',width:8,depth:6,enabled:true,role:'building'})));
 let groundSystem=new GroundBounds({centerX:0,centerZ:0,width:100,depth:100});
 const ground=groundSystem.getGround();
 let collisionSystem=new CollisionWorld2D({
