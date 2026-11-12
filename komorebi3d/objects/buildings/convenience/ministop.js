@@ -25,7 +25,16 @@ const outline=[
  [[.97,.51],[.93,.68]],[[.93,.68],[.84,.79]],
  [[.84,.79],[.76,.82]]
 ];
+// A white plate fills the space *inside* the blue store-shaped outline.
+// Keep it behind the outline and the lettering, so the yellow remains outside.
+const whitePlate=[
+ [[.09,.20],[.86,.20],[.86,.66],[.09,.66],white,.028],
+ [[.09,.55],[.22,.85],[.34,.67],[.09,.67],white,.028],
+ [[.70,.64],[.77,.79],[.88,.71],[.91,.60],white,.028],
+ [[.85,.21],[.92,.34],[.95,.51],[.85,.60],white,.028]
+];
 const logoQuads=[
+ ...whitePlate,
  ...outline.map(([a,b])=>stroke(a,b,.082,white,.031)),
  ...outline.map(([a,b])=>stroke(a,b,.042,blue,.035))
 ];
