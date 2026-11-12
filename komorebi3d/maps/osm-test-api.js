@@ -130,3 +130,97 @@ export async function sendOsmTestLevel(item,level){
   }
  }
 }
+
+
+// Read the canonical public OSM element only; never authenticate or write to production.
+const OSM_LIVE_READ_ORIGIN='https://api.openstreetmap.org';
+export async function loadOsmCopySource(type,id){
+ if(!['node','way'].includes(type)||!/^[1-9]\d*$/.test(String(id)))
+  throw Error('コピーできるのは既存のnodeまたはwayだけです。relationには未対応です。');
+ const url=OSM_LIVE_READ_ORIGIN+'/api/0.6/'+type+'/'+id+(type==='way'?'/full':'');
+ const response=await fetch(url,{method:'GET',headers:{Accept:'application/xml'},cache:'no-store'});
+ if(!response.ok)throw Error('本番OSMからコピー元を取得できませんでした HTTP '+response.status);
+ const documentXml=new DOMParser().parseFromString(await response.text(),'application/xml');
+ if(documentXml.querySelector('parsererror')||documentXml.documentElement?.tagName!=='osm')
+  throw Error('本番OSMから受け取ったXMLが不正です。');
+ const element=Array.from(documentXml.documentElement.children).find(el=>el.tagName===type&&el.getAttribute('id')===String(id));
+ if(!element||element.getAttribute('visible')==='false')throw Error('コピー元の要素がありません。');
+ const tags={};
+ for(const tag of element.children)if(tag.tagName==='tag')tags[tag.getAttribute('k')]=tag.getAttribute('v');
+ if(!Object.keys(tags).length)throw Error('タグのない要素はコピーしません。');
+ if(type==='node'){
+  const lat=Number(element.getAttribute('lat')),lon=Number(element.getAttribute('lon'));
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)throw Error('ノードの座標が不正です。');
+  return {type,id:String(id),tags,points:[{lat,lon}],nodes:1};
+ }
+ const refs=Array.from(element.children).filter(child=>child.tagName==='nd').map(nd=>nd.getAttribute('ref'));
+ if(refs.length<2||refs.length>150)throw Error('輪郭ノードが2〜150個のwayだけコピーできます。');
+ const byId=new Map(Array.from(documentXml.documentElement.children).filter(el=>el.tagName==='node').map(el=>[el.getAttribute('id'),el]));
+ const unique=[],nodes=new Map();
+ for(const ref of refs){
+  if(!ref||!byId.has(ref))throw Error('建物の輪郭に必要なノードが見つかりません。');
+  if(!nodes.has(ref)){
+   const el=byId.get(ref),lat=Number(el.getAttribute('lat')),lon=Number(el.getAttribute('lon'));
+   if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)throw Error('建物の輪郭に不正な座標があります。');
+   nodes.set(ref,{lat,lon});unique.push(ref);
+  }
+ }
+ if(unique.length<2||unique.length>149)throw Error('輪郭ノード数が多すぎるか少なすぎます。');
+ return {type,id:String(id),tags,points:refs.map(ref=>nodes.get(ref)),refs,unique,coordinates:nodes,nodes:unique.length};
+}
+function buildCopyChangeXml(source,changesetId){
+ const doc=document.implementation.createDocument(null,'osmChange',null);
+ const root=doc.documentElement;root.setAttribute('version','0.6');root.setAttribute('generator','Komorebi 3D test copy');
+ const create=doc.createElement('create');root.appendChild(create);
+ const appendTags=parent=>{
+  for(const [k,v] of Object.entries(source.tags)){
+   const tag=doc.createElement('tag');tag.setAttribute('k',k);tag.setAttribute('v',String(v));parent.appendChild(tag);
+  }
+ };
+ if(source.type==='node'){
+  const node=doc.createElement('node');node.setAttribute('id','-1');node.setAttribute('changeset',changesetId);
+  node.setAttribute('lat',String(source.points[0].lat));node.setAttribute('lon',String(source.points[0].lon));
+  appendTags(node);create.appendChild(node);
+ }else{
+  const ids=new Map();
+  for(const [index,ref] of source.unique.entries()){
+   const id=String(-index-1);ids.set(ref,id);
+   const {lat,lon}=source.coordinates.get(ref);
+   const node=doc.createElement('node');
+   node.setAttribute('id',id);node.setAttribute('changeset',changesetId);
+   node.setAttribute('lat',String(lat));node.setAttribute('lon',String(lon));
+   create.appendChild(node);
+  }
+  const way=doc.createElement('way');way.setAttribute('id',String(-source.unique.length-1));way.setAttribute('changeset',changesetId);
+  for(const ref of source.refs){const nd=doc.createElement('nd');nd.setAttribute('ref',ids.get(ref));way.appendChild(nd);}
+  appendTags(way);create.appendChild(way);
+ }
+ return new XMLSerializer().serializeToString(doc);
+}
+export async function createOsmTestCopy(source){
+ if(!source||!['node','way'].includes(source.type)||!source.id||!source.tags||!source.points?.length)
+  throw Error('有効なコピー元データがありません。');
+ const token=readToken();
+ let changesetId=null;
+ try{
+  changesetId=await apiWrite('/changeset/create',makeChangesetXml(),token);
+  if(!/^[1-9]\d*$/.test(changesetId))throw Error('変更セットIDが不正です。');
+  const response=await fetch(API+'/changeset/'+changesetId+'/upload',{
+   method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'text/xml; charset=utf-8'},
+   body:buildCopyChangeXml(source,changesetId)
+  });
+  const body=await response.text();
+  if(!response.ok)throw Error('コピー作成に失敗 HTTP '+response.status+': '+body.slice(0,240));
+  const result=new DOMParser().parseFromString(body,'application/xml');
+  if(result.querySelector('parsererror')||result.documentElement?.tagName!=='diffResult')throw Error('テストサーバーのコピー結果が不正です。');
+  const nodes=Array.from(result.documentElement.children).filter(el=>el.tagName===source.type);
+  const created=nodes[nodes.length-1]?.getAttribute('new_id');
+  if(!created||!/^[1-9]\d*$/.test(created))throw Error('テストサーバーから作成IDを取得できませんでした。重複作成しないよう履歴を確認してください。');
+  return {type:source.type,id:created,changesetId,url:OSM_TEST_ORIGIN+'/'+source.type+'/'+created};
+ }finally{
+  if(changesetId&&/^[1-9]\d*$/.test(changesetId)){
+   try{await apiWrite('/changeset/'+changesetId+'/close','',token);}
+   catch(e){console.warn('OSM test copy changeset close failed',e);}
+  }
+ }
+}
