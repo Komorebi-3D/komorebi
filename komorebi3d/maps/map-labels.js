@@ -1,5 +1,5 @@
 // Project building and ground-level POI labels using shared A/B viewport camera information.
-import {OSM_TEST_ORIGIN,hasOsmTestToken,forgetOsmTestToken,consumeOsmTestAuthError,startOsmTestLogin,finishOsmTestLogin,getOsmTestElement,validateOsmTestLevelTarget,sendOsmTestLevel} from './osm-test-api.js?v=osm-test-pkce-20261113';
+import {OSM_TEST_ORIGIN,hasOsmTestToken,forgetOsmTestToken,consumeOsmTestAuthError,startOsmTestLogin,finishOsmTestLogin,getOsmTestElement,validateOsmTestLevelTarget,sendOsmTestLevel,loadOsmCopySource,createOsmTestCopy} from './osm-test-api.js?v=osm-test-pkce-20261113';
 const osmTestOAuthReturn=finishOsmTestLogin();
 // Uses a plain-text ignore file; no special handling of newly discovered OSM tag keys.
 export function parseOsmTagIgnore(source){
@@ -36,6 +36,93 @@ export function createMapLabels(host,ignoreRules=[]){
   const title=document.createElement('h3');
   title.textContent=item.name+'｜OSMタグの編集';
   title.style.cssText='font-size:17px;line-height:1.4;margin:0 0 7px;';
+  const header=document.createElement('div');
+  header.style.cssText='display:flex;align-items:flex-start;gap:8px;justify-content:space-between;';
+  title.style.flex='1';
+  const copyButton=document.createElement('button');
+  copyButton.type='button';copyButton.textContent='テスト環境へコピー';
+  copyButton.style.cssText='flex:none;max-width:145px;padding:7px 9px;border-radius:8px;border:1px solid #3b7c64;background:#ecf8f0;color:#176449;font:700 12px/1.35 system-ui;';
+  header.append(title,copyButton);
+  const copyPane=document.createElement('section');
+  copyPane.hidden=true;
+  copyPane.style.cssText='padding:10px;margin:8px 0;background:#edf4ee;border:1px solid #9db7a9;border-radius:9px;';
+  const copyInfo=document.createElement('p');
+  copyInfo.style.cssText='font-size:12px;margin:2px 0 9px;';
+  copyInfo.textContent='本番OSMから読み取り、元のタグと位置をテストサーバーへ新規コピーします。本番のデータは変更しません。';
+  const copyPreview=document.createElement('pre');
+  copyPreview.hidden=true;
+  copyPreview.style.cssText='max-height:22vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:8px;border-radius:6px;background:#fff;color:#173d2e;font:12px/1.5 ui-monospace,monospace;';
+  const copyStatus=document.createElement('p');
+  copyStatus.style.cssText='font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;color:#345849;';
+  const copyClientLabel=document.createElement('label');
+  copyClientLabel.textContent='テスト環境OAuth Client ID';
+  copyClientLabel.style.cssText='display:block;margin:5px 0;font-size:12px;';
+  const copyClient=document.createElement('input');
+  copyClient.placeholder='開発用Client ID（ログイン済みなら不要）';
+  copyClient.style.cssText='box-sizing:border-box;width:100%;padding:8px;border:1px solid #91aca0;border-radius:6px;';
+  copyClientLabel.appendChild(copyClient);
+  const copyAuth=document.createElement('button');copyAuth.type='button';copyAuth.textContent='テスト環境へログイン';
+  const copyConsentLabel=document.createElement('label');
+  copyConsentLabel.style.cssText='display:block;margin:9px 0;font-size:12px;';
+  const copyConsent=document.createElement('input');copyConsent.type='checkbox';
+  copyConsentLabel.append(copyConsent,document.createTextNode(' この実在データをテスト環境へ複製することを確認した'));
+  const copyExecute=document.createElement('button');copyExecute.type='button';copyExecute.textContent='確認してコピーを作成';
+  const copyBtnStyle='padding:9px 10px;margin:4px 4px 4px 0;border-radius:7px;border:1px solid #91aca0;background:#fff;color:#163c30;font:700 12px system-ui;';
+  copyAuth.style.cssText=copyBtnStyle;
+  copyExecute.style.cssText=copyBtnStyle+'background:#236c56;color:white;';
+  copyExecute.disabled=true;
+  const copyLink=document.createElement('a');
+  copyLink.href=OSM_TEST_ORIGIN+'/oauth2/applications/new';copyLink.target='_blank';copyLink.rel='noopener noreferrer';
+  copyLink.textContent='テスト環境のOAuthアプリ登録';
+  copyLink.style.cssText='display:block;font-size:12px;margin:5px 0;';
+  const copyResult=document.createElement('div');
+  copyResult.style.cssText='font-size:12px;';
+  copyPane.append(copyInfo,copyPreview,copyStatus,copyClientLabel,copyAuth,copyLink,copyConsentLabel,copyExecute,copyResult);
+  let copySource=null,copyBusy=false,copyCreated=false;
+  const refreshCopyButtons=()=>{
+   copyButton.disabled=copyBusy;
+   copyAuth.textContent=hasOsmTestToken()?'テスト環境へ再ログイン':'テスト環境へログイン';
+   copyExecute.disabled=copyBusy||!copySource||!copyConsent.checked||!hasOsmTestToken()||copyCreated;
+  };
+  copyButton.addEventListener('click',async()=>{
+   if(copyBusy)return;
+   copyPane.hidden=!copyPane.hidden;
+   if(copyPane.hidden||copySource||copyCreated)return;
+   copyBusy=true;copyStatus.textContent='コピー元を本番OSMから読み取り中…';refreshCopyButtons();
+   try{
+    await osmTestOAuthReturn;
+    const source=await loadOsmCopySource(item.osmType,item.osmId);
+    copySource=source;
+    copyPreview.hidden=false;
+    copyPreview.textContent=JSON.stringify({
+     source:'本番OpenStreetMap（読み取り専用）',
+     type:source.type,id:source.id,name:source.tags.name||source.tags['name:ja']||item.name,
+     nodes:source.nodes,geometry:source.type==='way'?'輪郭ノードもコピー':'店舗ノード',
+     tags:source.tags
+    },null,2);
+    copyStatus.textContent='コピー元を確認してください。コピー先はテスト環境です。新しいIDが発行されます。';
+   }catch(e){copyStatus.textContent='コピー準備エラー: '+e.message;}
+   finally{copyBusy=false;refreshCopyButtons();}
+  });
+  copyAuth.addEventListener('click',async()=>{
+   try{await startOsmTestLogin(copyClient.value);}catch(e){copyStatus.textContent='認証開始エラー: '+e.message;}
+  });
+  copyConsent.addEventListener('change',refreshCopyButtons);
+  copyExecute.addEventListener('click',async()=>{
+   if(copyBusy||!copySource||!copyConsent.checked||!hasOsmTestToken()||copyCreated)return;
+   copyBusy=true;copyStatus.textContent='テストサーバーへコピー作成中…';refreshCopyButtons();
+   try{
+    const result=await createOsmTestCopy(copySource);
+    copyCreated=true;
+    copyStatus.textContent='コピー完了！ テスト用 '+result.type+'/'+result.id+' / changeset '+result.changesetId;
+    const anchor=document.createElement('a');anchor.href=result.url;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.textContent='テスト環境でコピーを見る';
+    copyResult.appendChild(anchor);
+    // The existing level edit panel can use this new ID immediately.
+    targetType.value=result.type;targetId.value=result.id;
+    loaded=null;testDetails.hidden=true;syncTestControls();
+   }catch(e){copyStatus.textContent='コピー作成エラー: '+e.message;}
+   finally{copyBusy=false;refreshCopyButtons();}
+  });
   const note=document.createElement('p');
   note.textContent='既存タグを編集して確認できます。本番OSMには送信しません。';
   note.style.cssText='color:#4e655b;font-size:12px;margin:0 0 8px;';
@@ -195,7 +282,7 @@ export function createMapLabels(host,ignoreRules=[]){
   mask.addEventListener('pointerdown',event=>event.stopPropagation());
   mask.addEventListener('click',event=>{event.stopPropagation();if(event.target===mask)dismiss();});
   controls.append(close,confirm);
-  form.append(title,note,metadata,tagsHeader,rows,add,review,error,controls);
+  form.append(header,copyPane,note,metadata,tagsHeader,rows,add,review,error,controls);
   mask.appendChild(form);host.appendChild(mask);editor=mask;
  }
  function setLabels(labels){
