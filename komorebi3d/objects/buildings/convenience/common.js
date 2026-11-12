@@ -41,8 +41,10 @@ export function drawConvenienceSign(part,quad,brandId,{width=8,depth=6,height=4,
    rect(x0,x1,high-(high-low)*.20,high,sign.upper,.006);
    rect(x0,x1,low,low+(high-low)*.11,sign.lower,.006);
   }
-  if(k>0&&k!==middle)rect(x0-seam/2,x0+seam/2,low,high,0xc3c9cb,.008);
+  if(k>0&&(face!=='front'||k!==middle))rect(x0-seam/2,x0+seam/2,low,high,0xc3c9cb,.008);
  }
+ // Logo only above the front double doors. Side/back keep ordinary bands.
+ if(face==='front'){
  const start=-span,end=span;
  rect(start,end,low,high,sign.logo?.background??sign.background,.012);
  if(!sign.logo){
@@ -74,6 +76,7 @@ export function drawConvenienceSign(part,quad,brandId,{width=8,depth=6,height=4,
       bottom+(4-j)*pixel,bottom+(4-j+.89)*pixel,
       sign.textColor,sign.logo?.05:.03);
   }
+ }
  }
  }
  return true;
