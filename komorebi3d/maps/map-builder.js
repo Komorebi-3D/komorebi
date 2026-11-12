@@ -59,7 +59,7 @@ function building(m,p,h,t,spans,roadSegments){
  }
  for(let i=0;i<n;i++){
   const e=edges[i],side=i===front?'front':i===back?'back':'side';
-  paintConvenienceWall(quad,m,e.a,e.b,h,t,spans,side);
+  paintConvenienceWall(quad,m,e.a,e.b,h,t,spans,side,outward);
  }
  top(m,p,h,t);
 }
