@@ -16,6 +16,11 @@
 
 - **共通ゴミ箱CSSの統一（2026-11-10）:** 本番の `panels/test.css` による共通ゴミ箱のスタイル上書きを解消し、`common.css`・`dev-panel-layout.js` を正本として維持。`dev.html` の生成整合性PASSに加え、**修正後の本番開発版の実機テストもユーザーPASS（2026-11-10）**。端末別内訳・全配置や負荷の網羅検証は別。
 
+## コンビニ入口4m・窓と通常看板1対1（2026-11-12／実機未確認）
+- `const.js` の `CONVENIENCE_DOOR_WIDTH_M` を4mに変更。`CONVENIENCE_TARGET_PANEL_WIDTH_M=2` は維持し、`CONVENIENCE_SIGNS_PER_WINDOW` を削除。
+- `common.js` は共通パネル分割の窓1枚と通常看板1枚を同じ横幅に統一。中央ドアとその直上のロゴは幅4mで一致。角の頂点ごとの分割、看板20%・窓80%、白屋根を維持。
+- 松戸では入口候補の辺を4m以上に限定。森3店舗のドア幅4m、松戸490棟・390道路・34鉄道の描画生成を静的PASS。Safari実機・Pages配信は未確認。
+
 ## コンビニ窓の目標幅2m・1窓につき通常看板2枚（2026-11-12／実機未確認）
 - `const.js` の `CONVENIENCE_TARGET_PANEL_WIDTH_M` を1.3mから2mへ変更。新 `CONVENIENCE_SIGNS_PER_WINDOW=2` を追加。
 - `common.js` は各辺ごとに計算した窓区画の上に、それぞれ実際の窓幅の半分の通常看板を2枚ずつ描く。中央のロゴとドアは3m固定のまま、横方向に分割しない。
