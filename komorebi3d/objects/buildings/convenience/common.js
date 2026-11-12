@@ -1,6 +1,6 @@
 // Shared renderer-independent convenience-store sign and roof geometry.
 // This module knows dimensions and brand styles, never OSM tags or POI matching.
-import {CONVENIENCE_DOOR_WIDTH_M,CONVENIENCE_TARGET_PANEL_WIDTH_M,CONVENIENCE_SIGNS_PER_WINDOW} from './const.js?v=convenience-double-signs-v2-20261112';
+import {CONVENIENCE_DOOR_WIDTH_M,CONVENIENCE_TARGET_PANEL_WIDTH_M} from './const.js?v=convenience-one-sign-v3-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {ministop} from './ministop.js?v=ministop-white-logo-v2-20261112';
@@ -39,16 +39,8 @@ export function paintConvenienceSign(rect,quad,point,sign,{length,bottom,top,ent
  const layout=conveniencePanelLayout(length,{entrance});
  const bandHeight=top-bottom;
  const frame=.065;
- // Split each non-door window bay into two matching sign bays.
- // The centre door and its logo stay one 3m-wide uninterrupted bay.
- const signSegments=layout.segments.flatMap(seg=>{
-  if(seg.door)return [seg];
-  const step=(seg.end-seg.start)/CONVENIENCE_SIGNS_PER_WINDOW;
-  return Array.from({length:CONVENIENCE_SIGNS_PER_WINDOW},(_,i)=>({
-   start:seg.start+i*step,end:seg.start+(i+1)*step,door:false
-  }));
- });
- for(const seg of signSegments){
+ // One regular sign directly above each window.
+ for(const seg of layout.segments){
   rect(seg.start,seg.end,bottom,top,sign.background);
   if(sign.bands){
    for(const band of sign.bands)
@@ -58,8 +50,8 @@ export function paintConvenienceSign(rect,quad,point,sign,{length,bottom,top,ent
    rect(seg.start,seg.end,bottom,bottom+bandHeight*.11,sign.lower,.006);
   }
  }
- for(let i=1;i<signSegments.length;i++){
-  const boundary=signSegments[i].start;
+ for(let i=1;i<layout.segments.length;i++){
+  const boundary=layout.segments[i].start;
   if(layout.door&&Math.abs(boundary-length/2)<.00001)continue;
   rect(boundary-frame/2,boundary+frame/2,bottom,top,0xc3c9cb,.008);
  }
