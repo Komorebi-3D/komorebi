@@ -1,5 +1,6 @@
 // Shared renderer-independent convenience-store sign and roof geometry.
 // This module knows dimensions and brand styles, never OSM tags or POI matching.
+import {CONVENIENCE_DOOR_WIDTH_M,CONVENIENCE_TARGET_PANEL_WIDTH_M} from './const.js?v=convenience-dimensions-v1-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {ministop} from './ministop.js?v=ministop-white-logo-v2-20261112';
@@ -9,8 +10,8 @@ const FOREST_SIGN_BRANDS={
 
 // Each footprint edge is an independent interval [0,length]. No corner posts or
 // offsets: every glass panel terminates at an existing polygon vertex.
-// Only entrance edges reserve a fixed 2m centre segment for the sliding doors/logo.
-export function conveniencePanelLayout(length,{entrance=false,doorWidth=2,targetWidth=1.3}={}){
+// Only entrance edges reserve a fixed-width centre segment for the sliding doors/logo.
+export function conveniencePanelLayout(length,{entrance=false,doorWidth=CONVENIENCE_DOOR_WIDTH_M,targetWidth=CONVENIENCE_TARGET_PANEL_WIDTH_M}={}){
  if(!Number.isFinite(length)||length<=0)return {segments:[],entrance:false,door:null};
  const withDoor=entrance&&length>=doorWidth-1e-7;
  const segments=[];
@@ -127,7 +128,7 @@ export function drawConvenienceRoof(part,quad,brandId,{width=8,depth=6,height=4,
 // Reusable geometry-only facade glazing. Coordinates are along a flat wall:
 // rect(start,end,bottom,top,color,outwardOffset). The caller supplies its wall
 // orientation; neither the glazing nor the door knows about OSM.
-export function paintConvenienceGlazing(rect,{length,bottom=0,top,side='front',backWall=false,doorWidth=2}){
+export function paintConvenienceGlazing(rect,{length,bottom=0,top,side='front',backWall=false,doorWidth=CONVENIENCE_DOOR_WIDTH_M}){
  if(!(length>0&&top>bottom))return false;
  const layout=conveniencePanelLayout(length,{entrance:side==='front',doorWidth});
  const frame=.065,glassBottom=bottom+.06,glass=0x415c6a,frameColor=0x273b47;
