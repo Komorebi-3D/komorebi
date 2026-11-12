@@ -1,6 +1,6 @@
 // Generic, renderer-independent convenience-store appearance.
 // The brand modules can later provide signs, doors, shelves and interiors.
-import {sevenEleven} from './seven-eleven.js?v=convenience-v1-20261112';
+import {sevenEleven} from './seven-eleven.js?v=seven-sign-v1-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
 import {ministop} from './ministop.js?v=convenience-v4-20261112';
@@ -193,8 +193,10 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
  // sign only on side/back. Logo panel has no central seam.
  const logoStart=(center-1)*unit,logoEnd=(center+1)*unit;
  rect(logoStart,logoEnd,signBottom,top,sign.background,.012);
- rect(logoStart,logoEnd,top-(top-signBottom)*.20,top,sign.upper,.018);
- rect(logoStart,logoEnd,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.018);
+ if(!sign.logo){
+  rect(logoStart,logoEnd,top-(top-signBottom)*.20,top,sign.upper,.018);
+  rect(logoStart,logoEnd,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.018);
+ }
  if(side==='front'){
   rect(logoStart,logoEnd,glassBottom,signBottom,0x668995,.011);
   rect(logoStart,logoStart+frame,glassBottom,signBottom,STORE_FRAME,.018);
@@ -208,13 +210,24 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
  // Pixel-built word mark, centered within the merged two-module sign.
  const label=sign.label||'',pixels=[];
  for(const ch of label){const glyph=sign.glyphs?.[ch];if(glyph)pixels.push(glyph);}
+ // Optional brand-specific logo: low-poly quadrilaterals in normalized coordinates.
+ if(sign.logo){
+  const h=top-signBottom,logoH=h*.91,logoW=Math.min((logoEnd-logoStart)*.9,logoH*1.24);
+  const lx=length/2-logoW/2,ly=signBottom+(h-logoH)/2;
+  const point=([x,y])=>xy(lx+x*logoW,ly+y*logoH,.033);
+  for(const [p0,p1,p2,p3,tint] of sign.logo.quads)
+   quad(mesh,point(p0),point(p1),point(p2),point(p3),tint);
+ }
  const cols=pixels.length*4-1,markH=(top-signBottom)*.43;
- const pixel=Math.min((logoEnd-logoStart)*.90/cols,markH/5);
- const left=(length-cols*pixel)/2,y0=signBottom+(top-signBottom)*.30;
+ const pixel=sign.logo?
+  Math.min((top-signBottom)*.91*1.24*1.05/cols,(top-signBottom)*.91*.18/5):
+  Math.min((logoEnd-logoStart)*.90/cols,markH/5);
+ const left=(length-cols*pixel)/2,y0=sign.logo?
+  signBottom+(top-signBottom)*(.045+.91*.31):signBottom+(top-signBottom)*.30;
  for(let i=0;i<pixels.length;i++)for(let j=0;j<5;j++)for(let k=0;k<3;k++)
   if(pixels[i][j][k]==='1')
    rect(left+(i*4+k)*pixel,left+(i*4+k+.89)*pixel,
-    y0+(4-j)*pixel,y0+(4-j+.89)*pixel,sign.textColor,.03);
+    y0+(4-j)*pixel,y0+(4-j+.89)*pixel,sign.textColor,sign.logo?.05:.03);
  return true;
 }
 
