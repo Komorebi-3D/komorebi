@@ -7,6 +7,12 @@
 
 ## 1. 現在の状態
 
+## 松戸OSMラベルからのテナント編集UI（2026-11-12／実機未確認）
+- 松戸の建物・店舗ラベルをタップすると、階・テナント名・入居/空き区画・メモを入力できる編集パネルを表示。下書きは端末のlocalStorageへOSM要素種別＋ID別に保存し、再度開くと復元。OSM本体には送信しない。
+- `map-builder.js` に編集対象のOSM要素IDをラベルへ引き継ぐ処理を追加し、ラベルタップを有効化。`dev.template.html` と生成版 `dev.html` のモジュールURLを更新。固定Engine、v0.6/v0.7安定版、モック、GitHub Actionsは変更しない。
+- 未実装：OSM OAuth認証・変更差分プレビュー・投稿、ゲームの3D形状や共有JSONへの反映。GitHub Pages配信・Safari実機・ビルド一致の検証は未実施。
+
+
 - **開発フェーズ:** Development / Debug。開発入口は [`komorebi3d/dev.html`](https://komorebi-3d.github.io/komorebi/komorebi3d/dev.html)。テスト機能を残して開発を続ける。
 - **疎結合作戦:** **成功・正式完了（2026-11-09、ユーザー確認済み）。追加のコード整理・実機テストは不要。** Game API、ゲーム画面とパネルの表示分離、独立JSモジュール、4スロット配置の基盤が現行コードに存在する。
 - **チャット用自己完結モック（2026-11-10）:** `--mode=chat` で**4パネル**の `mock.chat.html` を生成。初期配置は `{top:'build',left:'game',right:'test',bottom:'runtime'}`。左 `game.mock.html`/`.css` と同じビルド切替で `test.mock.html`/`.css` を使用し、テスト操作は表示専用（ゲーム用操作JSは非搭載）。`test.mock.css` は見出しとリセットを固定し、本文だけ縦スクロール。`mock-layout.css` は左右440pxを維持。ⓘ・交換・削除・再追加・高さ保持は共通 `dev-panel-layout.js`・`common.css` に一本化。**生成結果の静的整合性PASSに加え、4パネルのチャット内表示・操作もユーザー実機PASS（2026-11-10）。** 右テスト操作の見出し・リセット固定、本文スクロール、左右の高さ保持、ⓘ・交換・削除・再追加を確認済み。 先行する3パネル試作はiPad横向きでユーザーPASS済み（2026-11-10）。モック専用のGitHub Pages・Safari追加検証は行わない。
