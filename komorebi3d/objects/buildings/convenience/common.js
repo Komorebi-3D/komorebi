@@ -171,13 +171,13 @@ const FAMILY_GLYPHS={
  M:['101','111','111','101','101'],r:['000','110','101','100','100'],
  t:['010','111','010','010','011']
 };
-function familymartFacade(quad,mesh,a,b,bottom,top,side,signCenter=true){
+function familymartFacade(quad,mesh,a,b,bottom,top,side,outward){
  const dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz);
  if(length<.1||top-bottom<.2)return false;
  const panels=Math.max(2,Math.min(40,Math.round(length/1.55/2)*2));
  const unit=length/panels,center=panels/2,signBottom=top-(top-bottom)*.2;
- const xy=(u,y,offset=0)=>[a[0]+dx*u/length+side*dz/length*offset,y,
-   a[1]+dz*u/length-side*dx/length*offset];
+ const xy=(u,y,offset=0)=>[a[0]+dx*u/length+outward*dz/length*offset,y,
+   a[1]+dz*u/length-outward*dx/length*offset];
  const rect=(x0,x1,y0,y1,tint,offset=0)=>{
   if(x1<=x0||y1<=y0)return;
   quad(mesh,xy(x0,y0,offset),xy(x1,y0,offset),xy(x1,y1,offset),xy(x0,y1,offset),tint);
@@ -239,7 +239,7 @@ function paintBrandStripe(quad,mesh,a,b,bottom,top,brand){
   }
  }
 }
-export function paintConvenienceWall(quad,mesh,a,b,height,baseColor,spans,facadeSide='side'){
+export function paintConvenienceWall(quad,mesh,a,b,height,baseColor,spans,facadeSide='side',outward=1){
  const wall=(bottom,top,color)=>{
   if(top>bottom+1e-8)
    quad(mesh,[a[0],bottom,a[1]],[b[0],bottom,b[1]],[b[0],top,b[1]],[a[0],top,a[1]],color);
@@ -247,7 +247,7 @@ export function paintConvenienceWall(quad,mesh,a,b,height,baseColor,spans,facade
  let cursor=0;
  for(const span of spans||[]){
   if(span.bottom>cursor)wall(cursor,span.bottom,baseColor);
-  if(span.brand.id!=='familymart'||!familymartFacade(quad,mesh,a,b,span.bottom,span.top,facadeSide))
+  if(span.brand.id!=='familymart'||!familymartFacade(quad,mesh,a,b,span.bottom,span.top,facadeSide,outward))
    paintBrandStripe(quad,mesh,a,b,span.bottom,span.top,span.brand);
   cursor=Math.max(cursor,span.top);
  }
