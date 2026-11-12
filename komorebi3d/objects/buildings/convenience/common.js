@@ -3,7 +3,7 @@
 import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
-import {ministop} from './ministop.js?v=ministop-sign-v1-20261112';
+import {ministop} from './ministop.js?v=ministop-white-logo-v2-20261112';
 import {lawson} from './lawson.js?v=convenience-v4-20261112';
 // Distance tolerance in centimetres; edit 100 to adjust the allowed POI offset.
 export const CONVENIENCE_MATCH_TOLERANCE_CM=100;
