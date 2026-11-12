@@ -13,6 +13,22 @@ export async function loadOsmTagIgnore(url='./maps/osm-tags.ignore'){
 export function visibleOsmTags(tags={},rules=[]){
  return Object.entries(tags).filter(([key])=>!rules.some(rule=>rule.exact===key||(rule.prefix!==undefined&&key.startsWith(rule.prefix))));
 }
+// A review-only XML draft. Real OSM uploads require the latest element
+// version, geometry and existing tags, plus an authenticated changeset.
+export function tenantDraftXml(draft){
+ const esc=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+ const attr=(name,value)=>' '+name+'="'+esc(value)+'"';
+ const type=['node','way','relation'].includes(draft.osm?.type)?draft.osm.type:'unknown';
+ return [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<komorebiOsmDraft version="1">',
+  '  <target'+attr('type',type)+attr('id',draft.osm?.id)+' />',
+  '  <tenant'+attr('floor',draft.floor)+attr('name',draft.tenant)+attr('status',draft.status)+' />',
+  '  <notes>'+esc(draft.notes)+'</notes>',
+  '  <savedAt>'+esc(draft.savedAt)+'</savedAt>',
+  '</komorebiOsmDraft>'
+ ].join('\n');
+}
 export function createMapLabels(host,ignoreRules=[]){
  const layer=document.createElement('div');
  layer.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3';
@@ -36,7 +52,7 @@ export function createMapLabels(host,ignoreRules=[]){
   heading.textContent=item.name+'｜店舗・階数の編集';
   heading.style.cssText='font-size:17px;line-height:1.4;margin:0 0 6px;';
   const note=document.createElement('p');
-  note.textContent='編集内容をJSONで確認してから端末に保存します。OSM本体には送信されません。';
+  note.textContent='編集内容をXMLで確認してから端末に保存します。OSM本体には送信されません。';
   note.style.cssText='color:#4e655b;font-size:12px;margin:0 0 12px;';
   const fields=document.createElement('div');
   const addField=(labelText,element)=>{
@@ -70,20 +86,20 @@ export function createMapLabels(host,ignoreRules=[]){
   const preview=document.createElement('div');
   preview.hidden=true;
   const previewLabel=document.createElement('p');
-  previewLabel.textContent='保存予定のJSON（OSM APIへの送信データではありません）';
+  previewLabel.textContent='XMLプレビュー（OSM APIにそのまま送信できるXMLではありません）';
   previewLabel.style.cssText='font-size:12px;color:#4e655b;margin:12px 0 6px;';
-  const json=document.createElement('pre');
-  json.style.cssText='box-sizing:border-box;max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#e8f0eb;border:1px solid #aabfb5;border-radius:8px;color:#19352f;font:12px/1.5 ui-monospace,SFMono-Regular,monospace;';
+  const xml=document.createElement('pre');
+  xml.style.cssText='box-sizing:border-box;max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#e8f0eb;border:1px solid #aabfb5;border-radius:8px;color:#19352f;font:12px/1.5 ui-monospace,SFMono-Regular,monospace;';
   const feedback=document.createElement('p');
   feedback.style.cssText='min-height:1em;font-size:12px;color:#4e655b;';
-  preview.append(previewLabel,json,feedback);
+  preview.append(previewLabel,xml,feedback);
   const actions=document.createElement('div');
   actions.style.cssText='display:flex;gap:8px;margin-top:12px;';
   const close=document.createElement('button');close.type='button';close.textContent='閉じる';
   const confirm=document.createElement('button');confirm.type='submit';confirm.textContent='内容を確認';
   const back=document.createElement('button');back.type='button';back.textContent='編集に戻る';
   const save=document.createElement('button');save.type='submit';save.textContent='下書きを保存';
-  const copy=document.createElement('button');copy.type='button';copy.textContent='JSONをコピー';
+  const copy=document.createElement('button');copy.type='button';copy.textContent='XMLをコピー';
   for(const b of [close,confirm,back,save,copy])b.style.cssText='flex:1;min-width:0;padding:11px 5px;border-radius:8px;border:1px solid #91aca0;background:#fff;color:#163c30;font-weight:700;font:inherit;';
   confirm.style.background='#236c56';confirm.style.color='#fff';
   save.style.background='#236c56';save.style.color='#fff';
@@ -100,20 +116,20 @@ export function createMapLabels(host,ignoreRules=[]){
   const setChecking=on=>{
    checking=on;fields.hidden=on;preview.hidden=!on;
    actions.replaceChildren(...(on?[back,save]:[close,confirm]));
-   note.textContent=on?'内容を確認し、問題なければ下書きを保存してください。OSMには送信しません。':'編集内容をJSONで確認してから端末に保存します。OSM本体には送信されません。';
+   note.textContent=on?'XMLを確認し、問題なければ下書きを保存してください。OSM投稿には最新の要素情報・認証が必要です。':'編集内容をXMLで確認してから端末に保存します。OSM本体には送信されません。';
   };
   const dismiss=()=>{mask.remove();editor=null;};
   close.addEventListener('click',dismiss);
   back.addEventListener('click',()=>{pending=null;setChecking(false);});
   copy.addEventListener('click',async()=>{
-   try{await navigator.clipboard.writeText(json.textContent);feedback.textContent='JSONをコピーしました。';}
-   catch(_){feedback.textContent='コピーできませんでした。JSONを長押しして選択してください。';}
+   try{await navigator.clipboard.writeText(xml.textContent);feedback.textContent='XMLをコピーしました。';}
+   catch(_){feedback.textContent='コピーできませんでした。XMLを長押しして選択してください。';}
   });
   form.addEventListener('submit',event=>{
    event.preventDefault();
    if(!checking){
     pending=payload();
-    json.textContent=JSON.stringify(pending,null,2);
+    xml.textContent=tenantDraftXml(pending);
     feedback.textContent='';
     setChecking(true);
     const copyRow=document.createElement('div');
