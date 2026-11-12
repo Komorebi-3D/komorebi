@@ -61,7 +61,7 @@ function building(m,p,h,t,spans,roadSegments){
   const e=edges[i],side=i===front?'front':i===back?'back':'side';
   paintConvenienceWall(quad,m,e.a,e.b,h,t,spans,side,outward);
  }
- top(m,p,h,t);
+ top(m,p,h,spans?.some(span=>span.brand.id==='familymart')?0xffffff:t);
 }
 function strip(m,points,width,t,y=.045){
  for(let i=1;i<points.length;i++){
