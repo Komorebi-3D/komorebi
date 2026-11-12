@@ -132,7 +132,7 @@ export function drawConvenienceRoof(part,quad,brandId,{width=8,depth=6,height=4,
 export function paintConvenienceGlazing(rect,{length,bottom=0,top,side='front',backWall=false,doorWidth=CONVENIENCE_DOOR_WIDTH_M}){
  if(!(length>0&&top>bottom))return false;
  const layout=conveniencePanelLayout(length,{entrance:side==='front',doorWidth});
- const frame=.065,glassBottom=bottom+.06,glass=0x415c6a,frameColor=0x273b47;
+ const frame=.065,glassBottom=bottom+.06,glass=0xbcd3dd,frameColor=0x273b47;
  for(const seg of layout.segments)
   rect(seg.start,seg.end,bottom,top,backWall&&side==='back'?0xc4c9c7:glass);
  for(let i=1;i<layout.segments.length;i++){
@@ -141,7 +141,7 @@ export function paintConvenienceGlazing(rect,{length,bottom=0,top,side='front',b
  }
  if(layout.door){
   const {start,end}=layout.door;
-  rect(start,end,glassBottom,top,0x668995,.011);
+  rect(start,end,glassBottom,top,0xb7d0db,.011);
   rect(start,start+frame,glassBottom,top,frameColor,.018);
   rect(end-frame,end,glassBottom,top,frameColor,.018);
   rect(length/2-frame/2,length/2+frame/2,glassBottom,top,frameColor,.019);
