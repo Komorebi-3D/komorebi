@@ -1,5 +1,5 @@
 // OSM adapter: brand matching, OSM floor metadata and legacy storefront walls.
-import {convenienceRoofColor,paintConvenienceGlazing} from './common.js?v=convenience-common-windows-v3-20261112';
+import {convenienceRoofColor,paintConvenienceGlazing} from './common.js?v=convenience-front-logo-v4-20261112';
 import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
@@ -188,18 +188,17 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
    rect(x0,x1,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.006);
   }
   // Align the sign panel seam exactly with the shared window grid.
-  if(k>0&&k!==center)rect(x0-frame/2,x0+frame/2,signBottom,top,0xc3c9cb,.008);
+  if(k>0&&(side!=='front'||k!==center))rect(x0-frame/2,x0+frame/2,signBottom,top,0xc3c9cb,.008);
  }
  // One exception spans exactly two regular modules: sign+door at the front,
  // sign only on side/back. Logo panel has no central seam.
+ if(side==='front'){
  const logoStart=(center-1)*unit,logoEnd=(center+1)*unit;
  rect(logoStart,logoEnd,signBottom,top,sign.logo?.background??sign.background,.012);
  if(!sign.logo){
   rect(logoStart,logoEnd,top-(top-signBottom)*.20,top,sign.upper,.018);
   rect(logoStart,logoEnd,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.018);
  }
- // Same window and double-door primitive as Forest; OSM retains its opaque back wall.
- paintConvenienceGlazing(rect,{length,panels,bottom,top:signBottom,side,backWall:true});
  // Pixel-built word mark, centered within the merged two-module sign.
  const label=sign.label||'',pixels=[];
  for(const ch of label){const glyph=sign.glyphs?.[ch];if(glyph)pixels.push(glyph);}
@@ -225,6 +224,9 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
   if(pixels[i][j][k]==='1')
    rect(left+(i*4+k)*pixel,left+(i*4+k+.89)*pixel,
     y0+(4-j)*pixel,y0+(4-j+.89)*pixel,sign.textColor,sign.logo?.05:.03);
+ }
+ // Window and door rendering remains shared across all sides.
+ paintConvenienceGlazing(rect,{length,panels,bottom,top:signBottom,side,backWall:true});
  return true;
 }
 
