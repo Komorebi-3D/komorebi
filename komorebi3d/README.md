@@ -4,7 +4,7 @@ Komorebi Engineを利用するモバイル向け3Dゲームです。
 
 ## 現在の安定基準：v0.7
 
-**[Komorebi 3D v0.7を開く](https://shuma-fujita1012.github.io/komorebi/komorebi3d/komorebi3d-app-v07-engine-main-test.html)**
+**[Komorebi 3D v0.7を開く](https://komorebi-3d.github.io/komorebi/komorebi3d/komorebi3d-app-v07-engine-main-test.html)**
 
 2026-11-08、iPhone Safari実機テスト **PASS**。Input・Camera・Renderer・Core・Collisionを`main`に統合したEngineから読み込みます。
 
@@ -30,7 +30,7 @@ Komorebi Engineを利用するモバイル向け3Dゲームです。
 
 ## 現在の開発用ページ
 
-**[固定開発URL dev.html](https://shuma-fujita1012.github.io/komorebi/komorebi3d/dev.html)** — ゲームv0.7を元にした開発版。コミット情報・JST時刻表示を実装済み（実機再確認待ち）。
+**[固定開発URL dev.html](https://komorebi-3d.github.io/komorebi/komorebi3d/dev.html)** — ゲームv0.7を元にした開発版。コミット情報・JST時刻表示を実装済み（実機再確認待ち）。
 
 ## ソースと依存
 
