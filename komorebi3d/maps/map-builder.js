@@ -1,4 +1,5 @@
-import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall,resolveOsmConvenienceRoofColor} from '../objects/buildings/convenience/osm-adapter.js?v=convenience-edge-panels-v4-20261112';
+import {CONVENIENCE_DOOR_WIDTH_M} from '../objects/buildings/convenience/const.js?v=convenience-dimensions-v1-20261112';
+import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall,resolveOsmConvenienceRoofColor} from '../objects/buildings/convenience/osm-adapter.js?v=convenience-dimensions-v5-20261112';
 // Convert verified OSM map data into renderer-independent meshes and roof labels.
 // Defaults preserve the original Matsudo 500m test snapshot.
 export function buildMap(map,{latitude=35.78444,longitude=139.90061,halfSize=250}={}){
@@ -46,10 +47,10 @@ function building(m,p,h,t,spans,roadSegments,tags){
   return {a,b,len,mid:[(a[0]+b[0])/2,(a[1]+b[1])/2],normal:[outward*dz/len,-outward*dx/len]};
  });
  let front=edges.reduce((best,e,i)=>e.len>edges[best].len?i:best,0),score=Infinity;
- const eligible=edges.some(e=>e.len>=2);
- // A 2m opening must fit on its chosen edge. Short edges cannot host doors.
+ const eligible=edges.some(e=>e.len>=CONVENIENCE_DOOR_WIDTH_M);
+ // The shared-width opening must fit on its chosen edge. Short edges cannot host doors.
  for(let i=0;i<n;i++)for(const [a,b] of roadSegments){
-  if(eligible&&edges[i].len<2)continue;
+  if(eligible&&edges[i].len<CONVENIENCE_DOOR_WIDTH_M)continue;
   const mx=edges[i].mid[0],mz=edges[i].mid[1],dx=b[0]-a[0],dz=b[1]-a[1];
   const t=Math.max(0,Math.min(1,((mx-a[0])*dx+(mz-a[1])*dz)/(dx*dx+dz*dz||1)));
   const dist=Math.hypot(mx-a[0]-t*dx,mz-a[1]-t*dz);
