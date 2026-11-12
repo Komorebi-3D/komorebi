@@ -1,5 +1,6 @@
 // OSM adapter: brand matching, OSM floor metadata and legacy storefront walls.
-import {convenienceRoofColor,paintConvenienceGlazing,paintConvenienceSign} from './common.js?v=convenience-edge-panels-v5-20261112';
+import {CONVENIENCE_DOOR_WIDTH_M} from './const.js?v=convenience-dimensions-v1-20261112';
+import {convenienceRoofColor,paintConvenienceGlazing,paintConvenienceSign} from './common.js?v=convenience-dimensions-v6-20261112';
 import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
@@ -165,7 +166,7 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
  if(!brand.sign)return false;
  const dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz);
  if(length<.1||top-bottom<.2)return false;
- const entrance=side==='front'&&length>=2;
+ const entrance=side==='front'&&length>=CONVENIENCE_DOOR_WIDTH_M;
  const signBottom=top-(top-bottom)*.2;
  const point=(u,y,offset=0)=>[a[0]+dx*u/length+outward*dz/length*offset,y,
    a[1]+dz*u/length-outward*dx/length*offset];
