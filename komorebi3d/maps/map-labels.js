@@ -75,9 +75,16 @@ export function createMapLabels(host,ignoreRules=[]){
   copyLink.href=OSM_TEST_ORIGIN+'/oauth2/applications/new';copyLink.target='_blank';copyLink.rel='noopener noreferrer';
   copyLink.textContent='テスト環境のOAuthアプリ登録';
   copyLink.style.cssText='display:block;font-size:12px;margin:5px 0;';
+  const copySuccess=document.createElement('div');
+  copySuccess.hidden=true;
+  // Same green palette as the selected Matsudo world button.
+  copySuccess.style.cssText='box-sizing:border-box;width:100%;margin:9px 0 0;padding:12px;border:1px solid #64956c;border-radius:9px;background:#d9ebd5;color:#31563b;font:13px/1.6 system-ui;overflow-wrap:anywhere;';
+  const copySuccessText=document.createElement('div');
+  copySuccessText.style.cssText='font-weight:700;white-space:pre-wrap;';
   const copyResult=document.createElement('div');
-  copyResult.style.cssText='font-size:12px;';
-  copyPane.append(copyInfo,copyPreview,copyStatus,copyClientLabel,copyAuth,copyLink,copyConsentLabel,copyExecute,copyResult);
+  copyResult.style.cssText='margin-top:7px;font-size:12px;';
+  copySuccess.append(copySuccessText,copyResult);
+  copyPane.append(copyInfo,copyPreview,copyStatus,copyClientLabel,copyAuth,copyLink,copyConsentLabel,copyExecute,copySuccess);
   let copySource=null,copyBusy=false,copyCreated=false;
   const refreshCopyButtons=()=>{
    copyButton.disabled=copyBusy;
@@ -118,13 +125,15 @@ export function createMapLabels(host,ignoreRules=[]){
    try{
     const result=await createOsmTestCopy(copySource);
     copyCreated=true;
-    copyStatus.textContent='コピー完了！ テスト用 '+result.type+'/'+result.id+' / changeset '+result.changesetId;
+    copyStatus.textContent='';
+    copySuccessText.textContent='✅ コピー完了！\nテスト用 '+result.type+'/'+result.id+'\nchangeset '+result.changesetId;
+    copySuccess.hidden=false;
     const anchor=document.createElement('a');anchor.href=result.url;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.textContent='テスト環境でコピーを見る';
     copyResult.appendChild(anchor);
     // The existing level edit panel can use this new ID immediately.
     targetType.value=result.type;targetId.value=result.id;
     loaded=null;testDetails.hidden=true;syncTestControls();
-   }catch(e){copyStatus.textContent='コピー作成エラー: '+e.message;}
+   }catch(e){copySuccess.hidden=true;copyStatus.textContent='コピー作成エラー: '+e.message;}
    finally{copyBusy=false;refreshCopyButtons();}
   });
   const note=document.createElement('p');
