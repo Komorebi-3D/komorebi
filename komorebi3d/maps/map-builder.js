@@ -1,4 +1,4 @@
-import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall,resolveOsmConvenienceRoofColor} from '../objects/buildings/convenience/osm-adapter.js?v=convenience-osm-adapter-v2-20261112';
+import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall,resolveOsmConvenienceRoofColor} from '../objects/buildings/convenience/osm-adapter.js?v=convenience-front-logo-v3-20261112';
 // Convert verified OSM map data into renderer-independent meshes and roof labels.
 // Defaults preserve the original Matsudo 500m test snapshot.
 export function buildMap(map,{latitude=35.78444,longitude=139.90061,halfSize=250}={}){
