@@ -237,6 +237,17 @@ function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
  return true;
 }
 
+// All convenience brands share one roof rule. One-storey OSM metadata takes
+// priority; where the level count is absent, compact (<=5m) buildings are
+// treated as single-storey. Taller or explicitly multi-storey roofs stay normal.
+export function convenienceRoofColor(spans,tags,height,baseColor){
+ if(!spans?.length)return baseColor;
+ const levels=tags?.['building:levels'];
+ const singleStorey=levels===undefined||levels===null||String(levels).trim()===''?
+  height<=5:validPositiveNumber(levels)===1;
+ return singleStorey?0xffffff:baseColor;
+}
+
 // Preserve each brand's stripe proportions, with a repeating 1m physical cycle.
 function paintBrandStripe(quad,mesh,a,b,bottom,top,brand){
  const cycleHeight=1;
