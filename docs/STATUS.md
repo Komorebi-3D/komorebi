@@ -1,3 +1,10 @@
+## OSM本番要素のテスト環境へのコピー（2026-11-13／実API・実機未検証）
+- 松戸ラベルの編集画面右上に「テスト環境へコピー」を追加。本番OSMはGETで読み取るだけ。編集前の元タグ・座標・way輪郭を確認した後、テストサーバーへ新規登録する。
+- コピー対象はnodeとway（wayは最大150参照・149ユニークノード）、relation未対応。wayは本番 `/api/0.6/way/{id}/full` から輪郭の構成ノードを取得し、テストサーバーの`changeset/upload`へ新しいノード・wayをまとめて登録する（差分アップロードは一括処理）。元のOSM IDはコピーしない。
+- テスト用OAuth PKCEログイン・コピー内容の確認チェックを必須にし、新たに発行されたテスト用IDと結果リンクを表示。既存の階数編集画面にはテスト用IDを引き継ぐ。本番OSMへの書き込みAPIなし。
+- 確認画面のJSON編集内容はlocalStorageに保存しない。OAuthトークンは従来どおりsessionStorageを使用する。テストコピーの連続実行は同じ編集パネル内で防止する。
+- JavaScript構文と静的文言を確認予定。テスト環境への実送信、公開Pages、Safari実機はまだ未検証。固定Engine・安定版・モックは未変更。
+
 ## OSM開発サーバー向けlevelタグ送信（2026-11-13／API送信・実機未検証）
 - `komorebi3d/maps/osm-test-api.js` を追加。固定先は `https://master.apis.dev.openstreetmap.org` のみ。本番OSMのAPI・OAuthへは送信しない。
 - OAuth2 Authorization Code + PKCE（write_api）、sessionStorage内の短期ブラウザセッション、変更セット作成・要素PUT・変更セットcloseを実装。対象は開発サーバー上で個別取得した既存のnode/way/relationで、店舗・施設タグがあり、かつlevelタグがない要素のみ。
