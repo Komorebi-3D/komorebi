@@ -30,5 +30,8 @@ const FOREST_TREE_POSITIONS=(()=>{
   occupied.push([px,pz]);
  }
  if(trees.length!==50)throw Error('Forest requires 50 safely spaced Tree v2 positions; got '+trees.length);
- return trees;
+ const cleared=new Set(['39.2,-5.4','27.8,-3.4','36.2,2.5','42.8,11.2']);
+ const remaining=trees.filter(([x,z])=>!cleared.has(x+','+z));
+ if(remaining.length!==46)throw Error('Expected exactly four cleared store-front trees');
+ return remaining;
 })();
