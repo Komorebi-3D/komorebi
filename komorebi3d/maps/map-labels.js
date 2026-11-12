@@ -36,118 +36,114 @@ export function createMapLabels(host,ignoreRules=[]){
  const viewports=[...host.querySelectorAll('.view-panel canvas')].map(canvas=>({canvas,items:[]}));
  let entries=[];
 
- // Editing is local-only until authenticated OSM changeset support is implemented.
+ // JSON-first local drafting. Never writes to OpenStreetMap.
  let editor=null;
+ const storageKey=item=>'komorebi:osm-draft:'+item.osmType+':'+item.osmId;
+ function readDraft(item){
+  try{
+   const draft=JSON.parse(localStorage.getItem(storageKey(item))||'null');
+   return draft&&draft.schema==='komorebi.osm-tags-draft.v1'&&draft.tags&&typeof draft.tags==='object'?draft:null;
+  }catch(_){return null;}
+ }
  function openEditor(item){
   if(!item.osmType||!item.osmId)return;
   editor?.remove();
-  const key='komorebi:osm-draft:'+item.osmType+':'+item.osmId;
-  let saved={};
-  try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(_){}
+  const baseTags={...(item.originalTags||item.tags||{})};
+  const stored=readDraft(item);
+  const initial={...(stored?.tags||item.tags||{})};
   const mask=document.createElement('div');
-  mask.style.cssText='position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(8,18,25,.68);pointer-events:auto;';
+  mask.style.cssText='position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(8,18,25,.72);pointer-events:auto;';
   const form=document.createElement('form');
-  form.style.cssText='box-sizing:border-box;width:min(100%,390px);max-height:95%;overflow:auto;padding:17px;background:#f8fcfa;color:#18352f;border-radius:14px;font:14px/1.5 system-ui,-apple-system,sans-serif;box-shadow:0 10px 35px #06140d66;';
-  const heading=document.createElement('h3');
-  heading.textContent=item.name+'｜店舗・階数の編集';
-  heading.style.cssText='font-size:17px;line-height:1.4;margin:0 0 6px;';
+  form.style.cssText='box-sizing:border-box;width:min(100%,430px);max-height:94%;overflow:auto;padding:16px;background:#f8fcfa;color:#18352f;border-radius:14px;font:14px/1.5 system-ui,-apple-system,sans-serif;box-shadow:0 10px 35px #06140d66;';
+  const title=document.createElement('h3');
+  title.textContent=item.name+'｜OSMタグの編集';
+  title.style.cssText='font-size:17px;line-height:1.4;margin:0 0 7px;';
   const note=document.createElement('p');
-  note.textContent='編集内容をXMLで確認してから端末に保存します。OSM本体には送信されません。';
-  note.style.cssText='color:#4e655b;font-size:12px;margin:0 0 12px;';
-  const fields=document.createElement('div');
-  const addField=(labelText,element)=>{
-   const wrap=document.createElement('label');
-   wrap.style.cssText='display:block;margin:10px 0;font-weight:600;';
-   const caption=document.createElement('span');caption.textContent=labelText;caption.style.cssText='display:block;margin-bottom:4px;';
-   element.style.cssText='box-sizing:border-box;width:100%;padding:10px;border:1px solid #aabfb5;border-radius:7px;background:#fff;color:#152b25;font:inherit;';
-   wrap.append(caption,element);fields.appendChild(wrap);return element;
-  };
-  const textInput=(value='')=>{const el=document.createElement('input');el.type='text';el.value=value;return el;};
-  const floorSelect=document.createElement('select');
-  for(let i=1;i<=9;i++){
-   const opt=document.createElement('option');opt.value=String(i);opt.textContent=i+'階';floorSelect.appendChild(opt);
-  }
-  const previousFloor=String(saved.floor??'').trim().match(/^([1-9])(?:F|階)?$/i);
-  floorSelect.value=previousFloor?previousFloor[1]:'1';
-  const floor=addField('階（1階〜9階）',floorSelect);
-  const tenant=addField('店舗・テナント名',textInput(saved.tenant||''));
-  tenant.placeholder='例：○○カフェ';
-  const status=document.createElement('select');
-  for(const [value,name] of [['unknown','未確認'],['occupied','営業中・入居中'],['vacant','空き区画']]){
-   const opt=document.createElement('option');opt.value=value;opt.textContent=name;status.appendChild(opt);
-  }
-  status.value=['unknown','occupied','vacant'].includes(saved.status)?saved.status:'unknown';
-  addField('区画の状態',status);
-  const notes=addField('メモ（確認した情報など）',document.createElement('textarea'));
-  notes.value=saved.notes||'';notes.rows=2;notes.placeholder='現地確認した内容をメモ';
+  note.textContent='既存のJSONタグを編集します。保存先はこの端末のみ。OSMには送信されません。';
+  note.style.cssText='color:#4e655b;font-size:12px;margin:0 0 8px;';
   const metadata=document.createElement('p');
-  metadata.textContent='OSM '+item.osmType+'/'+item.osmId+' ・ この端末内の下書き';
-  metadata.style.cssText='font-size:11px;color:#587166;';
-  const preview=document.createElement('div');
-  preview.hidden=true;
-  const previewLabel=document.createElement('p');
-  previewLabel.textContent='XMLプレビュー（OSM APIにそのまま送信できるXMLではありません）';
-  previewLabel.style.cssText='font-size:12px;color:#4e655b;margin:12px 0 6px;';
-  const xml=document.createElement('pre');
-  xml.style.cssText='box-sizing:border-box;max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#e8f0eb;border:1px solid #aabfb5;border-radius:8px;color:#19352f;font:12px/1.5 ui-monospace,SFMono-Regular,monospace;';
-  const feedback=document.createElement('p');
-  feedback.style.cssText='min-height:1em;font-size:12px;color:#4e655b;';
-  preview.append(previewLabel,xml,feedback);
-  const actions=document.createElement('div');
-  actions.style.cssText='display:flex;gap:8px;margin-top:12px;';
-  const close=document.createElement('button');close.type='button';close.textContent='閉じる';
-  const confirm=document.createElement('button');confirm.type='submit';confirm.textContent='内容を確認';
-  const back=document.createElement('button');back.type='button';back.textContent='編集に戻る';
-  const save=document.createElement('button');save.type='submit';save.textContent='下書きを保存';
-  const copy=document.createElement('button');copy.type='button';copy.textContent='XMLをコピー';
-  for(const b of [close,confirm,back,save,copy])b.style.cssText='flex:1;min-width:0;padding:11px 5px;border-radius:8px;border:1px solid #91aca0;background:#fff;color:#163c30;font-weight:700;font:inherit;';
-  confirm.style.background='#236c56';confirm.style.color='#fff';
-  save.style.background='#236c56';save.style.color='#fff';
-  let pending=null,checking=false;
-  const payload=()=>({
-   schema:'komorebi.osm-tenant-draft.v1',
-   osm:{type:item.osmType,id:String(item.osmId)},
-   floor:Number(floor.value),
-   tenant:tenant.value.trim(),
-   status:status.value,
-   notes:notes.value.trim(),
-   savedAt:new Date().toISOString()
-  });
-  const setChecking=on=>{
-   checking=on;fields.hidden=on;preview.hidden=!on;
-   actions.replaceChildren(...(on?[back,save]:[close,confirm]));
-   note.textContent=on?'XMLを確認し、問題なければ下書きを保存してください。OSM投稿には最新の要素情報・認証が必要です。':'編集内容をXMLで確認してから端末に保存します。OSM本体には送信されません。';
-  };
+  metadata.textContent='OSM '+item.osmType+'/'+item.osmId+' ／ version: '+(item.osmVersion??'未取得');
+  metadata.style.cssText='font-size:11px;color:#587166;margin:4px 0;';
+  const rows=document.createElement('div');
+  const inputStyle='box-sizing:border-box;width:100%;min-width:0;padding:8px;border:1px solid #aabfb5;border-radius:7px;background:white;color:#152b25;font:13px/1.4 system-ui,-apple-system,sans-serif;';
+  function addRow(key='',value=''){
+   const row=document.createElement('div');
+   row.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 32px;gap:5px;margin:6px 0;';
+   const k=document.createElement('input');k.value=key;k.placeholder='タグ名';k.setAttribute('aria-label','タグ名');k.style.cssText=inputStyle;
+   const v=document.createElement('input');v.value=value;v.placeholder='値';v.setAttribute('aria-label','タグの値');v.style.cssText=inputStyle;
+   const remove=document.createElement('button');remove.type='button';remove.textContent='×';
+   remove.setAttribute('aria-label',key+' タグを削除');
+   remove.style.cssText='border:1px solid #aabfb5;border-radius:7px;background:white;color:#8b3535;font-size:18px;';
+   remove.addEventListener('click',()=>row.remove());
+   row.append(k,v,remove);rows.appendChild(row);
+  }
+  const tagsHeader=document.createElement('p');
+  tagsHeader.textContent='タグ名 / 値';
+  tagsHeader.style.cssText='font-weight:700;margin:12px 0 4px;';
+  for(const [k,v] of Object.entries(initial))addRow(k,String(v));
+  const add=document.createElement('button');add.type='button';add.textContent='＋ タグを追加';
+  add.style.cssText='padding:8px 11px;border:1px solid #aabfb5;border-radius:7px;background:#fff;color:#236c56;font-weight:700;';
+  add.addEventListener('click',()=>{addRow();rows.lastElementChild?.firstElementChild?.focus();});
+  const error=document.createElement('p');
+  error.style.cssText='color:#a52f2f;font-size:12px;min-height:1em;';
+  const review=document.createElement('div');review.hidden=true;
+  const previewTitle=document.createElement('p');previewTitle.textContent='JSON変更内容の確認（OSM未送信）';previewTitle.style.fontWeight='700';
+  const json=document.createElement('pre');json.style.cssText='max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#e8f0eb;border-radius:8px;color:#19352f;font:12px/1.5 ui-monospace,monospace;';
+  review.append(previewTitle,json);
+  const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px;';
+  const makeButton=(label,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='flex:1;padding:11px 5px;border:1px solid #91aca0;border-radius:8px;background:'+(primary?'#236c56':'#fff')+';color:'+(primary?'white':'#163c30')+';font:700 14px system-ui;';return b;};
+  const close=makeButton('閉じる'),confirm=makeButton('内容を確認',true),back=makeButton('編集に戻る'),save=makeButton('下書きを保存',true);
   const dismiss=()=>{mask.remove();editor=null;};
   close.addEventListener('click',dismiss);
-  back.addEventListener('click',()=>{pending=null;setChecking(false);});
-  copy.addEventListener('click',async()=>{
-   try{await navigator.clipboard.writeText(xml.textContent);feedback.textContent='XMLをコピーしました。';}
-   catch(_){feedback.textContent='コピーできませんでした。XMLを長押しして選択してください。';}
-  });
-  form.addEventListener('submit',event=>{
-   event.preventDefault();
-   if(!checking){
-    pending=payload();
-    xml.textContent=tenantDraftXml(pending);
-    feedback.textContent='';
-    setChecking(true);
-    const copyRow=document.createElement('div');
-    copyRow.style.cssText='display:flex;justify-content:flex-end;';
-    copyRow.appendChild(copy);preview.appendChild(copyRow);
-    return;
+  function collect(){
+   const tags={};
+   for(const row of rows.children){
+    const k=row.children[0].value.trim(),v=row.children[1].value;
+    if(!k){if(v.trim())throw Error('タグ名が空欄です');continue;}
+    if(Object.prototype.hasOwnProperty.call(tags,k))throw Error('タグ名が重複しています: '+k);
+    if(/[\u0000-\u001f=]/.test(k))throw Error('タグ名に使用できない文字が含まれています');
+    tags[k]=v;
    }
-   try{localStorage.setItem(key,JSON.stringify(pending));dismiss();}
-   catch(_){feedback.textContent='保存できませんでした。ブラウザの保存設定を確認してください。';}
+   const changed={};
+   for(const key of new Set([...Object.keys(baseTags),...Object.keys(tags)])){
+    if(baseTags[key]!==tags[key])changed[key]=Object.prototype.hasOwnProperty.call(tags,key)?tags[key]:null;
+   }
+   return {schema:'komorebi.osm-tags-draft.v1',osm:{type:item.osmType,id:String(item.osmId),version:item.osmVersion??null},baseTags,tags,changes:changed,savedAt:new Date().toISOString()};
+  }
+  let pending=null;
+  confirm.addEventListener('click',()=>{
+   try{
+    pending=collect();error.textContent='';
+    json.textContent=JSON.stringify({osm:pending.osm,changes:pending.changes,tags:pending.tags},null,2);
+    rows.hidden=true;add.hidden=true;tagsHeader.hidden=true;review.hidden=false;
+    controls.replaceChildren(back,save);
+   }catch(e){error.textContent=e.message;}
   });
+  back.addEventListener('click',()=>{pending=null;rows.hidden=false;add.hidden=false;tagsHeader.hidden=false;review.hidden=true;controls.replaceChildren(close,confirm);});
+  save.addEventListener('click',()=>{
+   if(!pending)return;
+   try{
+    localStorage.setItem(storageKey(item),JSON.stringify(pending));
+    dismiss();
+    setLabels(entries.map(e=>({...e,tags:e.originalTags||e.tags,name:e.originalName||e.name})));
+   }catch(_){error.textContent='保存できませんでした。ブラウザの保存設定を確認してください。';}
+  });
+  form.addEventListener('submit',event=>event.preventDefault());
   mask.addEventListener('pointerdown',event=>event.stopPropagation());
   mask.addEventListener('click',event=>{event.stopPropagation();if(event.target===mask)dismiss();});
-  actions.append(close,confirm);
-  form.append(heading,note,fields,preview,metadata,actions);mask.appendChild(form);host.appendChild(mask);editor=mask;
+  controls.append(close,confirm);
+  form.append(title,note,metadata,tagsHeader,rows,add,review,error,controls);
+  mask.appendChild(form);host.appendChild(mask);editor=mask;
  }
  function setLabels(labels){
   layer.replaceChildren();
-  entries=labels.map(label=>({...label,visibleTags:visibleOsmTags(label.tags,ignoreRules)}));
+  entries=labels.map(label=>{
+   const originalTags={...(label.originalTags||label.tags||{})};
+   const draft=readDraft(label);
+   const tags=draft?{...draft.tags}:{...originalTags};
+   const name=String(tags['name:ja']||tags.name||label.originalName||label.name);
+   return {...label,name,originalName:label.originalName||label.name,originalTags,tags,draft:!!draft,visibleTags:visibleOsmTags(tags,ignoreRules)};
+  });
   for(const viewport of viewports)viewport.items=entries.map(()=>null);
  }
  // Instantiate HTML only when a feature enters the screen, not for every OSM POI.
@@ -167,7 +163,7 @@ export function createMapLabels(host,ignoreRules=[]){
     if(!item.visibleTags.length)header.style.display='none';
     const title=document.createElement('div');
     title.style.cssText='max-width:186px;overflow:hidden;text-overflow:ellipsis;color:#fff;font:600 13px/1.4 system-ui,-apple-system,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,.28);';
-    title.textContent=item.name;
+    title.textContent=item.name+(item.draft?' 📝':'');
     card.append(header,title);
     const stem=document.createElement('div');
     stem.style.cssText='width:1px;height:22px;background:#7bead8;box-shadow:0 0 4px rgba(123,234,216,.35);';
