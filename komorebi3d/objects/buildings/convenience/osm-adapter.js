@@ -1,6 +1,6 @@
 // OSM adapter: brand matching, OSM floor metadata and legacy storefront walls.
 import {CONVENIENCE_DOOR_WIDTH_M} from './const.js?v=convenience-one-sign-v3-20261112';
-import {convenienceRoofColor,paintConvenienceGlazing,paintConvenienceSign} from './common.js?v=convenience-glass-blue-v9-20261112';
+import {convenienceRoofColor,paintConvenienceGlazing,paintConvenienceSign} from './common.js?v=convenience-dark-handles-v10-20261112';
 import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
