@@ -1,5 +1,5 @@
 // OSM adapter: brand matching, OSM floor metadata and legacy storefront walls.
-import {convenienceRoofColor,paintConvenienceGlazing} from './common.js?v=convenience-front-logo-v4-20261112';
+import {convenienceRoofColor,paintConvenienceGlazing,paintConvenienceSign} from './common.js?v=convenience-edge-panels-v5-20261112';
 import {sevenEleven} from './seven-eleven.js?v=seven-sign-green-bands-v2-20261112';
 import {familymart} from './familymart.js?v=convenience-sign-v1-20261112';
 import {lawsonStore100} from './lawson-store100.js?v=convenience-v4-20261112';
@@ -162,71 +162,22 @@ export function resolveConveniencePaint(stores,tags,height){
 }
 
 function convenienceStoreFacade(quad,mesh,a,b,bottom,top,side,outward,brand){
- const sign=brand.sign;
- if(!sign)return false;
+ if(!brand.sign)return false;
  const dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz);
  if(length<.1||top-bottom<.2)return false;
- const panels=Math.max(2,Math.min(40,Math.round(length/1.55/2)*2));
- const unit=length/panels,center=panels/2,signBottom=top-(top-bottom)*.2;
- const xy=(u,y,offset=0)=>[a[0]+dx*u/length+outward*dz/length*offset,y,
+ const entrance=side==='front'&&length>=2;
+ const signBottom=top-(top-bottom)*.2;
+ const point=(u,y,offset=0)=>[a[0]+dx*u/length+outward*dz/length*offset,y,
    a[1]+dz*u/length-outward*dx/length*offset];
- const rect=(x0,x1,y0,y1,tint,offset=0)=>{
-  if(x1<=x0||y1<=y0)return;
-  quad(mesh,xy(x0,y0,offset),xy(x1,y0,offset),xy(x1,y1,offset),xy(x0,y1,offset),tint);
+ const rect=(u0,u1,y0,y1,tint,offset=0)=>{
+  if(u1<=u0||y1<=y0)return;
+  quad(mesh,point(u0,y0,offset),point(u1,y0,offset),
+    point(u1,y1,offset),point(u0,y1,offset),tint);
  };
- const frame=Math.min(.065,unit*.055);
- for(let k=0;k<panels;k++){
-  const x0=k*unit,x1=(k+1)*unit;
-  // Repeat the same sign/window module on each regular bay.
-  rect(x0,x1,signBottom,top,sign.background);
-  if(sign.bands){
-   const height=top-signBottom;
-   for(const band of sign.bands)
-    rect(x0,x1,signBottom+height*band.from,signBottom+height*band.to,band.color,.006);
-  }else{
-   rect(x0,x1,top-(top-signBottom)*.20,top,sign.upper,.006);
-   rect(x0,x1,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.006);
-  }
-  // Align the sign panel seam exactly with the shared window grid.
-  if(k>0&&(side!=='front'||k!==center))rect(x0-frame/2,x0+frame/2,signBottom,top,0xc3c9cb,.008);
- }
- // One exception spans exactly two regular modules: sign+door at the front,
- // sign only on side/back. Logo panel has no central seam.
- if(side==='front'){
- const logoStart=(center-1)*unit,logoEnd=(center+1)*unit;
- rect(logoStart,logoEnd,signBottom,top,sign.logo?.background??sign.background,.012);
- if(!sign.logo){
-  rect(logoStart,logoEnd,top-(top-signBottom)*.20,top,sign.upper,.018);
-  rect(logoStart,logoEnd,signBottom,signBottom+(top-signBottom)*.11,sign.lower,.018);
- }
- // Pixel-built word mark, centered within the merged two-module sign.
- const label=sign.label||'',pixels=[];
- for(const ch of label){const glyph=sign.glyphs?.[ch];if(glyph)pixels.push(glyph);}
- // Optional brand-specific logo: low-poly quadrilaterals in normalized coordinates.
- if(sign.logo){
-  const h=top-signBottom,logoH=h*.91,logoW=Math.min((logoEnd-logoStart)*.9,logoH*(sign.logo.aspect??1.24));
-  const lx=length/2-logoW/2,ly=signBottom+(h-logoH)/2;
-  const point=([x,y],depth)=>xy(lx+x*logoW,ly+y*logoH,depth);
-  for(const [p0,p1,p2,p3,tint,depth=.033] of sign.logo.quads)
-   quad(mesh,point(p0,depth),point(p1,depth),point(p2,depth),point(p3,depth),tint);
- }
- const cols=pixels.length*4-1,markH=(top-signBottom)*.43;
- const pixel=sign.logo?.wordmark?
-  Math.min((logoEnd-logoStart)*.84/cols,(top-signBottom)*.91*.35/5):
-  sign.logo?
-   Math.min((top-signBottom)*.91*1.24*1.05/cols,(top-signBottom)*.91*.18/5):
-   Math.min((logoEnd-logoStart)*.90/cols,markH/5);
- const left=(length-cols*pixel)/2,y0=sign.logo?.wordmark?
-  signBottom+(top-signBottom)*.30:
-  sign.logo?signBottom+(top-signBottom)*(.045+.91*.31):
-   signBottom+(top-signBottom)*.30;
- for(let i=0;i<pixels.length;i++)for(let j=0;j<5;j++)for(let k=0;k<3;k++)
-  if(pixels[i][j][k]==='1')
-   rect(left+(i*4+k)*pixel,left+(i*4+k+.89)*pixel,
-    y0+(4-j)*pixel,y0+(4-j+.89)*pixel,sign.textColor,sign.logo?.05:.03);
- }
- // Window and door rendering remains shared across all sides.
- paintConvenienceGlazing(rect,{length,panels,bottom,top:signBottom,side,backWall:true});
+ paintConvenienceSign(rect,(p0,p1,p2,p3,t)=>quad(mesh,p0,p1,p2,p3,t),
+   point,brand.sign,{length,bottom:signBottom,top,entrance});
+ paintConvenienceGlazing(rect,{length,bottom,top:signBottom,
+   side:entrance?'front':side==='back'?'back':'side',backWall:true});
  return true;
 }
 
