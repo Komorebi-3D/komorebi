@@ -36,49 +36,98 @@ export function createMapLabels(host,ignoreRules=[]){
   heading.textContent=item.name+'｜店舗・階数の編集';
   heading.style.cssText='font-size:17px;line-height:1.4;margin:0 0 6px;';
   const note=document.createElement('p');
-  note.textContent='この端末の下書きに保存します。OpenStreetMap本体には送信されません。';
+  note.textContent='編集内容をJSONで確認してから端末に保存します。OSM本体には送信されません。';
   note.style.cssText='color:#4e655b;font-size:12px;margin:0 0 12px;';
+  const fields=document.createElement('div');
   const addField=(labelText,element)=>{
    const wrap=document.createElement('label');
    wrap.style.cssText='display:block;margin:10px 0;font-weight:600;';
    const caption=document.createElement('span');caption.textContent=labelText;caption.style.cssText='display:block;margin-bottom:4px;';
    element.style.cssText='box-sizing:border-box;width:100%;padding:10px;border:1px solid #aabfb5;border-radius:7px;background:#fff;color:#152b25;font:inherit;';
-   wrap.append(caption,element);form.appendChild(wrap);return element;
+   wrap.append(caption,element);fields.appendChild(wrap);return element;
   };
   const textInput=(value='')=>{const el=document.createElement('input');el.type='text';el.value=value;return el;};
-  form.append(heading,note);
-  const floor=addField('階（日本の階数表記：1F、2F、B1など）',textInput(saved.floor||''));
-  floor.placeholder='例：2F';
+  const floorSelect=document.createElement('select');
+  for(let i=1;i<=9;i++){
+   const opt=document.createElement('option');opt.value=String(i);opt.textContent=i+'階';floorSelect.appendChild(opt);
+  }
+  const previousFloor=String(saved.floor??'').trim().match(/^([1-9])(?:F|階)?$/i);
+  floorSelect.value=previousFloor?previousFloor[1]:'1';
+  const floor=addField('階（1階〜9階）',floorSelect);
   const tenant=addField('店舗・テナント名',textInput(saved.tenant||''));
   tenant.placeholder='例：○○カフェ';
   const status=document.createElement('select');
   for(const [value,name] of [['unknown','未確認'],['occupied','営業中・入居中'],['vacant','空き区画']]){
    const opt=document.createElement('option');opt.value=value;opt.textContent=name;status.appendChild(opt);
   }
-  status.value=saved.status||'unknown';
+  status.value=['unknown','occupied','vacant'].includes(saved.status)?saved.status:'unknown';
   addField('区画の状態',status);
   const notes=addField('メモ（確認した情報など）',document.createElement('textarea'));
   notes.value=saved.notes||'';notes.rows=2;notes.placeholder='現地確認した内容をメモ';
   const metadata=document.createElement('p');
-  metadata.textContent='OSM '+item.osmType+'/'+item.osmId+' ・ 保存内容はこのブラウザだけ';
+  metadata.textContent='OSM '+item.osmType+'/'+item.osmId+' ・ この端末内の下書き';
   metadata.style.cssText='font-size:11px;color:#587166;';
+  const preview=document.createElement('div');
+  preview.hidden=true;
+  const previewLabel=document.createElement('p');
+  previewLabel.textContent='保存予定のJSON（OSM APIへの送信データではありません）';
+  previewLabel.style.cssText='font-size:12px;color:#4e655b;margin:12px 0 6px;';
+  const json=document.createElement('pre');
+  json.style.cssText='box-sizing:border-box;max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#e8f0eb;border:1px solid #aabfb5;border-radius:8px;color:#19352f;font:12px/1.5 ui-monospace,SFMono-Regular,monospace;';
+  const feedback=document.createElement('p');
+  feedback.style.cssText='min-height:1em;font-size:12px;color:#4e655b;';
+  preview.append(previewLabel,json,feedback);
   const actions=document.createElement('div');
   actions.style.cssText='display:flex;gap:8px;margin-top:12px;';
   const close=document.createElement('button');close.type='button';close.textContent='閉じる';
+  const confirm=document.createElement('button');confirm.type='submit';confirm.textContent='内容を確認';
+  const back=document.createElement('button');back.type='button';back.textContent='編集に戻る';
   const save=document.createElement('button');save.type='submit';save.textContent='下書きを保存';
-  for(const b of [close,save])b.style.cssText='flex:1;padding:11px 6px;border-radius:8px;border:1px solid #91aca0;background:#fff;color:#163c30;font-weight:700;font:inherit;';
+  const copy=document.createElement('button');copy.type='button';copy.textContent='JSONをコピー';
+  for(const b of [close,confirm,back,save,copy])b.style.cssText='flex:1;min-width:0;padding:11px 5px;border-radius:8px;border:1px solid #91aca0;background:#fff;color:#163c30;font-weight:700;font:inherit;';
+  confirm.style.background='#236c56';confirm.style.color='#fff';
   save.style.background='#236c56';save.style.color='#fff';
-  close.addEventListener('click',()=>{mask.remove();editor=null;});
+  let pending=null,checking=false;
+  const payload=()=>({
+   schema:'komorebi.osm-tenant-draft.v1',
+   osm:{type:item.osmType,id:String(item.osmId)},
+   floor:Number(floor.value),
+   tenant:tenant.value.trim(),
+   status:status.value,
+   notes:notes.value.trim(),
+   savedAt:new Date().toISOString()
+  });
+  const setChecking=on=>{
+   checking=on;fields.hidden=on;preview.hidden=!on;
+   actions.replaceChildren(...(on?[back,save]:[close,confirm]));
+   note.textContent=on?'内容を確認し、問題なければ下書きを保存してください。OSMには送信しません。':'編集内容をJSONで確認してから端末に保存します。OSM本体には送信されません。';
+  };
+  const dismiss=()=>{mask.remove();editor=null;};
+  close.addEventListener('click',dismiss);
+  back.addEventListener('click',()=>{pending=null;setChecking(false);});
+  copy.addEventListener('click',async()=>{
+   try{await navigator.clipboard.writeText(json.textContent);feedback.textContent='JSONをコピーしました。';}
+   catch(_){feedback.textContent='コピーできませんでした。JSONを長押しして選択してください。';}
+  });
   form.addEventListener('submit',event=>{
    event.preventDefault();
-   try{
-    localStorage.setItem(key,JSON.stringify({floor:floor.value.trim(),tenant:tenant.value.trim(),status:status.value,notes:notes.value.trim(),savedAt:new Date().toISOString()}));
-    mask.remove();editor=null;
-   }catch(_){note.textContent='保存できませんでした。ブラウザの保存設定を確認してください。';}
+   if(!checking){
+    pending=payload();
+    json.textContent=JSON.stringify(pending,null,2);
+    feedback.textContent='';
+    setChecking(true);
+    const copyRow=document.createElement('div');
+    copyRow.style.cssText='display:flex;justify-content:flex-end;';
+    copyRow.appendChild(copy);preview.appendChild(copyRow);
+    return;
+   }
+   try{localStorage.setItem(key,JSON.stringify(pending));dismiss();}
+   catch(_){feedback.textContent='保存できませんでした。ブラウザの保存設定を確認してください。';}
   });
   mask.addEventListener('pointerdown',event=>event.stopPropagation());
-  mask.addEventListener('click',event=>{event.stopPropagation();if(event.target===mask){mask.remove();editor=null;}});
-  actions.append(close,save);form.append(metadata,actions);mask.appendChild(form);host.appendChild(mask);editor=mask;
+  mask.addEventListener('click',event=>{event.stopPropagation();if(event.target===mask)dismiss();});
+  actions.append(close,confirm);
+  form.append(heading,note,fields,preview,metadata,actions);mask.appendChild(form);host.appendChild(mask);editor=mask;
  }
  function setLabels(labels){
   layer.replaceChildren();
