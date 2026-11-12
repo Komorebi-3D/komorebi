@@ -1,4 +1,4 @@
-import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall} from '../objects/buildings/convenience/common.js?v=convenience-levels-v2-20261112';
+import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall} from '../objects/buildings/convenience/common.js?v=familymart-facade-v1-20261112';
 // Convert verified OSM map data into renderer-independent meshes and roof labels.
 // Defaults preserve the original Matsudo 500m test snapshot.
 export function buildMap(map,{latitude=35.78444,longitude=139.90061,halfSize=250}={}){
@@ -39,10 +39,27 @@ function top(m,p,h,t){
  }
  if(idx.length===3){const a=p[idx[0]],b=p[idx[1]],c=p[idx[2]];if(ccw)tri(m,[a[0],h,a[1]],[c[0],h,c[1]],[b[0],h,b[1]],t);else tri(m,[a[0],h,a[1]],[b[0],h,b[1]],[c[0],h,c[1]],t);}
 }
-function building(m,p,h,t,spans){
- for(let i=0;i<p.length;i++){
-  const a=p[i],b=p[(i+1)%p.length];
-  paintConvenienceWall(quad,m,a,b,h,t,spans);
+function building(m,p,h,t,spans,roadSegments){
+ const n=p.length,area=signedArea(p),outward=area>0?1:-1;
+ const edges=p.map((a,i)=>{
+  const b=p[(i+1)%n],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz)||1;
+  return {a,b,len,mid:[(a[0]+b[0])/2,(a[1]+b[1])/2],normal:[outward*dz/len,-outward*dx/len]};
+ });
+ let front=edges.reduce((best,e,i)=>e.len>edges[best].len?i:best,0),score=Infinity;
+ for(let i=0;i<n;i++)for(const [a,b] of roadSegments){
+  const mx=edges[i].mid[0],mz=edges[i].mid[1],dx=b[0]-a[0],dz=b[1]-a[1];
+  const t=Math.max(0,Math.min(1,((mx-a[0])*dx+(mz-a[1])*dz)/(dx*dx+dz*dz||1)));
+  const dist=Math.hypot(mx-a[0]-t*dx,mz-a[1]-t*dz);
+  if(dist<score){score=dist;front=i;}
+ }
+ let back=-1,bestDot=.35;
+ for(let i=0;i<n;i++)if(i!==front){
+  const dot=-(edges[front].normal[0]*edges[i].normal[0]+edges[front].normal[1]*edges[i].normal[1]);
+  if(dot>bestDot){bestDot=dot;back=i;}
+ }
+ for(let i=0;i<n;i++){
+  const e=edges[i],side=i===front?'front':i===back?'back':'side';
+  paintConvenienceWall(quad,m,e.a,e.b,h,t,spans,side);
  }
  top(m,p,h,t);
 }
@@ -58,6 +75,12 @@ function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1
  const buildings=palette.map(builder),roads=builder(),walks=builder(),rails=builder(),floor=builder(),labels=[],mapFeatures=[],poiLabels=[];
  const facilityKeys=['shop','amenity','tourism','office','leisure','healthcare'];
  const convenienceBuildings=matchConvenienceBuildings(map.elements,xy,HALF);
+ const roadSegments=[];
+ for(const way of map.elements){
+  if(!way.tags?.highway||['construction','proposed'].includes(way.tags.highway))continue;
+  const pts=(way.geometry||[]).map(xy);
+  for(let i=1;i<pts.length;i++)roadSegments.push([pts[i-1],pts[i]]);
+ }
  // Name equality and short geographic distance: no per-store mappings.
  const normalized=name=>String(name).normalize('NFKC').toLowerCase().replace(/[\s\u2010-\u2015\u2212\uff0d\-]/g,'');
  const isNearby=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z)<=15;
@@ -87,7 +110,7 @@ function rectangle(m,x0,z0,x1,z1,t){quad(m,[x0,-.22,z0],[x0,-.22,z1],[x1,-.22,z1
     const levels=Number.parseFloat(tags['building:levels']);
     height=Number.isFinite(levels)&&levels>0?Math.min(60,levels*3):4;
    }
-   building(buildings[e.id%palette.length],p,height,palette[e.id%palette.length],resolveConveniencePaint(convenienceBuildings.get(e.id),tags,height));
+   building(buildings[e.id%palette.length],p,height,palette[e.id%palette.length],resolveConveniencePaint(convenienceBuildings.get(e.id),tags,height),roadSegments);
    mapFeatures.push({type:'building',points:p});
    const name=String(tags['name:ja']||tags.name||'').trim();
    if(name)labels.push({kind:'building',name,tags:{...tags},x:(minX+maxX)/2,z:(minZ+maxZ)/2,y:height+.9});
