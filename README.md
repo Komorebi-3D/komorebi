@@ -4,7 +4,7 @@
 
 ## 現在の安定基準（2026-11-08）
 
-**[Komorebi 3D v0.7 — Engine main統合版](https://shuma-fujita1012.github.io/komorebi/komorebi3d/komorebi3d-app-v07-engine-main-test.html)**
+**[Komorebi 3D v0.7 — Engine main統合版](https://komorebi-3d.github.io/komorebi/komorebi3d/komorebi3d-app-v07-engine-main-test.html)**
 
 - iPhone Safariのユーザー実機確認で **PASS**。
 - Input・Camera・Renderer A/B・Core・Collisionを共通Engineから利用。
