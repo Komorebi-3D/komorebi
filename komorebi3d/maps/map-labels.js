@@ -69,6 +69,8 @@ export function createMapLabels(host,ignoreRules=[]){
   const json=document.createElement('pre');json.style.cssText='max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#e8f0eb;border-radius:8px;color:#19352f;font:12px/1.5 ui-monospace,monospace;';
   review.append(previewTitle,json);
 
+  const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px;';
+  const makeButton=(label,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='flex:1;padding:11px 5px;border:1px solid #91aca0;border-radius:8px;background:'+(primary?'#236c56':'#fff')+';color:'+(primary?'white':'#163c30')+';font:700 14px system-ui;';return b;};
   // This block is available only to a real-world facility with no level tag.
   // Development server objects must be explicitly loaded by their own ID.
   const eligible=item.kind==='poi'&&['shop','amenity','office','tourism','healthcare','leisure'].some(key=>baseTags[key])&&!Object.prototype.hasOwnProperty.call(baseTags,'level');
@@ -150,8 +152,6 @@ export function createMapLabels(host,ignoreRules=[]){
   testPane.append(testHeading,testHelp,testLink,oauth,logout,typeLabel,loadTarget,testDetails,consentLabel,send,testStatus);
   review.appendChild(testPane);
 
-  const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px;';
-  const makeButton=(label,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='flex:1;padding:11px 5px;border:1px solid #91aca0;border-radius:8px;background:'+(primary?'#236c56':'#fff')+';color:'+(primary?'white':'#163c30')+';font:700 14px system-ui;';return b;};
   const close=makeButton('閉じる'),confirm=makeButton('確認',true),back=makeButton('編集に戻る');
   const dismiss=()=>{mask.remove();editor=null;};
   close.addEventListener('click',dismiss);
