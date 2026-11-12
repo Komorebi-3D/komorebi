@@ -1,4 +1,6 @@
 // Project building and ground-level POI labels using shared A/B viewport camera information.
+import {OSM_TEST_ORIGIN,hasOsmTestToken,forgetOsmTestToken,consumeOsmTestAuthError,startOsmTestLogin,finishOsmTestLogin,getOsmTestElement,validateOsmTestLevelTarget,sendOsmTestLevel} from './osm-test-api.js?v=osm-test-pkce-20261113';
+const osmTestOAuthReturn=finishOsmTestLogin();
 // Uses a plain-text ignore file; no special handling of newly discovered OSM tag keys.
 export function parseOsmTagIgnore(source){
  return String(source).split(/\r?\n/).map(line=>line.trim())
@@ -20,7 +22,7 @@ export function createMapLabels(host,ignoreRules=[]){
  const viewports=[...host.querySelectorAll('.view-panel canvas')].map(canvas=>({canvas,items:[]}));
  let entries=[];
 
- // JSON editing and confirmation only; no persistence or OSM upload.
+ // JSON edit/confirm, with strictly isolated OSM development-server level test.
  let editor=null;
  function openEditor(item){
   if(!item.osmType||!item.osmId)return;
@@ -35,7 +37,7 @@ export function createMapLabels(host,ignoreRules=[]){
   title.textContent=item.name+'｜OSMタグの編集';
   title.style.cssText='font-size:17px;line-height:1.4;margin:0 0 7px;';
   const note=document.createElement('p');
-  note.textContent='既存のJSONタグを編集し、変更内容を確認できます。保存・OSMへの送信は行いません。';
+  note.textContent='既存タグを編集して確認できます。本番OSMには送信しません。';
   note.style.cssText='color:#4e655b;font-size:12px;margin:0 0 8px;';
   const metadata=document.createElement('p');
   metadata.textContent='OSM '+item.osmType+'/'+item.osmId+' ／ version: '+(item.osmVersion??'未取得');
@@ -66,6 +68,88 @@ export function createMapLabels(host,ignoreRules=[]){
   const previewTitle=document.createElement('p');previewTitle.textContent='JSON変更内容の確認（OSM未送信）';previewTitle.style.fontWeight='700';
   const json=document.createElement('pre');json.style.cssText='max-height:40vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#e8f0eb;border-radius:8px;color:#19352f;font:12px/1.5 ui-monospace,monospace;';
   review.append(previewTitle,json);
+
+  // This block is available only to a real-world facility with no level tag.
+  // Development server objects must be explicitly loaded by their own ID.
+  const eligible=item.kind==='poi'&&['shop','amenity','office','tourism','healthcare','leisure'].some(key=>baseTags[key])&&!Object.prototype.hasOwnProperty.call(baseTags,'level');
+  const testPane=document.createElement('div');
+  testPane.hidden=true;
+  testPane.style.cssText='margin-top:12px;border-top:1px solid #b4c9bb;padding-top:12px;';
+  const testHeading=document.createElement('strong');testHeading.textContent='OSMテストサーバーへ送信（本番には送信しません）';
+  const testHelp=document.createElement('p');
+  testHelp.textContent='本番の店舗IDは利用できません。テストサーバーにある階数未登録の店舗・施設IDを入力してください。送信対象はlevelタグのみです。';
+  testHelp.style.cssText='font-size:12px;color:#4e655b;';
+  const testLink=document.createElement('a');
+  testLink.href=OSM_TEST_ORIGIN+'/oauth2/applications/new';
+  testLink.target='_blank';testLink.rel='noopener noreferrer';
+  testLink.textContent='テスト用OAuthアプリを登録（別タブ）';
+  testLink.style.cssText='display:block;font-size:12px;margin:6px 0;color:#205b7a;';
+  const testField=(captionText,placeholder,value='')=>{
+   const wrap=document.createElement('label');wrap.style.cssText='display:block;font-size:12px;font-weight:700;margin:8px 0;';
+   const label=document.createElement('span');label.textContent=captionText;label.style.display='block';
+   const input=document.createElement('input');input.value=value;input.placeholder=placeholder;input.style.cssText=inputStyle;
+   wrap.append(label,input);testPane.appendChild(wrap);return input;
+  };
+  const clientId=testField('開発用OAuth Client ID（認証後は再入力不要）','開発サーバーで登録したClient ID');
+  const oauth=makeButton('テスト環境にログイン');
+  const logout=makeButton('認証を解除');
+  const targetType=document.createElement('select');targetType.style.cssText=inputStyle;
+  for(const type of ['node','way','relation']){const option=document.createElement('option');option.value=type;option.textContent=type;targetType.appendChild(option);}
+  const typeLabel=document.createElement('label');typeLabel.style.cssText='display:block;font-size:12px;font-weight:700;margin:8px 0;';typeLabel.textContent='テスト対象の要素種別';
+  typeLabel.appendChild(targetType);
+  const targetId=testField('テストサーバーの店舗・施設ID','例：テスト側のnode ID');
+  const loadTarget=makeButton('テスト対象を読み込む');
+  const testDetails=document.createElement('pre');
+  testDetails.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monospace;background:#e8f0eb;border-radius:7px;padding:8px;';
+  testDetails.hidden=true;
+  const consentLabel=document.createElement('label');consentLabel.style.cssText='display:block;margin-top:10px;font-size:12px;';
+  const consent=document.createElement('input');consent.type='checkbox';
+  consentLabel.append(consent,document.createTextNode(' テストサーバーの対象要素を実際に更新することを確認した'));
+  const send=makeButton('テストサーバーへ送信',true);
+  send.disabled=true;
+  const testStatus=document.createElement('p');testStatus.style.cssText='font-size:12px;color:#335748;white-space:pre-wrap;overflow-wrap:anywhere;';
+  let loaded=null,levelValue=null,busy=false;
+  const syncTestControls=()=>{
+   oauth.textContent=hasOsmTestToken()?'再認証する':'テスト環境にログイン';
+   send.disabled=busy||!hasOsmTestToken()||!loaded||!consent.checked||levelValue===null;
+   loadTarget.disabled=busy;
+  };
+  oauth.addEventListener('click',async()=>{
+   try{await startOsmTestLogin(clientId.value);}catch(e){testStatus.textContent='認証開始エラー: '+e.message;}
+  });
+  logout.addEventListener('click',()=>{forgetOsmTestToken();testStatus.textContent='テスト用認証を解除しました。';syncTestControls();});
+  async function loadTest(){
+   loaded=null;testDetails.hidden=true;syncTestControls();busy=true;
+   try{
+    await osmTestOAuthReturn;
+    const data=await getOsmTestElement(targetType.value,targetId.value.trim());
+    validateOsmTestLevelTarget(data);
+    loaded=data;
+    testDetails.hidden=false;
+    testDetails.textContent=JSON.stringify({server:OSM_TEST_ORIGIN,type:data.type,id:data.id,version:data.version,name:data.tags.name||data.tags['name:ja']||'名称なし',shop:data.tags.shop||null,amenity:data.tags.amenity||null,oldLevel:'未登録',newLevel:String(levelValue)},null,2);
+    testStatus.textContent='テスト対象を確認してください。名前が想定と異なる場合は送信しないでください。';
+   }catch(e){testStatus.textContent='読み込み失敗: '+e.message;}
+   finally{busy=false;syncTestControls();}
+  }
+  loadTarget.addEventListener('click',loadTest);
+  targetType.addEventListener('change',()=>{loaded=null;testDetails.hidden=true;syncTestControls();});
+  targetId.addEventListener('input',()=>{loaded=null;testDetails.hidden=true;syncTestControls();});
+  consent.addEventListener('change',syncTestControls);
+  send.addEventListener('click',async()=>{
+   if(!loaded||levelValue===null||!consent.checked||busy)return;
+   busy=true;syncTestControls();testStatus.textContent='テストサーバーへ送信中…';
+   try{
+    const result=await sendOsmTestLevel(loaded,levelValue);
+    testStatus.textContent='テスト送信成功！ changeset: '+result.changesetId+' / 新version: '+result.newVersion;
+    const resultLink=document.createElement('a');resultLink.href=result.elementUrl;resultLink.target='_blank';resultLink.rel='noopener noreferrer';resultLink.textContent='テスト環境で更新された要素を見る';
+    testStatus.append(document.createTextNode('\n'),resultLink);
+    loaded=null;consent.checked=false;
+   }catch(e){testStatus.textContent='テスト送信失敗: '+e.message+'。本番OSMへの送信は行っていません。';}
+   finally{busy=false;syncTestControls();}
+  });
+  testPane.append(testHeading,testHelp,testLink,oauth,logout,typeLabel,loadTarget,testDetails,consentLabel,send,testStatus);
+  review.appendChild(testPane);
+
   const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:12px;';
   const makeButton=(label,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='flex:1;padding:11px 5px;border:1px solid #91aca0;border-radius:8px;background:'+(primary?'#236c56':'#fff')+';color:'+(primary?'white':'#163c30')+';font:700 14px system-ui;';return b;};
   const close=makeButton('閉じる'),confirm=makeButton('確認',true),back=makeButton('編集に戻る');
@@ -92,6 +176,17 @@ export function createMapLabels(host,ignoreRules=[]){
     pending=collect();error.textContent='';
     json.textContent=JSON.stringify({osm:pending.osm,changes:pending.changes,tags:pending.tags},null,2);
     rows.hidden=true;add.hidden=true;tagsHeader.hidden=true;review.hidden=false;
+    testPane.hidden=!eligible;
+    loaded=null;consent.checked=false;testDetails.hidden=true;
+    levelValue=null;
+    if(eligible&&Object.keys(pending.changes).length===1&&Object.prototype.hasOwnProperty.call(pending.changes,'level')&&/^(?:[0-8])$/.test(String(pending.tags.level))){
+     levelValue=Number(pending.tags.level);
+     testStatus.textContent='準備OK: level='+levelValue+'。開発用Client IDで認証し、テスト側の要素IDを指定してください。';
+    }else if(eligible){
+     testStatus.textContent='テスト送信には、追加する変更を level=0〜8 の1項目だけにしてください（1階は0）。';
+    }
+    osmTestOAuthReturn.then(()=>{const authError=consumeOsmTestAuthError();if(authError)testStatus.textContent='認証失敗: '+authError;syncTestControls();});
+    syncTestControls();
     controls.replaceChildren(back,close);
    }catch(e){error.textContent=e.message;}
   });
