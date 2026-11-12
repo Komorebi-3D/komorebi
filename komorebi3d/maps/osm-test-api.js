@@ -85,11 +85,11 @@ async function apiWrite(path,body,token){
  if(!response.ok)throw Error('テストAPI HTTP '+response.status+': '+content.slice(0,250));
  return content.trim();
 }
-function makeChangesetXml(){
+function makeChangesetXml(comment='Add verified shop floor level (development server only)'){
  const doc=document.implementation.createDocument(null,'osm',null);
  doc.documentElement.setAttribute('version','0.6');
  const changeset=doc.createElement('changeset');doc.documentElement.appendChild(changeset);
- for(const [key,value] of Object.entries({created_by:'Komorebi 3D test editor',comment:'Add verified shop floor level (development server only)'})){
+ for(const [key,value] of Object.entries({created_by:'Komorebi 3D test editor',comment})){
   const tag=doc.createElement('tag');tag.setAttribute('k',key);tag.setAttribute('v',value);changeset.appendChild(tag);
  }
  return new XMLSerializer().serializeToString(doc);
@@ -203,7 +203,7 @@ export async function createOsmTestCopy(source){
  const token=readToken();
  let changesetId=null;
  try{
-  changesetId=await apiWrite('/changeset/create',makeChangesetXml(),token);
+  changesetId=await apiWrite('/changeset/create',makeChangesetXml('Copy existing OSM feature for testing (development server only)'),token);
   if(!/^[1-9]\d*$/.test(changesetId))throw Error('変更セットIDが不正です。');
   const response=await fetch(API+'/changeset/'+changesetId+'/upload',{
    method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'text/xml; charset=utf-8'},
