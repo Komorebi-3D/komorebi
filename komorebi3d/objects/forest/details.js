@@ -43,6 +43,8 @@ const FOREST_STORE_TEST_BOXES=[
 for(const store of FOREST_STORE_TEST_BOXES){
  const boxMesh=part('forest-store-test-'+store.brand,[store.x,0,store.z]);
  cube(boxMesh,0,0,0,8,4,6,0xb9bbbd);
- // Signs are separate removable mesh parts. The box itself stays unmodified.
- addForestStoreSign((name)=>part(name,[store.x,0,store.z]),quad,store.brand);
+ // Shared sign & roof geometry overlays; the gray base box stays unchanged.
+ const createMesh=(name)=>part(name,[store.x,0,store.z]);
+ drawConvenienceSign(createMesh,quad,store.brand,{width:8,depth:6,height:4,faces:['front','right','back','left']});
+ drawConvenienceRoof(createMesh,quad,store.brand,{width:8,depth:6,height:4});
 }
