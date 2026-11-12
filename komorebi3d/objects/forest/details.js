@@ -43,4 +43,6 @@ const FOREST_STORE_TEST_BOXES=[
 for(const store of FOREST_STORE_TEST_BOXES){
  const boxMesh=part('forest-store-test-'+store.brand,[store.x,0,store.z]);
  cube(boxMesh,0,0,0,8,4,6,0xb9bbbd);
+ // Signs are separate removable mesh parts. The box itself stays unmodified.
+ addForestStoreSign((name)=>part(name,[store.x,0,store.z]),quad,store.brand);
 }
