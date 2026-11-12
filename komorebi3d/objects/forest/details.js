@@ -47,4 +47,5 @@ for(const store of FOREST_STORE_TEST_BOXES){
  const createMesh=(name)=>part(name,[store.x,0,store.z]);
  drawConvenienceSign(createMesh,quad,store.brand,{width:8,depth:6,height:4,faces:['front','right','back','left']});
  drawConvenienceRoof(createMesh,quad,store.brand,{width:8,depth:6,height:4});
+ drawConvenienceWindows(createMesh,quad,store.brand,{width:8,depth:6,height:4,faces:['front','right','back','left']});
 }
