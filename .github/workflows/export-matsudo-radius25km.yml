@@ -2,6 +2,9 @@ name: Export Matsudo radius 25km JSON
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/export-matsudo-radius25km.yml'
 
 permissions:
   contents: write
