@@ -1,3 +1,16 @@
+# Acquisition conditions for Matsudo source data (independent of tile splitting):
+# - Fixed center: latitude 35.78444, longitude 139.90061 (WGS84).
+# - Current selection radius: 25,000 m; future runs may use a larger radius
+#   while retaining exactly the same center coordinate and longitude/latitude order.
+# - Current circle-distance test uses a local equirectangular approximation:
+#   dx = (lon - center_lon) * 111320 * cos(center_lat),
+#   dy = (lat - center_lat) * 111320; distance is in meters.
+#   Do not silently replace this formula and assume identical coverage.
+# - The acquisition circle does NOT define the tile grid or its boundaries.
+#   A separate splitter owns tile projection, grid, IDs, and shape duplication.
+# - Input should preserve full selected OSM feature geometry and attributes.
+# - This workflow must not implement tile splitting or depend on its rules.
+
 name: Export Matsudo radius 25km JSON
 
 on:
