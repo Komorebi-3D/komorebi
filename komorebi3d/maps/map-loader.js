@@ -1,7 +1,7 @@
 const LAT=35.78444,LON=139.90061,dlat=250/111320,dlon=250/(111320*Math.cos(LAT*Math.PI/180));
 const bbox=[LAT-dlat,LON-dlon,LAT+dlat,LON+dlon].map(x=>x.toFixed(6)).join(',');
 const keys=['shop','amenity','tourism','office','leisure','healthcare'];
-const query='[out:json][timeout:25];(way["building"]('+bbox+');way["highway"]('+bbox+');way["railway"]('+bbox+');'+keys.map(k=>'nwr["'+k+'"]('+bbox+');').join('')+');out geom;';
+const query='[out:json][timeout:8];(way["building"]('+bbox+');way["highway"]('+bbox+');way["railway"]('+bbox+');'+keys.map(k=>'nwr["'+k+'"]('+bbox+');').join('')+');out geom;';
 function verify(map){
  if(map?.source!=='OpenStreetMap contributors'||!Array.isArray(map.elements))throw Error('OSM形式不正');
  const buildings=map.elements.filter(e=>e.type==='way'&&e.tags?.building&&e.geometry?.length>=4).length;
@@ -12,7 +12,7 @@ function verify(map){
 }
 async function json(url){const response=await fetch(url,{cache:'no-cache'});if(!response.ok)throw Error('JSON HTTP '+response.status);return verify(await response.json());}
 async function osm(){
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),18000);
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
  try{
   const response=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query),{method:'GET',signal:controller.signal,cache:'no-store'});
   if(!response.ok)throw Error('Overpass HTTP '+response.status);
