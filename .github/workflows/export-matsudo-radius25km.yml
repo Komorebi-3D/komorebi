@@ -24,7 +24,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install OSM reader
-        run: python -m pip install --disable-pip-version-check osmium
+        run: python -m pip install --disable-pip-version-check osmium ijson
 
       - name: Download Kanto OSM PBF
         run: |
@@ -46,14 +46,18 @@ jobs:
         id: validate
         run: |
           python - <<'PY'
-          import json,os,pathlib
+          import ijson,os,pathlib
           p=pathlib.Path('komorebi3d/maps/data/matsudo_radius25km.json')
-          with p.open(encoding='utf-8') as f:
-              obj=json.load(f)
-          assert obj['radius_m']==25000 and obj['center']==[35.78444,139.90061]
-          assert len(obj['elements'])>1000
+          with p.open('rb') as f:
+              radius=next(ijson.items(f,'radius_m'))
+          with p.open('rb') as f:
+              center=next(ijson.items(f,'center'))
+          with p.open('rb') as f:
+              feature_count=sum(1 for _ in ijson.items(f,'elements.item'))
+          assert radius==25000 and [float(x) for x in center]==[35.78444,139.90061]
+          assert feature_count>1000
           size=p.stat().st_size
-          print('Validated',len(obj['elements']),'features,',size,'bytes')
+          print('Validated',feature_count,'features,',size,'bytes')
           with open(os.environ['GITHUB_OUTPUT'],'a') as out:
               out.write('committable='+str(size<=95_000_000).lower()+'\n')
               out.write('size_bytes='+str(size)+'\n')
