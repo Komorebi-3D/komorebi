@@ -2,6 +2,12 @@
 
 > **状態の区別:** ユーザーによる実操作の成功報告は確認済みの操作だけをPASSとし、直近のレイアウト・コメント自動生成などは別途実機検証待ち。GitHub `main` が正本。
 
+## 半径25km GitHub Actions出力（2026-11-13／ワークフロー追加、実行未確認）
+- `.github/workflows/export-matsudo-radius25km.yml` を追加。Actionsの手動 `Run workflow` でGeofabrikの関東PBF取得、`osmium` + `ijson` を使う円内データ生成、ストリーム形式の検証、JSONアーティファクト（保持7日）登録を行う。
+- 出力先は `komorebi3d/maps/data/matsudo_radius25km.json`。実ファイル95,000,000バイト以下なら同ファイルを `main` にコミット。超過したらGitHub単一ファイルの100MB制限を避けるためmainにはコミットせず、Actions成果物で提供する。
+- ツール側にワークフローの新規開始機能がなく、**実ジョブ実行・巨大PBFダウンロード・25km JSON実生成はまだ確認できない**。ユーザーがActions画面から手動実行する必要がある。既存500mの `matsudo.json` は変更しない。
+- アーティファクトは保持期限付きであり、サイズが大きすぎる場合は分割・配布方法の追加検討が必要。ゲーム内で25kmを表示する処理は未実装。
+
 ## 半径25km地図の独立出力（2026-11-13／実データ未生成）
 - ユーザー指定の出力先は `komorebi3d/maps/data/matsudo_radius25km.json`。従来の `matsudo.json` は変更しない。
 - `komorebi3d/maps/fetch-map-radius25km.py` を新規追加。Geofabrik関東 `kanto-latest.osm.pbf` 等のローカルPBFを受け取り、松戸駅中心 (35.78444,139.90061) から半径25,000mに接する建物・道路・鉄道・施設のnode/wayと関連relationを既存に準じたJSONへ逐次書き出す。未完了時の一時ファイルを除去、正常終了時に置換。
