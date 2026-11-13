@@ -1,6 +1,6 @@
 {
   "engine": "d4a392a",
   "forest": "中央2枚扉の取っ手を濃い青グレーに変更（他の外観は不変／実機未確認）",
-  "matsudo": "検証限定：Overpass処理timeout=180秒、ブラウザ2候補共通上限190秒に延長しPrivate.coffeeの長時間応答を診断（実機未確認）",
+  "matsudo": "既存500m JSONを保護したまま、関東PBFから松戸駅半径25kmの独立JSONを書き出す専用Pythonを追加（広域実データ生成・GitHub保存は未実施）",
   "common": "モック表示の整理とNPC描画上限の自動制御を廃止"
 }
