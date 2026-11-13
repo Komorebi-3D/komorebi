@@ -13,6 +13,17 @@ The output may be far too large to commit to GitHub (100 MB file limit).
 """
 from __future__ import annotations
 
+# Acquisition conditions (NOT tile-grid rules):
+# Fixed center: WGS84 lat=35.78444, lon=139.90061, in that order.
+# Current radius: 25,000 m. Preserve this exact center if radius expands.
+# Circle membership currently uses dx=(lon-LON)*111320*cos(LAT),
+# dy=(lat-LAT)*111320; this is a local approximation, not EPSG:6677.
+# Do not silently change the distance formula: selection edges can change.
+# Preserve emitted feature geometry, tags and IDs for downstream consumers.
+# Tile projection, tile origin, IDs, duplication, and game rendering belong
+# to an independent later process, not this acquisition/export script.
+
+
 import argparse
 import json
 import math
