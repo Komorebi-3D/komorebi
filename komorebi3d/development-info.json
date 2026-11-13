@@ -1,6 +1,6 @@
 {
   "engine": "d4a392a",
   "forest": "中央2枚扉の取っ手を濃い青グレーに変更（他の外観は不変／実機未確認）",
-  "matsudo": "Private.coffee→api.deの2段Overpass、合計8秒以内を目標にJSONへ退避。Python取得も同2候補へ統一しNCHCを候補から除外（実機未確認）",
+  "matsudo": "Overpass 2候補の共通待機期限を8秒から30秒に延長しクエリtimeoutも30秒へ。Private.coffeeの実応答時間を再検証（実機未確認）",
   "common": "モック表示の整理とNPC描画上限の自動制御を廃止"
 }
