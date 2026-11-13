@@ -1,7 +1,7 @@
 const LAT=35.78444,LON=139.90061,dlat=250/111320,dlon=250/(111320*Math.cos(LAT*Math.PI/180));
 const bbox=[LAT-dlat,LON-dlon,LAT+dlat,LON+dlon].map(x=>x.toFixed(6)).join(',');
 const keys=['shop','amenity','tourism','office','leisure','healthcare'];
-const query='[out:json][timeout:30];(way["building"]('+bbox+');way["highway"]('+bbox+');way["railway"]('+bbox+');'+keys.map(k=>'nwr["'+k+'"]('+bbox+');').join('')+');out geom;';
+const query='[out:json][timeout:180];(way["building"]('+bbox+');way["highway"]('+bbox+');way["railway"]('+bbox+');'+keys.map(k=>'nwr["'+k+'"]('+bbox+');').join('')+');out geom;';
 function verify(map){
  if(map?.source!=='OpenStreetMap contributors'||!Array.isArray(map.elements))throw Error('OSM形式不正');
  const buildings=map.elements.filter(e=>e.type==='way'&&e.tags?.building&&e.geometry?.length>=4).length;
@@ -24,10 +24,10 @@ const overpassEndpoints=[
  {name:'overpass-api.de',url:'https://overpass-api.de/api/interpreter'}
 ];
 async function osm(log=()=>{}){
- const start=performance.now(),deadline=start+30000,failures=[];
+ const start=performance.now(),deadline=start+190000,failures=[];
  for(const endpoint of overpassEndpoints){
   const remaining=Math.round(deadline-performance.now());
-  if(remaining<=0){log('OSM: 共通30秒制限に到達');break;}
+  if(remaining<=0){log('OSM: 共通190秒制限に到達');break;}
   const controller=new AbortController(),attemptStart=performance.now(),timer=setTimeout(()=>controller.abort(),remaining);
   log('OSM: '+endpoint.name+' / GET / 残り'+remaining+'ms');
   try{
@@ -54,7 +54,7 @@ async function osm(log=()=>{}){
    log('OSM: '+endpoint.name+' 失敗 '+reason+' / '+Math.round(performance.now()-attemptStart)+'ms');
   }finally{clearTimeout(timer);}
  }
- throw Error('Overpass取得失敗：'+failures.join(' | ')+(performance.now()>=deadline?' / 共通30秒制限':''));
+ throw Error('Overpass取得失敗：'+failures.join(' | ')+(performance.now()>=deadline?' / 共通190秒制限':''));
 }
 export async function loadMap({mode='auto',url='./maps/data/matsudo.json',onLog=()=>{}}={}){
  if(!['auto','osm','json'].includes(mode))throw RangeError('Invalid map mode');
