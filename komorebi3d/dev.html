@@ -178,8 +178,8 @@ button.slider-step:active{background:#c4dec1}
 <div class="buttons" role="group" aria-label="ワールド切替"><button type="button" data-world="forest" aria-pressed="true">🌳 森</button><button type="button" data-world="matsudo" aria-pressed="false">🏙️ 松戸</button></div>
 <div class="test-separator"></div>
 <div class="test-section-title">🗺️ 松戸の地図データ</div>
-<div class="mode-buttons" role="group" aria-label="地図データ"><button id="map-source-auto" type="button" class="selected" aria-pressed="true">自動</button><button id="map-source-osm" type="button" aria-pressed="false">OSM最新</button><button id="map-source-json" type="button" aria-pressed="false">JSON</button></div>
-<div id="map-source-choice" aria-live="polite">自動：OSM優先・失敗時JSON</div><div class="test-separator"></div>
+<div class="mode-buttons" role="group" aria-label="地図データ"><button id="map-source-auto" type="button" aria-pressed="false">自動</button><button id="map-source-osm" type="button" aria-pressed="false">OSM最新</button><button id="map-source-json" type="button" class="selected" aria-pressed="true">JSON</button></div>
+<div id="map-source-choice" aria-live="polite">JSON固定500m</div><div class="test-separator"></div>
 <div class="test-section-title">🎮 描画方式</div>
 <div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div>
 <div class="test-separator"></div>
@@ -295,9 +295,9 @@ import { createMeshGeometry, createMeshRenderSnapshot } from "https://cdn.jsdeli
 import { GroundBounds } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/GroundBounds.js";
 import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/CollisionWorld2D.js";
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
-import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js?v=osm-diagnostic-v4-20261113";
+import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js?v=map-json-forest-20261113";
 import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=slot-size-20261110";
-import {loadMap} from "./maps/map-loader.js?v=osm-timeout190-v7-20261113";
+import {loadMap} from "./maps/map-loader.js?v=map-abort-forest-20261113";
 import {buildMap} from "./maps/map-builder.js?v=tags-json-editor-20261113";
 import {drawConvenienceSign,drawConvenienceRoof,drawConvenienceWindows} from "./objects/buildings/convenience/common.js?v=convenience-dark-handles-v10-20261112";
 import {createMapLabels,loadOsmTagIgnore} from "./maps/map-labels.js?v=osm-auto-comment-20261113";
@@ -1125,7 +1125,7 @@ function productRenderSnapshot(){
  });
 }
 // Source changes do not reset the helicopter's position, altitude or camera.
-let mapSourceMode='auto',mapLoadToken=0,mapDisplayedSource=null;
+let mapSourceMode='json',mapLoadToken=0,mapDisplayedSource=null,mapLoadController=null;
 const mapDebugLog=[];
 function addMapDebug(line){
  mapDebugLog.push(new Date().toLocaleTimeString('ja-JP',{hour12:false})+' '+line);
@@ -1134,13 +1134,19 @@ function addMapDebug(line){
 }
 const sourceName=s=>s==='osm'?'OSM最新':s==='json'?'matsudo.json':'未読込';
 async function loadMatsudoMapInBackground(generation){
+ // The Forest must never initiate Matsudo map requests.
+ if(generation!==worldGeneration||activeWorld!=='matsudo')return;
+ mapLoadController?.abort();
+ const controller=new AbortController();mapLoadController=controller;
  const token=++mapLoadToken,mode=mapSourceMode;
  mapDebugLog.length=0;addMapDebug('開始 / '+mode+' / 500m四方');
  const onLog=line=>{if(token===mapLoadToken&&generation===worldGeneration)addMapDebug(line);};
  publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得中 / 表示：'+sourceName(mapDisplayedSource));
  try{
   const ignoreRules=await loadOsmTagIgnore();
-  let result=await loadMap({mode,onLog}),next,geometry;
+  // World switches can happen while the tag rules are loading.
+  if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo'||controller.signal.aborted)return;
+  let result=await loadMap({mode,onLog,signal:controller.signal}),next,geometry;
   addMapDebug('地図生成: 開始 / '+result.source);
 
   try{
@@ -1151,7 +1157,7 @@ async function loadMatsudoMapInBackground(generation){
    if(mode!=='auto'||result.source==='json')throw buildError;
    // API response can be syntactically valid but unusable for the renderer.
    addMapDebug('地図生成: OSM失敗 '+String(buildError.message||buildError)+' → JSON');
-   result=await loadMap({mode:'json',onLog});
+   result=await loadMap({mode:'json',onLog,signal:controller.signal});
    result.fallbackError='OSM地図生成失敗：'+String(buildError.message||buildError);
    next=buildMap(result.map);
    geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
@@ -1173,6 +1179,8 @@ async function loadMatsudoMapInBackground(generation){
   publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得失敗：'+String(error.message||error)+' / 表示：'+sourceName(mapDisplayedSource));
   publishRuntimeStatus('status','🏙️ 地図読込失敗（現在地図・飛行維持）：'+String(error.message||error));
   if(!mapDisplayedSource)publishRuntimeStatus('label-status','🏙️ 屋上名：地図読込失敗');
+ }finally{
+  if(mapLoadController===controller)mapLoadController=null;
  }
 }
 function setMapSourceMode(mode){
@@ -1190,6 +1198,8 @@ async function setWorld(name){
  try{
   // Invalidate outstanding map loads as soon as a world switch begins.
   const generation=++worldGeneration;
+  // Cancel Matsudo network activity immediately when leaving or changing worlds.
+  mapLoadController?.abort();mapLoadController=null;
   // Reinitialize the common renderer to release the previous world's GPU meshes.
   await Promise.allSettled([loadingA,loadingB].filter(Boolean));
   rendererA?.dispose?.();rendererB?.dispose?.();
