@@ -54,6 +54,16 @@ export function createMapLabels(host,ignoreRules=[]){
   copyPreview.style.cssText='max-height:22vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:8px;border-radius:6px;background:#fff;color:#173d2e;font:12px/1.5 ui-monospace,monospace;';
   const copyStatus=document.createElement('p');
   copyStatus.style.cssText='font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;color:#345849;';
+  const decorateStatus=(el)=>{
+   const update=()=>{
+    const message=el.textContent.trim(),isError=/^(?:読み込み失敗|テスト送信失敗|コピー作成エラー|コピー準備エラー|認証開始エラー|認証失敗|テストAPI HTTP)/.test(message);
+    el.style.cssText='box-sizing:border-box;font:12px/1.6 system-ui;white-space:pre-wrap;overflow-wrap:anywhere;'+
+     (isError?'padding:11px;border:1px solid #c98578;border-radius:9px;background:#fae6df;color:#823a30;':'color:#345849;');
+   };
+   new MutationObserver(update).observe(el,{childList:true,characterData:true,subtree:true});
+   update();
+  };
+  decorateStatus(copyStatus);
   const copyClientLabel=document.createElement('label');
   copyClientLabel.textContent='テスト環境OAuth Client ID';
   copyClientLabel.style.cssText='display:block;margin:5px 0;font-size:12px;';
@@ -199,7 +209,7 @@ export function createMapLabels(host,ignoreRules=[]){
   for(const type of ['node','way','relation']){const option=document.createElement('option');option.value=type;option.textContent=type;targetType.appendChild(option);}
   const typeLabel=document.createElement('label');typeLabel.style.cssText='display:block;font-size:12px;font-weight:700;margin:8px 0;';typeLabel.textContent='テスト対象の要素種別';
   typeLabel.appendChild(targetType);
-  const targetId=testField('テストサーバーの店舗・施設ID','例：テスト側のnode ID');
+  const targetId=testField('テストサーバーの店舗・施設ID','4365808698 または node/4365808698');
   const loadTarget=makeButton('テスト対象を読み込む');
   const testDetails=document.createElement('pre');
   testDetails.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monospace;background:#e8f0eb;border-radius:7px;padding:8px;';
@@ -209,7 +219,8 @@ export function createMapLabels(host,ignoreRules=[]){
   consentLabel.append(consent,document.createTextNode(' テストサーバーの対象要素を実際に更新することを確認した'));
   const send=makeButton('テストサーバーへ送信',true);
   send.disabled=true;
-  const testStatus=document.createElement('p');testStatus.style.cssText='font-size:12px;color:#335748;white-space:pre-wrap;overflow-wrap:anywhere;';
+  const testStatus=document.createElement('p');
+  decorateStatus(testStatus);
   let loaded=null,levelValue=null,busy=false;
   const syncTestControls=()=>{
    oauth.textContent=hasOsmTestToken()?'再認証する':'テスト環境にログイン';
@@ -225,6 +236,7 @@ export function createMapLabels(host,ignoreRules=[]){
    try{
     await osmTestOAuthReturn;
     const data=await getOsmTestElement(targetType.value,targetId.value.trim());
+    targetType.value=data.type;targetId.value=data.id;
     validateOsmTestLevelTarget(data);
     loaded=data;
     testDetails.hidden=false;
