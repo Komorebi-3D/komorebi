@@ -19,9 +19,8 @@ feature_keys=("shop","amenity","tourism","office","leisure","healthcare")
 selectors="".join(f'nwr["{key}"]({bbox});' for key in feature_keys)
 query=f'[out:json][timeout:90];(way["building"]({bbox});way["highway"]({bbox});way["railway"]({bbox});{selectors});out geom;'
 endpoints=[
-    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.nchc.org.tw/api/interpreter",
 ]
 errors=[]
 for round_index in range(2):
