@@ -8,6 +8,9 @@
 <div class="test-section-title">🌍 ワールドワープ</div>
 <div class="buttons" role="group" aria-label="ワールド切替"><button type="button" data-world="forest" aria-pressed="true">🌳 森</button><button type="button" data-world="matsudo" aria-pressed="false">🏙️ 松戸</button></div>
 <div class="test-separator"></div>
+<div class="test-section-title">🗺️ 松戸の地図データ</div>
+<div class="mode-buttons" role="group" aria-label="地図データ"><button id="map-source-auto" type="button" class="selected" aria-pressed="true">自動</button><button id="map-source-osm" type="button" aria-pressed="false">OSM最新</button><button id="map-source-json" type="button" aria-pressed="false">JSON</button></div>
+<div id="map-source-choice" aria-live="polite">自動：OSM優先・失敗時JSON</div><div class="test-separator"></div>
 <div class="test-section-title">🎮 描画方式</div>
 <div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div>
 <div class="test-separator"></div>
