@@ -1,5 +1,14 @@
 # 🌳 松戸OSMタグ編集・テストAPI：現在地（2026-11-13）
 
+## 2km OSMタイル分割GitHub Action実装（2026-11-14／実データ実行未確認）
+- 分割専用 `.github/workflows/split-matsudo-tiles.yml` を追加。手動 `workflow_dispatch` で、取得用Actionの `matsudo_radius25km-json` 成果物をダウンロードし、分割・検証後に `matsudo-2km-tiles` 成果物として7日保持する。元の25km取得ジョブやOSM APIを再実行しない。
+- `komorebi3d/maps/split-map-tiles.py` を追加。 `docs/rules/map-tiles.md` に基づくEPSG:6677の固定2kmグリッド・ `tile_x_y_YYYYMMDDHHMMSS.json` （UTC）・元のOSM要素保持・跨ぎ地物の完全複製・relationの参照先からの配置・`index.json` を実装。巨大な入力JSONを逐次読み込み、複数タイルの一時書込みにもファイルハンドル数制限を設ける。原本JSONは変更しない。
+- `komorebi3d/maps/tests/test_split_map_tiles.py` を追加。中心座標、4方向、境界way、内包polygon、UTCファイル名、relationと元要素保持のテストをAction起動時に実行する。
+- **生成タイルはmainへ自動コミットせず、Actions成果物として提供する**。GitHub保存容量や公開方法は実データのタイル数とサイズの確認後に判断する。
+- **実際の862.9MBデータを使ったGitHub Actionsの分割処理・成果物アップロードは未実行・未確認**。現在の25km取得成果物は期限付き。期限切れの場合は取得用Actionを再実行する。固定Engine・既存の500m `matsudo.json` ・表示処理・モック・安定版は変更していない。
+
+
+
 ## 松戸地図データ初期JSON化・森のOSM通信防止（2026-11-13／静的確認済み・Safari実機未確認）
 - テスト操作パネル（`komorebi3d/panels/test.html`）の初期選択、ゲーム本体（`dev.template.html` と生成版 `dev.html`）、単体テストパネル状態（`dev-panel-components.js`）の地図モード初期値を `json` に統一。「自動」「OSM最新」の手動選択は維持。
 - 松戸地図の非同期読み込みは、開始時とタグ除外ルール取得後に松戸ワールドであることを再確認。ワールド変更時には進行中の地図取得をAbortControllerで中断する（`maps/map-loader.js`）。森で松戸OSMのAPI取得を開始しないようガード。
