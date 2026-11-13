@@ -96,6 +96,22 @@ async function apiWrite(path,body,token){
  if(!response.ok)throw Error('テストAPI HTTP '+response.status+': '+content.slice(0,250));
  return content.trim();
 }
+// Generate a changeset comment from actual tag differences; no user-facing comment UI.
+export function buildOsmChangeComment(before,after){
+ const oldTags=before||{},newTags=after||{};
+ const own=(obj,key)=>Object.prototype.hasOwnProperty.call(obj,key);
+ const actions=[];
+ for(const key of new Set([...Object.keys(oldTags),...Object.keys(newTags)])){
+  const was=own(oldTags,key),now=own(newTags,key);
+  if(was&&now&&String(oldTags[key])===String(newTags[key]))continue;
+  if(!was&&now)actions.push({verb:'add',detail:key+' : '+String(newTags[key])});
+  else if(was&&!now)actions.push({verb:'delete',detail:key});
+  else if(was&&now)actions.push({verb:'update',detail:key+' : '+String(oldTags[key])+' → '+String(newTags[key])});
+ }
+ if(!actions.length)throw Error('変更されたOSMタグがありません。');
+ const width=actions.length===1?0:Math.max(...actions.map(a=>a.verb.length));
+ return actions.map(a=>(width?a.verb.padEnd(width,' '):a.verb)+' - '+a.detail).join('\\n');
+}
 function makeChangesetXml(comment='Add verified shop floor level (development server only)'){
  const doc=document.implementation.createDocument(null,'osm',null);
  doc.documentElement.setAttribute('version','0.6');
@@ -129,7 +145,9 @@ export async function sendOsmTestLevel(item,level){
  const token=readToken();
  let changesetId=null,uploaded=false;
  try{
-  changesetId=await apiWrite('/changeset/create',makeChangesetXml(),token);
+  const updatedTags={...item.tags,level:String(value)};
+  const comment=buildOsmChangeComment(item.tags,updatedTags);
+  changesetId=await apiWrite('/changeset/create',makeChangesetXml(comment),token);
   if(!/^[1-9]\d*$/.test(changesetId))throw Error('変更セットIDが不正です。');
   const newVersion=await apiWrite('/'+item.type+'/'+item.id,makeElementXml(item,changesetId,value),token);
   uploaded=true;
