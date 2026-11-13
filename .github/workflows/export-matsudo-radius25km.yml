@@ -1,0 +1,88 @@
+name: Export Matsudo radius 25km JSON
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: matsudo-radius25km-export
+  cancel-in-progress: false
+
+jobs:
+  export-radius25km:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install OSM reader
+        run: python -m pip install --disable-pip-version-check osmium
+
+      - name: Download Kanto OSM PBF
+        run: |
+          mkdir -p "$RUNNER_TEMP/osm"
+          curl --fail --location --retry 3 --retry-delay 10 \
+            --connect-timeout 30 --max-time 2400 \
+            --output "$RUNNER_TEMP/osm/kanto-latest.osm.pbf" \
+            https://download.geofabrik.de/asia/japan/kanto-latest.osm.pbf
+          ls -lh "$RUNNER_TEMP/osm/kanto-latest.osm.pbf"
+
+      - name: Export circle (does not modify matsudo.json)
+        run: |
+          python komorebi3d/maps/fetch-map-radius25km.py \
+            --pbf "$RUNNER_TEMP/osm/kanto-latest.osm.pbf" \
+            --output komorebi3d/maps/data/matsudo_radius25km.json \
+            --force
+
+      - name: Validate output and determine storage
+        id: validate
+        run: |
+          python - <<'PY'
+          import json,os,pathlib
+          p=pathlib.Path('komorebi3d/maps/data/matsudo_radius25km.json')
+          with p.open(encoding='utf-8') as f:
+              obj=json.load(f)
+          assert obj['radius_m']==25000 and obj['center']==[35.78444,139.90061]
+          assert len(obj['elements'])>1000
+          size=p.stat().st_size
+          print('Validated',len(obj['elements']),'features,',size,'bytes')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write('committable='+str(size<=95_000_000).lower()+'\n')
+              out.write('size_bytes='+str(size)+'\n')
+          PY
+
+      - name: Upload full JSON as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: matsudo_radius25km-json
+          path: komorebi3d/maps/data/matsudo_radius25km.json
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
+
+      - name: Commit JSON to main if within GitHub file limit
+        if: steps.validate.outputs.committable == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- komorebi3d/maps/data/matsudo_radius25km.json
+          if git diff --cached --quiet; then
+            echo "No data changes."
+          else
+            git commit -m "matsudo: export latest 25km radius JSON"
+            git push origin HEAD:main
+          fi
+
+      - name: Report oversize artifact
+        if: steps.validate.outputs.committable != 'true'
+        run: |
+          echo "::warning::JSON exceeds the 95 MB commit threshold."
+          echo "::warning::Download artifact matsudo_radius25km-json from this run."
