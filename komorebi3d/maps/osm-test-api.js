@@ -76,11 +76,12 @@ export function normalizeOsmTestTarget(type,input){
  const shortMatch=/^(node|way|relation)\s*\/\s*([1-9]\d*)$/i.exec(id);
  const match=urlMatch||shortMatch;
  if(match){kind=match[1].toLowerCase();id=match[2];}
- if(!types.has(kind)||!\/^[1-9]\\d*$\/.test(id))throw Error('テスト要素の種別とIDを確認してください。例：node / 4365808698（数字のみでも入力できます）');
+ if(!types.has(kind)||!/^[1-9]\d*$/.test(id))throw Error('テスト要素の種別とIDを確認してください。例：node / 4365808698（数字のみでも入力できます）');
  return {type:kind,id};
 }
 export async function getOsmTestElement(type,id){
- if(!types.has(type)||!/^[1-9]\d*$/.test(String(id)))throw Error('テスト要素の種別とIDを確認してください。');
+ const target=normalizeOsmTestTarget(type,id);
+ type=target.type;id=target.id;
  const response=await fetch(API+'/'+type+'/'+id,{headers:{Accept:'application/xml'},cache:'no-store'});
  if(!response.ok)throw Error('テスト要素の取得失敗 HTTP '+response.status+'（本番OSMのIDは使えません）');
  return parseOsmElement(await response.text(),type,id);
