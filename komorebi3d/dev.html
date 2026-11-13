@@ -177,6 +177,9 @@ button.slider-step:active{background:#c4dec1}
 <div class="test-section-title">🌍 ワールドワープ</div>
 <div class="buttons" role="group" aria-label="ワールド切替"><button type="button" data-world="forest" aria-pressed="true">🌳 森</button><button type="button" data-world="matsudo" aria-pressed="false">🏙️ 松戸</button></div>
 <div class="test-separator"></div>
+<div class="test-section-title">🗺️ 松戸の地図データ</div>
+<div class="mode-buttons" role="group" aria-label="地図データ"><button id="map-source-auto" type="button" class="selected" aria-pressed="true">自動</button><button id="map-source-osm" type="button" aria-pressed="false">OSM最新</button><button id="map-source-json" type="button" aria-pressed="false">JSON</button></div>
+<div id="map-source-choice" aria-live="polite">自動：OSM優先・失敗時JSON</div><div class="test-separator"></div>
 <div class="test-section-title">🎮 描画方式</div>
 <div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div>
 <div class="test-separator"></div>
@@ -191,7 +194,7 @@ button.slider-step:active{background:#c4dec1}
 <div class="test-separator"></div><div class="test-section-title">📍 テスト位置へ移動</div>
 <div class="test-locations"><button type="button" data-spot="front">🏡 家の前</button><button type="button" data-spot="tree">🌳 木の近く</button><button type="button" data-spot="side">↔ 壁沿い</button><button type="button" data-spot="cafe">☕ カフェ前</button><button type="button" data-spot="west">西端</button><button type="button" data-spot="east">東端</button><button type="button" data-spot="north">奥端</button><button type="button" data-spot="south">手前端</button></div>
 </div>
-<div id="test-help-overlay" class="panel-help-overlay test-help-overlay" role="tooltip" hidden><div class="panel-help-label test-help-label">🧪 テスト操作パネル</div></div></section></div></div></div><div class="panel-slot panel-slot-bottom" data-panel-slot="bottom"><section data-panel-id="runtime" class="runtime-status" aria-label="実行ステータス"><h2 class="runtime-status-heading">📊 実行ステータス</h2><button type="button" id="runtime-help-button" class="panel-help-button runtime-help-button" aria-label="このエリアの名前：実行ステータス" aria-describedby="runtime-help-overlay"><span>ⓘ</span></button><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div><div id="label-status" style="font-size:11px;color:#436d73;margin-top:4px">🏙️ 屋上名：松戸ワープ後に診断表示</div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span><span id="npc-status">🐹 お散歩AI準備中</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p><div id="runtime-help-overlay" class="panel-help-overlay runtime-help-overlay" role="tooltip" hidden><div class="panel-help-label runtime-help-label">📊 実行ステータス</div></div></section></div></div><script>
+<div id="test-help-overlay" class="panel-help-overlay test-help-overlay" role="tooltip" hidden><div class="panel-help-label test-help-label">🧪 テスト操作パネル</div></div></section></div></div></div><div class="panel-slot panel-slot-bottom" data-panel-slot="bottom"><section data-panel-id="runtime" class="runtime-status" aria-label="実行ステータス"><h2 class="runtime-status-heading">📊 実行ステータス</h2><button type="button" id="runtime-help-button" class="panel-help-button runtime-help-button" aria-label="このエリアの名前：実行ステータス" aria-describedby="runtime-help-overlay"><span>ⓘ</span></button><div id="ea" aria-live="polite"></div><div id="eb" aria-live="polite"></div><div id="collision-status" style="margin-top:6px;font-weight:700">衝突判定：待機中</div><div id="sync-status">A/B：共通game座標</div><div id="map-source-status" aria-live="polite">🗺️ 地図：未読込</div><div id="label-status" style="font-size:11px;color:#436d73;margin-top:4px">🏙️ 屋上名：松戸ワープ後に診断表示</div><div class="stats"><span id="pos">X 0.0 / Z 4.5</span><span id="fps">FPS --</span><span id="edge">境界内</span><span id="npc-status">🐹 お散歩AI準備中</span></div><p id="status">描画準備中…</p><p id="input-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎮 Engine Input読み込み中…</p><p id="camera-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">📷 Engine Camera読み込み中…</p><p id="renderer-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🎨 Engine Renderer読み込み中…</p><p id="core-status" style="padding:8px;border-radius:8px;background:#e2eddf;color:#3d6445">🧩 Engine Core・Collision読み込み中…</p><p style="font-size:10px;color:#8a765b">描画方式はAのみ・Bのみ・比較から変更できます。Bの初回起動にはThree.jsの読み込みが必要です。</p><div id="runtime-help-overlay" class="panel-help-overlay runtime-help-overlay" role="tooltip" hidden><div class="panel-help-label runtime-help-label">📊 実行ステータス</div></div></section></div></div><script>
 // Only this mapping controls which panel is displayed in each slot.
 // Set a slot to null to omit the panel. Removed panel markup is also safe.
 const PANEL_LAYOUT=Object.freeze({top:'build',left:'game',right:'test',bottom:'runtime'});
@@ -292,9 +295,9 @@ import { createMeshGeometry, createMeshRenderSnapshot } from "https://cdn.jsdeli
 import { GroundBounds } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/GroundBounds.js";
 import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/CollisionWorld2D.js";
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
-import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js?v=roof-surface-20261111";
+import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js?v=osm-dual-v1-20261113";
 import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=slot-size-20261110";
-import {loadMap} from "./maps/map-loader.js?v=maps-split-20261111";
+import {loadMap} from "./maps/map-loader.js?v=osm-dual-v1-20261113";
 import {buildMap} from "./maps/map-builder.js?v=tags-json-editor-20261113";
 import {drawConvenienceSign,drawConvenienceRoof,drawConvenienceWindows} from "./objects/buildings/convenience/common.js?v=convenience-dark-handles-v10-20261112";
 import {createMapLabels,loadOsmTagIgnore} from "./maps/map-labels.js?v=osm-auto-comment-20261113";
@@ -1121,25 +1124,38 @@ function productRenderSnapshot(){
   objects
  });
 }
-// Load the town after the helicopter is controllable; never apply stale results to another world.
+// Source changes do not reset the helicopter's position, altitude or camera.
+let mapSourceMode='auto',mapLoadToken=0,mapDisplayedSource=null;
+const sourceName=s=>s==='osm'?'OSM最新':s==='json'?'matsudo.json':'未読込';
 async function loadMatsudoMapInBackground(generation){
+ const token=++mapLoadToken,mode=mapSourceMode;
+ publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得中 / 表示：'+sourceName(mapDisplayedSource));
  try{
-  const [map,ignoreRules]=await Promise.all([loadMap(),loadOsmTagIgnore()]);
+  const [{map,source,fallbackError},ignoreRules]=await Promise.all([loadMap({mode}),loadOsmTagIgnore()]);
+  if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo')return;
   const next=buildMap(map);
-  if(generation!==worldGeneration||activeWorld!=='matsudo')return;
   const geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
-  if(generation!==worldGeneration||activeWorld!=='matsudo')return;
-  matsudoMeshes=geometry;matsudoMapFeatures=next.mapFeatures;
+  if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo')return;
+  matsudoMeshes=geometry;matsudoMapFeatures=next.mapFeatures;mapDisplayedSource=source;
   if(miniMapVisible)paintDebugMap();
+  matsudoLabels?.dispose();matsudoLabels=null;
   if(gameView?.surface){matsudoLabels=createMapLabels(gameView.surface,ignoreRules);matsudoLabels.setLabels(next.labels);}
+  publishRuntimeStatus('map-source-status','🗺️ '+mode+' / 表示：'+sourceName(source)+(fallbackError?'（API失敗→JSON）':''));
   publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
   publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
  }catch(error){
-  if(generation!==worldGeneration||activeWorld!=='matsudo')return;
-  // Map failures do not interrupt the helicopter; no automatic retry.
-  publishRuntimeStatus('status','🏙️ 地図読込失敗（飛行は継続）：'+String(error.message||error));
-  publishRuntimeStatus('label-status','🏙️ 屋上名：地図読込失敗');
+  if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo')return;
+  publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得失敗 / 表示：'+sourceName(mapDisplayedSource));
+  publishRuntimeStatus('status','🏙️ 地図読込失敗（現在地図・飛行維持）：'+String(error.message||error));
+  if(!mapDisplayedSource)publishRuntimeStatus('label-status','🏙️ 屋上名：地図読込失敗');
  }
+}
+function setMapSourceMode(mode){
+ if(!['auto','osm','json'].includes(mode))throw RangeError('Invalid map mode');
+ mapSourceMode=mode;publishGameState();
+ if(activeWorld==='matsudo'&&!warpInProgress)return loadMatsudoMapInBackground(worldGeneration);
+ publishRuntimeStatus('map-source-status','🗺️ 次回松戸ワープ：'+mode);
+ return Promise.resolve();
 }
 // Only world-specific geometry changes; the common Engine input/camera are reused.
 async function setWorld(name){
@@ -1153,6 +1169,7 @@ async function setWorld(name){
   await Promise.allSettled([loadingA,loadingB].filter(Boolean));
   rendererA?.dispose?.();rendererB?.dispose?.();
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
+  ++mapLoadToken;mapDisplayedSource=null;
   matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];matsudoMapFeatures=null;
   groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
   collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
@@ -1172,12 +1189,13 @@ async function setWorld(name){
    cameraRig.state.pitch=0;
    cameraRig.state.yaw=Math.PI/2;
    publishRuntimeStatus('status','🏙️ 松戸：地図読み込み中（飛行できます）');
+    publishRuntimeStatus('map-source-status','🗺️ '+mapSourceMode+' 取得待ち');
    publishRuntimeStatus('label-status','🏙️ 屋上名：地図読み込み中');
    // Give the renderer an opportunity to show the helicopter before map work begins.
    requestAnimationFrame(()=>setTimeout(()=>{
     if(generation===worldGeneration&&activeWorld==='matsudo')void loadMatsudoMapInBackground(generation);
    },0));
-  }else {publishRuntimeStatus('status','🌳 森にワープしました');publishRuntimeStatus('label-status','🏙️ 屋上名：森ワールドでは非表示');}
+  }else {publishRuntimeStatus('map-source-status','🗺️ 次回松戸：'+mapSourceMode);publishRuntimeStatus('status','🌳 森にワープしました');publishRuntimeStatus('label-status','🏙️ 屋上名：森ワールドでは非表示');}
   // Persist the selected world; map loading is independent of flight.
   try{localStorage.setItem(SAVED_WORLD_KEY,name)}catch(_){/* storage unavailable */}
   publishGameState();return true;
@@ -1247,7 +1265,7 @@ const gameApi=Object.freeze({
    ...core.getState(),houseLevel,renderMode,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
    npcCount:activeWorld==='forest'?npcManager.agents.length:(matsudoNpcStressSelected?1000:0),npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
    npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
-   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
+   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,mapSourceMode,
    status:Object.fromEntries(runtimeStatusValues)
   };
  },
@@ -1257,7 +1275,7 @@ const gameApi=Object.freeze({
   return ()=>gameStateListeners.delete(listener);
  },
  reset:resetGameForTest,setRenderMode,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
- setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot,setWorld
+ setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot,setWorld,setMapSourceMode
 });
 // Panel views subscribe to Game API without controlling each other.
 const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('.runtime-status'),gameApi);
