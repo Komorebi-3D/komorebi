@@ -2,6 +2,13 @@
 
 > **状態の区別:** ユーザーによる実操作の成功報告は確認済みの操作だけをPASSとし、直近のレイアウト・コメント自動生成などは別途実機検証待ち。GitHub `main` が正本。
 
+## 半径25km地図の独立出力（2026-11-13／実データ未生成）
+- ユーザー指定の出力先は `komorebi3d/maps/data/matsudo_radius25km.json`。従来の `matsudo.json` は変更しない。
+- `komorebi3d/maps/fetch-map-radius25km.py` を新規追加。Geofabrik関東 `kanto-latest.osm.pbf` 等のローカルPBFを受け取り、松戸駅中心 (35.78444,139.90061) から半径25,000mに接する建物・道路・鉄道・施設のnode/wayと関連relationを既存に準じたJSONへ逐次書き出す。未完了時の一時ファイルを除去、正常終了時に置換。
+- 必要環境：`python -m pip install osmium`、関東PBFのダウンロード。利用例：`python komorebi3d/maps/fetch-map-radius25km.py --pbf kanto-latest.osm.pbf`。
+- 25km円は従来500m四方の約31,416倍の面積。JSONはGitHub単一ファイルの100MB上限やブラウザの読込能力を超える可能性が高いため、**実データの生成・格納・3D表示は未実施**。元の500mマップ、固定Engine、モック、安定版は変更していない。
+- 広域データをGitHub Pagesで配信・ゲーム内に表示する場合は後日タイル化が必要。ここでは新しい描画機能は実装していない。
+
 ## Overpass長時間待機の切り分け（2026-11-13／実機未確認）
 - ユーザー実機結果：Private.coffeeは30,003msでAbortError、共通30秒の期限を使い切り、第二候補は未試行。JSONフォールバックは正常（HTTP 200、要素1717件、建物490件など）。
 - **実験的設定**：クエリ[timeout:180]・ブラウザ側は2サーバー共通190秒に変更。Private.coffeeが長時間待てば成功するか検証する。これはOverpassの最大値という意味ではなく、通常ゲーム運用向けの推奨値でもない。
