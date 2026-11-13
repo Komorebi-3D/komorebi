@@ -114,7 +114,7 @@ export function mountTestControlsPanel(root,api){
   npcRenderDistance:Number(find('npc-render-distance')?.defaultValue ?? 70),
   renderMode:find('mode-a')?.getAttribute('aria-pressed')==='true'?'A':
    find('mode-compare')?.getAttribute('aria-pressed')==='true'?'compare':'B',
-  mapVisible:find('map-toggle')?.getAttribute('aria-pressed')==='true',mapSourceMode:'auto'
+  mapVisible:find('map-toggle')?.getAttribute('aria-pressed')==='true',mapSourceMode:'json'
  });
  let localState={...initial};
  const readState=()=>api?api.getState():localState;
@@ -145,7 +145,7 @@ export function mountTestControlsPanel(root,api){
    stressButton.classList.toggle('selected',stress);
   }
   for(const [id,mode] of [['map-source-auto','auto'],['map-source-osm','osm'],['map-source-json','json']]){
-   const button=find(id);if(!button)continue;const selected=(s.mapSourceMode||'auto')===mode;
+   const button=find(id);if(!button)continue;const selected=(s.mapSourceMode||'json')===mode;
    button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
   }
   write('map-source-choice',s.mapSourceMode==='osm'?'OSM最新（失敗時は現在地図を維持）':s.mapSourceMode==='json'?'JSON固定500m':'自動：OSM優先・失敗時JSON');
