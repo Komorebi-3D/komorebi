@@ -1,6 +1,6 @@
 {
   "engine": "d4a392a",
   "forest": "中央2枚扉の取っ手を濃い青グレーに変更（他の外観は不変／実機未確認）",
-  "matsudo": "既存500m JSONを保護したまま、関東PBFから松戸駅半径25kmの独立JSONを書き出す専用Pythonを追加（広域実データ生成・GitHub保存は未実施）",
+  "matsudo": "GitHub Actionsに25km JSONの手動生成を追加。95MB以下ならmainへ、超過時は7日間のActions成果物に保存（未実行）",
   "common": "モック表示の整理とNPC描画上限の自動制御を廃止"
 }
