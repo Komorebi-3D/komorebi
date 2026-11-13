@@ -1,0 +1,120 @@
+# Dedicated tile splitter: docs/rules/map-tiles.md is the canonical rule.
+# Uses already-exported JSON only; do NOT fetch OSM/Overpass/Geofabrik here.
+# Fixed 2km EPSG:6677 grid centered at WGS84 (35.78444, 139.90061).
+# Copy each complete original OSM element to every intersecting tile.
+# No clipping, new geometry, game meshes, partial-coverage flags or repairs.
+# Filenames: tile_x_y_YYYYMMDDHHMMSS.json (UTC); one generation per output.
+name: Split Matsudo JSON into fixed 2km tiles
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Optional 25km export run ID (blank = latest successful run with artifact)'
+        required: false
+        type: string
+      timestamp_utc:
+        description: 'Optional UTC YYYYMMDDHHMMSS (blank = time of generation)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: matsudo-2km-split
+  cancel-in-progress: false
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install streaming and geometry dependencies
+        run: python -m pip install --disable-pip-version-check ijson pyproj shapely
+
+      - name: Validate splitter tests
+        run: python -m unittest discover -s komorebi3d/maps/tests -p 'test_split_map_tiles.py' -v
+
+      - name: Retrieve source JSON from previous export artifact
+        env:
+          REQUESTED_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/source"
+          if [[ -n "$REQUESTED_RUN_ID" ]]; then
+            [[ "$REQUESTED_RUN_ID" =~ ^[0-9]+$ ]] || { echo 'Invalid run ID'; exit 1; }
+            gh run download "$REQUESTED_RUN_ID" -R "$GITHUB_REPOSITORY" \
+              --name matsudo_radius25km-json --dir "$RUNNER_TEMP/source"
+          else
+            found=false
+            while read -r run; do
+              if gh run download "$run" -R "$GITHUB_REPOSITORY" \
+                  --name matsudo_radius25km-json --dir "$RUNNER_TEMP/source"; then
+                found=true
+                echo "Using 25km export run $run"
+                break
+              fi
+            done < <(gh run list -R "$GITHUB_REPOSITORY" \
+              --workflow export-matsudo-radius25km.yml --status success \
+              --limit 30 --json databaseId --jq '.[].databaseId')
+            if [[ "$found" != true ]]; then
+              echo 'No non-expired source artifact. Re-run the 25km exporter.'
+              exit 1
+            fi
+          fi
+          test -s "$RUNNER_TEMP/source/matsudo_radius25km.json"
+          ls -lh "$RUNNER_TEMP/source/matsudo_radius25km.json"
+
+      - name: Split and validate without modifying existing maps
+        env:
+          REQUESTED_TIMESTAMP: ${{ inputs.timestamp_utc }}
+        run: |
+          set -euo pipefail
+          command=(python komorebi3d/maps/split-map-tiles.py
+            --input "$RUNNER_TEMP/source/matsudo_radius25km.json"
+            --output-dir "$RUNNER_TEMP/tiles-2km")
+          if [[ -n "$REQUESTED_TIMESTAMP" ]]; then
+            command+=(--timestamp "$REQUESTED_TIMESTAMP")
+          fi
+          "${command[@]}"
+          python - <<'PY'
+          import json, os, pathlib
+          base = pathlib.Path(os.environ['RUNNER_TEMP']) / 'tiles-2km'
+          index = json.loads((base/'index.json').read_text())
+          assert index['tileSizeM'] == 2000
+          assert index['coordinateSystem'] == 'EPSG:6677'
+          assert index['origin']['lat'] == 35.78444
+          assert index['origin']['lon'] == 139.90061
+          assert index['tiles'], 'No tiles produced'
+          assert all((base/item['file']).is_file() for item in index['tiles'].values())
+          print('Validated tiles:', len(index['tiles']))
+          print('Stored tile bytes:', sum(item['sizeBytes'] for item in index['tiles'].values()))
+          PY
+
+      - name: Upload tiles and index as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: matsudo-2km-tiles
+          path: ${{ runner.temp }}/tiles-2km/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 3
+
+      - name: Summary
+        run: |
+          echo '### Matsudo 2km tiles generated' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Source: exported 25km JSON artifact. No new OSM/API download.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Output: downloadable workflow artifact; not committed to main.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Existing matsudo.json and Engine are unchanged.' >> "$GITHUB_STEP_SUMMARY"
