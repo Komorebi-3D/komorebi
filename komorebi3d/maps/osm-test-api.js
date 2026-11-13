@@ -110,7 +110,7 @@ export function buildOsmChangeComment(before,after){
  }
  if(!actions.length)throw Error('変更されたOSMタグがありません。');
  const width=actions.length===1?0:Math.max(...actions.map(a=>a.verb.length));
- return actions.map(a=>(width?a.verb.padEnd(width,' '):a.verb)+' - '+a.detail).join('\\n');
+ return actions.map(a=>(width?a.verb.padEnd(width,' '):a.verb)+' - '+a.detail).join('\n');
 }
 function makeChangesetXml(comment='Add verified shop floor level (development server only)'){
  const doc=document.implementation.createDocument(null,'osm',null);
