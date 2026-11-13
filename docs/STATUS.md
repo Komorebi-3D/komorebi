@@ -2,6 +2,11 @@
 
 > **状態の区別:** ユーザーによる実操作の成功報告は確認済みの操作だけをPASSとし、直近のレイアウト・コメント自動生成などは別途実機検証待ち。GitHub `main` が正本。
 
+## Overpassタイムアウト30秒で再検証（2026-11-13／実機未確認）
+- ユーザー実機ログ：Private.coffeeは約8004msでKomorebiのAbortErrorとなり、第二候補を試せずJSONがHTTP 200で表示された。Private.coffeeの処理自体が8秒超で完了するかは未確認。
+- ブラウザ側の2候補共通期限を8秒→30秒、Overpassクエリの[timeout]も8秒→30秒に変更。Private.coffeeが応答しない場合は最大約30秒試行し、残りがあれば第二候補へ、最後はJSONに退避。2候補にそれぞれ30秒ずつ割り当てる設定ではない。
+- 診断ログ、既存JSON、地図描画、固定Engine、安定版、モックは維持。GitHub Actions・Safari実機は未確認。
+
 ## Overpass接続先を2系統に整理（2026-11-13／実機未確認）
 - ユーザー実機診断：overpass-api.de は約415msでHTTP 502、自動フォールバックしたmatsudo.jsonはHTTP 200・要素1717件、建物490件・道路390件・鉄道34件を生成。8秒タイムアウトとは異なるエラー。
 - ブラウザのOSM取得は overpass.private.coffee を第一候補、overpass-api.de を第二候補にして、失敗時に順番に試行。自動モードで両方失敗した場合に既存matsudo.jsonへ切替。OSM固定モードはどちらも失敗時に現状の地図を維持。
