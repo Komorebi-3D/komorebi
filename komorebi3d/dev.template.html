@@ -99,9 +99,9 @@ import { createMeshGeometry, createMeshRenderSnapshot } from "https://cdn.jsdeli
 import { GroundBounds } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/GroundBounds.js";
 import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/collision/CollisionWorld2D.js";
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
-import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js?v=osm-dual-v1-20261113";
+import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js?v=osm-diagnostic-v4-20261113";
 import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=slot-size-20261110";
-import {loadMap} from "./maps/map-loader.js?v=osm-dual-timeout8-v3-20261113";
+import {loadMap} from "./maps/map-loader.js?v=osm-diagnostic-v4-20261113";
 import {buildMap} from "./maps/map-builder.js?v=tags-json-editor-20261113";
 import {drawConvenienceSign,drawConvenienceRoof,drawConvenienceWindows} from "./objects/buildings/convenience/common.js?v=convenience-dark-handles-v10-20261112";
 import {createMapLabels,loadOsmTagIgnore} from "./maps/map-labels.js?v=osm-auto-comment-20261113";
@@ -657,13 +657,23 @@ function productRenderSnapshot(){
 }
 // Source changes do not reset the helicopter's position, altitude or camera.
 let mapSourceMode='auto',mapLoadToken=0,mapDisplayedSource=null;
+const mapDebugLog=[];
+function addMapDebug(line){
+ mapDebugLog.push(new Date().toLocaleTimeString('ja-JP',{hour12:false})+' '+line);
+ if(mapDebugLog.length>32)mapDebugLog.shift();
+ publishRuntimeStatus('map-debug-log',mapDebugLog.join('\n'));
+}
 const sourceName=s=>s==='osm'?'OSM最新':s==='json'?'matsudo.json':'未読込';
 async function loadMatsudoMapInBackground(generation){
  const token=++mapLoadToken,mode=mapSourceMode;
+ mapDebugLog.length=0;addMapDebug('開始 / '+mode+' / 500m四方');
+ const onLog=line=>{if(token===mapLoadToken&&generation===worldGeneration)addMapDebug(line);};
  publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得中 / 表示：'+sourceName(mapDisplayedSource));
  try{
   const ignoreRules=await loadOsmTagIgnore();
-  let result=await loadMap({mode}),next,geometry;
+  let result=await loadMap({mode,onLog}),next,geometry;
+  addMapDebug('地図生成: 開始 / '+result.source);
+
   try{
    next=buildMap(result.map);
    if(next.counts.buildings<10||next.counts.roads<10)throw Error('3D地図生成データ不足');
@@ -671,22 +681,26 @@ async function loadMatsudoMapInBackground(generation){
   }catch(buildError){
    if(mode!=='auto'||result.source==='json')throw buildError;
    // API response can be syntactically valid but unusable for the renderer.
-   result=await loadMap({mode:'json'});
+   addMapDebug('地図生成: OSM失敗 '+String(buildError.message||buildError)+' → JSON');
+   result=await loadMap({mode:'json',onLog});
    result.fallbackError='OSM地図生成失敗：'+String(buildError.message||buildError);
    next=buildMap(result.map);
    geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
   }
   const {source,fallbackError}=result;
+  addMapDebug('地図生成: 完了 / 建物'+next.counts.buildings+' 道路'+next.counts.roads+' 鉄道'+next.counts.rails);
   if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo')return;
   matsudoMeshes=geometry;matsudoMapFeatures=next.mapFeatures;mapDisplayedSource=source;
   if(miniMapVisible)paintDebugMap();
   matsudoLabels?.dispose();matsudoLabels=null;
   if(gameView?.surface){matsudoLabels=createMapLabels(gameView.surface,ignoreRules);matsudoLabels.setLabels(next.labels);}
+  addMapDebug('表示切替: '+sourceName(source));
   publishRuntimeStatus('map-source-status','🗺️ '+mode+' / 表示：'+sourceName(source)+(fallbackError?'（OSM失敗→JSON：'+fallbackError+'）':''));
   publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
   publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
  }catch(error){
   if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo')return;
+  addMapDebug('失敗: '+String(error.name||'Error')+' / '+String(error.message||error));
   publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得失敗：'+String(error.message||error)+' / 表示：'+sourceName(mapDisplayedSource));
   publishRuntimeStatus('status','🏙️ 地図読込失敗（現在地図・飛行維持）：'+String(error.message||error));
   if(!mapDisplayedSource)publishRuntimeStatus('label-status','🏙️ 屋上名：地図読込失敗');
