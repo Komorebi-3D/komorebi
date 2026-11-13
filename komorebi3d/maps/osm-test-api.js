@@ -69,6 +69,16 @@ function parseOsmElement(xml,type,id){
  for(const tag of element.children)if(tag.tagName==='tag')tags[tag.getAttribute('k')]=tag.getAttribute('v');
  return {type,id:String(id),version,tags,element};
 }
+export function normalizeOsmTestTarget(type,input){
+ let kind=String(type||'').trim(),id=String(input||'').trim();
+ // Accept numeric IDs, node/123, and test-server element URLs.
+ const urlMatch=/^https:\/\/master\.apis\.dev\.openstreetmap\.org\/(node|way|relation)\/([1-9]\d*)(?:[/?#].*)?$/i.exec(id);
+ const shortMatch=/^(node|way|relation)\s*\/\s*([1-9]\d*)$/i.exec(id);
+ const match=urlMatch||shortMatch;
+ if(match){kind=match[1].toLowerCase();id=match[2];}
+ if(!types.has(kind)||!\/^[1-9]\\d*$\/.test(id))throw Error('テスト要素の種別とIDを確認してください。例：node / 4365808698（数字のみでも入力できます）');
+ return {type:kind,id};
+}
 export async function getOsmTestElement(type,id){
  if(!types.has(type)||!/^[1-9]\d*$/.test(String(id)))throw Error('テスト要素の種別とIDを確認してください。');
  const response=await fetch(API+'/'+type+'/'+id,{headers:{Accept:'application/xml'},cache:'no-store'});
