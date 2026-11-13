@@ -2,6 +2,11 @@
 
 > **状態の区別:** ユーザーによる実操作の成功報告は確認済みの操作だけをPASSとし、直近のレイアウト・コメント自動生成などは別途実機検証待ち。GitHub `main` が正本。
 
+## 半径25km初回出力の自動起動を設定（2026-11-13／実行状況未確認）
+- `.github/workflows/export-matsudo-radius25km.yml` にworkflowファイル自身のpushを起動条件として追加し、mainに反映（a1a6be08752e6ac5673f86e94b02d05d6b896610）。既存の手動workflow_dispatchも維持。
+- GitHub Actionsの実行一覧を閲覧する権限付きAPIが本接続にないため、起動・成功・実ファイルの保存は未確認。Github Actions画面の実行履歴を確認し、95MB以内ならmainのJSON、超過なら成果物を確認する。
+- matsudo.jsonおよび3D描画は変更なし。
+
 ## 半径25km GitHub Actions出力（2026-11-13／ワークフロー追加、実行未確認）
 - `.github/workflows/export-matsudo-radius25km.yml` を追加。Actionsの手動 `Run workflow` でGeofabrikの関東PBF取得、`osmium` + `ijson` を使う円内データ生成、ストリーム形式の検証、JSONアーティファクト（保持7日）登録を行う。
 - 出力先は `komorebi3d/maps/data/matsudo_radius25km.json`。実ファイル95,000,000バイト以下なら同ファイルを `main` にコミット。超過したらGitHub単一ファイルの100MB制限を避けるためmainにはコミットせず、Actions成果物で提供する。
