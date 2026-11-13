@@ -261,7 +261,7 @@ export function createMapLabels(host,ignoreRules=[]){
    }catch(e){testStatus.textContent='テスト送信失敗: '+e.message+'。本番OSMへの送信は行っていません。';}
    finally{busy=false;syncTestControls();}
   });
-  testPane.append(testHeading,testHelp,testLink,oauth,logout,typeLabel,loadTarget,testDetails,consentLabel,send,testStatus);
+  testPane.append(testHeading,testHelp,testLink,oauth,logout,typeLabel,targetId.parentElement,loadTarget,testDetails,consentLabel,send,testStatus);
   review.appendChild(testPane);
 
   const close=makeButton('閉じる'),confirm=makeButton('確認',true),back=makeButton('編集に戻る');
