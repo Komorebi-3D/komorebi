@@ -75,6 +75,20 @@ export function createGameView(root){
 
 export function mountRuntimeStatusPanel(root,api){
  if(!root)return ()=>{};
+ // Diagnostics are created only for the live runtime panel, not the protected mock.
+ const diagnostic=document.createElement('div');
+ diagnostic.style.cssText='margin:8px 0;padding:8px;border:1px solid #a5bcb0;border-radius:8px;';
+ const title=document.createElement('div');title.textContent='🧪 OSM通信ログ（直近の取得）';
+ title.style.cssText='font-weight:700;font-size:12px;margin-bottom:6px;';
+ const copy=document.createElement('button');copy.type='button';copy.textContent='📋 ログをコピー';
+ copy.style.cssText='font-size:12px;margin-bottom:6px;padding:5px 8px;';
+ const pre=document.createElement('pre');pre.id='map-debug-log';pre.textContent='松戸で地図を読み込むとログを表示';
+ pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;max-height:230px;overflow:auto;font-size:11px;line-height:1.5;margin:0;';
+ diagnostic.append(title,copy,pre);
+ (root.querySelector('#map-source-status')||root.querySelector('#label-status')||root).after(diagnostic);
+ const onCopy=async()=>{try{await navigator.clipboard.writeText(pre.textContent||'');copy.textContent='コピーしました';}
+ catch(_){copy.textContent='テキストを長押ししてコピー';}};
+ copy.addEventListener('click',onCopy);
  const fields=new Map(Array.from(root.querySelectorAll('[id]'),node=>[node.id,node]));
  const render=event=>{
   if(event.type!=='status')return;
@@ -82,7 +96,8 @@ export function mountRuntimeStatusPanel(root,api){
   if(field)field.textContent=event.value;
  };
  for(const [id,value] of Object.entries(api.getState().status ?? {}))render({type:'status',id,value});
- return api.subscribe(render);
+ const unsubscribe=api.subscribe(render);
+ return ()=>{unsubscribe();copy.removeEventListener('click',onCopy);diagnostic.remove();};
 }
 
 export function mountTestControlsPanel(root,api){
