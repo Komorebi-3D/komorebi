@@ -10,9 +10,9 @@ function verify(map){
  if(buildings<10||roads<10||facilities<1)throw Error('OSMデータ不足');
  return map;
 }
-async function json(url,log=()=>{}){
+async function json(url,log=()=>{},signal){
  const start=performance.now();log('JSON: リクエスト開始');
- const response=await fetch(url,{cache:'no-cache'});
+ const response=await fetch(url,{cache:'no-cache',signal});
  log('JSON: HTTP '+response.status+' / '+Math.round(performance.now()-start)+'ms');
  if(!response.ok)throw Error('JSON HTTP '+response.status);
  const map=verify(await response.json());
@@ -23,12 +23,16 @@ const overpassEndpoints=[
  {name:'private.coffee',url:'https://overpass.private.coffee/api/interpreter'},
  {name:'overpass-api.de',url:'https://overpass-api.de/api/interpreter'}
 ];
-async function osm(log=()=>{}){
+async function osm(log=()=>{},signal){
  const start=performance.now(),deadline=start+190000,failures=[];
  for(const endpoint of overpassEndpoints){
+  if(signal?.aborted)throw new DOMException('Map request cancelled','AbortError');
   const remaining=Math.round(deadline-performance.now());
   if(remaining<=0){log('OSM: 共通190秒制限に到達');break;}
   const controller=new AbortController(),attemptStart=performance.now(),timer=setTimeout(()=>controller.abort(),remaining);
+  const abortFromWorld=()=>controller.abort();
+  signal?.addEventListener('abort',abortFromWorld,{once:true});
+  if(signal?.aborted)controller.abort();
   log('OSM: '+endpoint.name+' / GET / 残り'+remaining+'ms');
   try{
    const response=await fetch(endpoint.url+'?data='+encodeURIComponent(query),{method:'GET',signal:controller.signal,cache:'no-store'});
@@ -49,21 +53,22 @@ async function osm(log=()=>{}){
    log('OSM: '+endpoint.name+' 検証PASS / 要素 '+elements.length+'件 / 合計'+Math.round(performance.now()-start)+'ms');
    return map;
   }catch(error){
+   if(signal?.aborted)throw error;
    const reason=(controller.signal.aborted?'時間制限 / ':'')+(error.name||'Error')+' / '+String(error.message||error);
    failures.push(endpoint.name+': '+reason);
    log('OSM: '+endpoint.name+' 失敗 '+reason+' / '+Math.round(performance.now()-attemptStart)+'ms');
-  }finally{clearTimeout(timer);}
+  }finally{clearTimeout(timer);signal?.removeEventListener('abort',abortFromWorld);}
  }
  throw Error('Overpass取得失敗：'+failures.join(' | ')+(performance.now()>=deadline?' / 共通190秒制限':''));
 }
-export async function loadMap({mode='auto',url='./maps/data/matsudo.json',onLog=()=>{}}={}){
+export async function loadMap({mode='auto',url='./maps/data/matsudo.json',onLog=()=>{},signal}={}){
  if(!['auto','osm','json'].includes(mode))throw RangeError('Invalid map mode');
  onLog('モード: '+mode);
- if(mode==='json')return {map:await json(url,onLog),source:'json',fallbackError:null};
- try{return {map:await osm(onLog),source:'osm',fallbackError:null};}
+ if(mode==='json')return {map:await json(url,onLog,signal),source:'json',fallbackError:null};
+ try{return {map:await osm(onLog,signal),source:'osm',fallbackError:null};}
  catch(error){
-  if(mode==='osm')throw error;
+  if(mode==='osm'||signal?.aborted)throw error;
   onLog('自動切替: OSM失敗 → JSON');
-  return {map:await json(url,onLog),source:'json',fallbackError:String(error.message||error)};
+  return {map:await json(url,onLog,signal),source:'json',fallbackError:String(error.message||error)};
  }
 }
