@@ -135,8 +135,10 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 }
 /* Mock-only independent A/B screen settings and visual diff diagnostic. */
 .test-panel .mock-display-modes button.selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
-.mock-screen-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
-.mock-screen-card{min-width:0;padding:8px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3}
+.mock-screen-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px;height:290px}
+.mock-screen-settings[data-mock-visible="A"],.mock-screen-settings[data-mock-visible="B"]{grid-template-columns:minmax(0,1fr)}
+.mock-screen-card{min-width:0;height:100%;padding:8px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3}
+.mock-screen-card[hidden]{display:none}
 .mock-screen-title{padding:6px 4px;margin-bottom:8px;border-radius:5px;background:#e9e1d3;text-align:center;font-weight:750}
 .mock-setting-group{min-width:0;margin:0 0 9px;padding:8px 6px;border:1px solid #c4b29c;border-radius:8px;background:#fffaf3}
 .mock-setting-group:last-child{margin-bottom:0}
@@ -437,6 +439,11 @@ function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false}={}){
    other.setAttribute('aria-pressed',String(selected));
   });
   const mode=button.dataset.mockMode;
+  const settings=panel.querySelector('.mock-screen-settings');
+  settings.dataset.mockVisible=mode;
+  settings.querySelectorAll('[data-mock-screen]').forEach(card=>{
+   card.hidden=mode!=='compare'&&card.dataset.mockScreen!==mode;
+  });
   panel.querySelector('#mock-display-caption').textContent='表示：'+(mode==='compare'?'画面A＋画面B':'画面'+mode+'のみ');
  }));
  refresh();
