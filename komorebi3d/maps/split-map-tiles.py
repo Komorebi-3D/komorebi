@@ -39,6 +39,10 @@
 # - タイル間重複のゲーム側描画処理、OSM新旧比較・修復は実装しない。
 #
 # 【ファイル形式と日時】
+# - 出力先は実行時の --output-dir で指定するディレクトリ。Python内では固定しない。
+# - 分割JSONと index.json は同じ出力先ディレクトリに保存する。
+# - 現行GitHub Actionsではランナーの一時ディレクトリ tiles-2km/ に生成し、
+#   matsudo-2km-tiles というActions成果物として保存する（mainには自動コミットしない）。
 # - 出力名 = tile_x_y_YYYYMMDDHHMMSS.json。
 # - YYYYMMDDHHMMSSはJSON生成時刻をUTCで表す（OSM自体の更新日時ではない）。
 # - JSTでの日時表示はゲーム側で行う。位置ID tile_x_y は日時を含めない。
