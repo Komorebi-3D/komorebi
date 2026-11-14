@@ -14,7 +14,7 @@ button.panel-help-button:focus-visible{outline:var(--help-focus-outline);outline
 .panel-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;font-size:16px;font-weight:750;text-align:center;background:var(--help-label-bg);color:var(--help-label-color);box-shadow:0 4px 18px rgba(0,0,0,.25);box-shadow:0 4px 18px color-mix(in srgb,currentColor 25%,transparent)}
 .test-panel-body{padding:10px 11px 11px}
 /* Test controls: keep the reset header visible; scroll only the body. */
-.test-panel{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:clip}
+.test-panel{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:visible}
 .test-panel-header{position:sticky;top:0;flex:0 0 auto}
 .test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 

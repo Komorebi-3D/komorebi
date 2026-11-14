@@ -17,7 +17,7 @@ button.slider-step{flex:0 0 44px;width:44px;min-height:44px;padding:0;border-rad
 button.slider-step:active{background:#c4dec1}
 .debug-controls output{font-variant-numeric:tabular-nums;white-space:nowrap}
 .test-panel{position:relative;margin-top:8px;padding:0;border:1px solid #d5c8b6;border-radius:9px;background:#f5ede0;color:#554a3f;font-size:12px;line-height:1.65;--help-button-color:#554a3f;--help-overlay-bg:rgba(69,50,28,.34);--help-label-bg:#fffdf8;--help-label-color:#554a3f;--help-focus-outline:2px solid #8a6b4a;--help-focus-offset:-4px}
-.test-panel-header{position:relative;padding:10px 11px 9px;background:#f5ede0;border-bottom:1px solid #dccbb5;z-index:1}
+.test-panel-header{padding:10px 11px 9px;background:#f5ede0;border-bottom:1px solid #dccbb5;z-index:1}
 .test-panel-heading{display:block;min-height:38px;padding-right:43px;font-size:12px;font-weight:750}
 .test-panel button.test-reset,.test-panel .test-panel-body button{min-height:44px;padding:9px 7px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3;color:#554a3f;font:700 12px system-ui;cursor:pointer;touch-action:manipulation}
 .test-panel button.test-reset{display:block;width:100%;margin:0;background:#f6e5da;border-color:#d0a793;color:#8a4a38}

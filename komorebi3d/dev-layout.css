@@ -23,6 +23,7 @@
  .landscape-main .panel-slot-main{min-width:0;min-height:0;height:100%;overflow:hidden}
  .landscape-main .panel-slot-main>[data-panel-id]{min-width:0;min-height:0;height:100%;margin:0}
  .landscape-main .panel-slot-main>.build-info,.landscape-main .panel-slot-main>.runtime-status{overflow-y:auto}
+ .landscape-hero .test-panel{overflow:hidden}
  .landscape-main .panel-slot-main>.test-panel{height:100%;max-height:100%;margin:0}
  .panel-slot .test-panel-header{box-shadow:0 3px 8px #65432113}
  .panel-slot-top>.runtime-status,.panel-slot-main>.runtime-status{margin-top:0}

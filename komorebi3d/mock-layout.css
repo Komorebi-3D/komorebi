@@ -11,6 +11,7 @@
 .mock-root .panel-slot-top>[data-panel-id]:not(.build-info){height:100%;margin:0}
 .mock-root .landscape-main .panel-slot-main{min-width:0;min-height:0;overflow:hidden}
 .mock-root .landscape-main .panel-slot-main>[data-panel-id]{min-width:0;min-height:0;height:100%;margin:0}
+.mock-root .landscape-main .panel-slot-main>.test-panel{overflow:hidden}
 .mock-root .landscape-main .panel-slot-main>.landscape-game{height:440px}
 .mock-root .landscape-main .panel-slot-main[data-slot-size-fixed]>.landscape-game{height:100%}
 .mock-root .landscape-main .panel-slot-main>.build-info{overflow-y:auto}
