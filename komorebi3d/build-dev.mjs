@@ -69,12 +69,14 @@ if(chat){
  const editor=read('dev-panel-layout.js');
  if(/^\s*import\b/m.test(editor))throw Error('Chat mock needs a dependency-free editor');
  const standalone=editor.replace(/^export (?=(?:const|function)\b)/gm,'');
+ // Chat only: discard standalone comments, blank lines, and indentation; keep behavior intact.
+ const compact=standalone.replace(/^[ \t]*\/\/[^\n]*(?:\n|$)/gm,'').replace(/^[ \t]*\n/gm,'').replace(/^[ \t]+/gm,'');
  if(/^\s*export\b/m.test(standalone))throw Error('Unsupported editor export syntax');
  const moduleTag='<script type="module">';
  const importRule=/^import \{mountPanelLayoutEditor\} from '\.\/dev-panel-layout\.js\?v=[^']+';$/gm;
  if(!html.includes(moduleTag)||[...html.matchAll(importRule)].length!==1)
   throw Error('Expected exactly one mock layout editor import');
- html=html.replace(moduleTag,'<script>').replace(importRule,standalone.trimEnd());
+ html=html.replace(moduleTag,'<script>').replace(importRule,compact.trimEnd());
  // The output is an embeddable fragment: no document-level wrapper or external JS.
  const start=html.indexOf('<style>');
  if(!html.startsWith('<!doctype html>')||start<0||!html.includes('</head><body>')||!/<\/body><\/html>\s*$/.test(html))
