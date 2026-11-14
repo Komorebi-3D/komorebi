@@ -1,5 +1,13 @@
 # 🌳 松戸OSMタグ編集・テストAPI：現在地（2026-11-13）
 
+## 森・松戸の地図取得ライフサイクルを疎結合化（2026-11-14／静的確認済み・Safari実機未確認）
+- `komorebi3d/dev.template.html` と生成版 `komorebi3d/dev.html` の松戸地図取得から `activeWorld!=='matsudo'` の多重判定を除去。松戸入場・松戸での地図モード変更だけが `loadMatsudoMapInBackground()` を起動する。
+- 専用の `cancelMatsudoMapRequest()` / `isCurrentMatsudoMapRequest()` で要求の失効・AbortController・古い応答の破棄を管理。ワールド切替時は直前の松戸要求をdisposeするだけで、森側にOSM通信の可否判定は置かない。切替予約の世代判定は共通ワールド遷移処理に限定。
+- テスト操作パネルは既存の `setWorld` / `setMapSourceMode` APIを使用し続ける。パネル本体・森の表示ロジック・地図取得モード・既存JSON・固定Engine・安定版は変更なし。
+- 静的確認：templateとdevの松戸地図部分が一致し、通信処理内のワールド名判定が消えている。実機確認待ち：森起動で地図HTTP通信なし、松戸でJSON/OSMモードの取得、通信中の森への切替でAbort、松戸への再入場で再取得。
+
+
+
 ## 2kmタイルJSONをGitHub mainに分割コミットして保存（2026-11-14／本番検証成功）
 - 分割Action実行 [43547496368](https://github.com/Komorebi-3D/komorebi/actions/runs/43547496368) が成功。入力約2,344,556 OSM要素から559タイルを生成。出力合計897,894,074バイト。
 - ZIP成果物（`matsudo-2km-tiles`）から `komorebi3d/maps/data/tiles-2km/` へ560ファイル（タイル559枚＋最小構成 `index.json`）を保存。保存用Action [43548293473](https://github.com/Komorebi-3D/komorebi/actions/runs/43548293473) が成功し、1回90MB未満の11コミットでmainへpush。最大バッチ89,852,414バイト。
