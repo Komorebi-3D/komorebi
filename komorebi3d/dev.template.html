@@ -717,6 +717,7 @@ async function setWorld(name){
   // Release the previous world's Matsudo session, if any.
   cancelMatsudoMapRequest();
   // Reinitialize the common renderer to release the previous world's GPU meshes.
+  rendererGenerationA++;rendererGenerationB++;
   await Promise.allSettled([loadingA,loadingB].filter(Boolean));
   rendererA?.dispose?.();rendererB?.dispose?.();
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
@@ -756,52 +757,63 @@ async function setWorld(name){
 }
 let rendererA=null,rendererB=null,loadingA=null,loadingB=null;
 let okA=false,okB=false,renderMode='B';
+let rendererGenerationA=0,rendererGenerationB=0;
 let screenConfigs={A:{map:'old',engine:'B'},B:{map:'new',engine:'B'}};
 function setScreenConfig({screen,setting,value}={}){
  if(!['A','B'].includes(screen)||!['map','engine'].includes(setting)||
     !(setting==='map'?['old','new']:['A','B']).includes(value))return false;
  if(screenConfigs[screen][setting]===value)return true;
  screenConfigs={...screenConfigs,[screen]:{...screenConfigs[screen],[setting]:value}};
+ if(setting==='engine')void reconfigureScreenRenderer(screen);
+ if(setting==='map'&&value==='new')publishRuntimeStatus('map-source-status','🗺️ 新2kmタイル：未接続（現在は旧500m地図を表示）');
  publishGameState();return true;
 }
 let last=0,start=0,frames=0;
-function ensureA(){
+function isVisibleScreen(screen){return renderMode==='compare'||renderMode===screen;}
+function ensureScreen(screen){
  if(!gameView)return Promise.resolve();
- if(okA)return Promise.resolve();
- if(loadingA)return loadingA;
- publishRuntimeStatus('ea','A：Engine WebGLを読み込み中…');
- loadingA=(async()=>{
-  const instance=await createRenderer('A',{profile:'mesh'});
-  await instance.initialize({canvas:gameView.canvasA});
-  rendererA=instance;okA=true;publishRuntimeStatus('ea','');
-  publishRuntimeStatus('renderer-status','🎨 Engine Renderer A準備OK'+(okB?' / B準備OK':''));
-  publishRuntimeStatus('status','Renderer A描画準備完了');
+ const isA=screen==='A';
+ if(isA?(okA||loadingA):(okB||loadingB))return (isA?loadingA:loadingB)||Promise.resolve();
+ const engine=screenConfigs[screen].engine;
+ const generation=isA?rendererGenerationA:rendererGenerationB;
+ publishRuntimeStatus(isA?'ea':'eb',screen+'：Engine '+engine+' 読み込み中…');
+ const promise=(async()=>{
+  const instance=await createRenderer(engine,{profile:'mesh'});
+  try{await instance.initialize({canvas:isA?gameView.canvasA:gameView.canvasB});}
+  catch(error){instance.dispose?.();throw error;}
+  if(generation!==(isA?rendererGenerationA:rendererGenerationB)){
+   instance.dispose?.();return;
+  }
+  if(isA){rendererA=instance;okA=true;}else{rendererB=instance;okB=true;}
+  publishRuntimeStatus(isA?'ea':'eb','');
+  publishRuntimeStatus('renderer-status','🎨 画面'+screen+' / Engine '+engine+' 準備OK');
+  if(engine==='B'){
+   const diagnostic=document.getElementById('launch-diagnostic');
+   if(diagnostic)diagnostic.textContent='診断：Engine Input・Camera・Renderer準備完了';
+  }
  })().catch(error=>{
-  loadingA=null;publishRuntimeStatus('ea','A初期化エラー：'+String(error.message||error));
-  publishRuntimeStatus('renderer-status','🎨 Renderer A初期化失敗');
-  if(renderMode==='A'||renderMode==='compare')setRenderMode('B');
+  if(generation!==(isA?rendererGenerationA:rendererGenerationB))return;
+  publishRuntimeStatus(isA?'ea':'eb',screen+'：Engine '+engine+' 初期化エラー：'+String(error.message||error));
+  publishRuntimeStatus('renderer-status','🎨 画面'+screen+' / Engine '+engine+' 初期化失敗');
+ }).finally(()=>{
+  if(generation!==(isA?rendererGenerationA:rendererGenerationB))return;
+  if(isA)loadingA=null;else loadingB=null;
  });
- return loadingA;
+ if(isA)loadingA=promise;else loadingB=promise;
+ return promise;
 }
-function ensureB(){
- if(!gameView)return Promise.resolve();
- if(okB)return Promise.resolve();
- if(loadingB)return loadingB;
- publishRuntimeStatus('eb','B：Engine Three.jsを読み込み中…');
- loadingB=(async()=>{
-  const instance=await createRenderer('B',{profile:'mesh'});
-  await instance.initialize({canvas:gameView.canvasB});
-  rendererB=instance;okB=true;publishRuntimeStatus('eb','');
-  publishRuntimeStatus('renderer-status','🎨 Engine Renderer B準備OK'+(okA?' / A準備OK':''));
-  publishRuntimeStatus('status','Renderer B描画準備完了');
-  const diagnostic=document.getElementById('launch-diagnostic');
-  if(diagnostic)diagnostic.textContent='診断：Engine Input・Camera・Renderer準備完了';
- })().catch(error=>{
-  loadingB=null;publishRuntimeStatus('eb','B初期化エラー：'+String(error.message||error));
-  publishRuntimeStatus('renderer-status','🎨 Renderer B初期化失敗');
-  if(renderMode==='B'||renderMode==='compare')setRenderMode('A');
- });
- return loadingB;
+function ensureA(){return ensureScreen('A');}
+function ensureB(){return ensureScreen('B');}
+async function reconfigureScreenRenderer(screen){
+ const isA=screen==='A',generation=isA?++rendererGenerationA:++rendererGenerationB;
+ const pending=isA?loadingA:loadingB;
+ if(pending)await Promise.allSettled([pending]);
+ if(generation!==(isA?rendererGenerationA:rendererGenerationB))return;
+ const renderer=isA?rendererA:rendererB;
+ renderer?.dispose?.();
+ if(isA){rendererA=null;loadingA=null;okA=false;}
+ else{rendererB=null;loadingB=null;okB=false;}
+ if(isVisibleScreen(screen))await ensureScreen(screen);
 }
 function setRenderMode(mode){
  if(!['A','B','compare'].includes(mode))mode='B';
@@ -869,7 +881,7 @@ function frame(t){
    if(renderMode!=='A'&&okB)rendererB.render(snapshot);
    const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
    const b=renderMode!=='A'&&okB?rendererB.lastFrameId:'―';
-   publishRuntimeStatus('sync-status','共通Snapshot #'+snapshot.frameId+' / A:'+a+' / B:'+b+
+   publishRuntimeStatus('sync-status','共通Snapshot #'+snapshot.frameId+' / 画面A(Engine '+screenConfigs.A.engine+'):'+a+' / 画面B(Engine '+screenConfigs.B.engine+'):'+b+
      (renderMode==='compare'&&okA&&okB?(a===b?' / 同期OK':' / 同期ずれ'):''));
   }catch(error){
    publishRuntimeStatus('renderer-status','🎨 描画エラー：'+String(error.message||error));
