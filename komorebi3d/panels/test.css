@@ -41,3 +41,19 @@ button.slider-step:active{background:#c4dec1}
 .test-panel #npc-stress-info,.test-panel #npc-render-warning{font-size:11px}
 .test-panel .test-locations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .test-panel .test-locations button{min-width:0}
+
+/* @screen-settings:start */
+.screen-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px;height:290px}
+.screen-settings[data-visible="A"],.screen-settings[data-visible="B"]{grid-template-columns:minmax(0,1fr)}
+.screen-card{min-width:0;height:100%;padding:8px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3}
+.screen-card[hidden]{display:none}
+.screen-title{padding:6px 4px;margin-bottom:8px;border-radius:5px;background:#e9e1d3;text-align:center;font-weight:750}
+.setting-group{min-width:0;margin:0 0 9px;padding:8px 6px;border:1px solid #c4b29c;border-radius:8px;background:#fffaf3}
+.setting-group:last-child{margin-bottom:0}
+.setting-group legend{float:left;width:100%;padding:0;margin:0 0 7px;font-size:11px;font-weight:700;color:#554a3f}
+.setting-group legend+label{clear:both}
+.setting-group label{display:flex;align-items:center;gap:4px;min-height:31px;font-size:11px;white-space:nowrap;cursor:pointer}
+.setting-group input{margin:0;flex:0 0 auto;accent-color:#64956c}
+.setting-group.is-different{background:#fff0d5;border-color:#e5b86f}
+.setting-group.is-different legend{color:#995a1e}
+/* @screen-settings:end */
