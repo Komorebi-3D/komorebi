@@ -63,14 +63,25 @@ class TileTests(unittest.TestCase):
             original.write_text(json.dumps(source, ensure_ascii=False), encoding='utf-8')
             output = root / 'tiles'
             index = mod.split(original, output, timestamp='20261114000000')
-            self.assertEqual(set(index['tiles']), {'0_0', '1_0'})
-            self.assertNotIn('sourceCoverageRadiusM', index)
-            self.assertEqual(index['tileSizeM'], 2000)
-            for tile in index['tiles'].values():
-                result = json.loads((output / tile['file']).read_text(encoding='utf-8'))
+            self.assertEqual(
+                index,
+                {
+                    'generatedAt': '2026-11-14T00:00:00Z',
+                    'tiles': {
+                        '0_0': 'tile_0_0_20261114000000.json',
+                        '1_0': 'tile_1_0_20261114000000.json'
+                    }
+                }
+            )
+            self.assertEqual(json.loads((output / 'index.json').read_text()), index)
+            for tile_id, filename in index['tiles'].items():
+                self.assertTrue(filename.startswith('tile_' + tile_id + '_'))
+                result = json.loads((output / filename).read_text(encoding='utf-8'))
                 self.assertIn(way, result['elements'])
                 self.assertIn(relation, result['elements'])
-                self.assertEqual(result['tile']['generatedAt'], '2026-11-14T00:00:00Z')
+                self.assertEqual(result['source'], source['source'])
+                self.assertEqual(result['license'], source['license'])
+                self.assertEqual(result['tile']['generatedAt'], index['generatedAt'])
             self.assertEqual(json.loads(original.read_text()), source)
 
 
