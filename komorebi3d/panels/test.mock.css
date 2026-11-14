@@ -1,8 +1,7 @@
 /* Display-only test controls; shared help, trash and layout are in common.css. */
-.test-panel{position:relative;min-width:0;min-height:0;height:100%;margin:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #d5c8b6;border-radius:9px;background:#f5ede0;color:#554a3f;font:12px/1.65 system-ui;--help-button-color:#554a3f;--help-overlay-bg:rgba(69,50,28,.34);--help-label-bg:#fffdf8;--help-label-color:#554a3f;--help-focus-outline:2px solid #8a6b4a;--help-focus-offset:-4px}
-.test-panel-header{position:relative;flex:0 0 auto;padding:10px 11px 9px;border-bottom:1px solid #dccbb5}
+.test-panel{position:relative;height:100%;margin:0;border:1px solid #d5c8b6;border-radius:9px;background:#f5ede0;color:#554a3f;font:12px/1.65 system-ui;--help-button-color:#554a3f;--help-overlay-bg:rgba(69,50,28,.34);--help-label-bg:#fffdf8;--help-label-color:#554a3f;--help-focus-outline:2px solid #8a6b4a;--help-focus-offset:-4px}
+.test-panel-header{position:relative;padding:10px 11px 9px;border-bottom:1px solid #dccbb5}
 .test-panel-heading{display:block;min-height:38px;padding-right:43px;font-size:12px;font-weight:750}
-.test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .test-panel button.test-reset,.test-panel .test-panel-body button{min-width:0;min-height:44px;padding:8px 6px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3;color:#554a3f;font:700 12px system-ui}
 .test-panel button:disabled{opacity:1;cursor:default}
 .test-panel button.test-reset{display:block;width:100%;background:#f6e5da;border-color:#d0a793;color:#8a4a38}
@@ -17,4 +16,3 @@
 .test-slider{display:flex;align-items:center;gap:9px;margin-top:5px}
 .test-panel .test-slider button{flex:0 0 44px;padding:0;font-size:23px;background:#efe2d1}
 .test-slider input{width:100%;min-width:0;flex:1;accent-color:#8f7355}
-.mock-root .panel-slot[data-slot-size-fixed]>.test-panel{overflow:hidden}
