@@ -664,19 +664,26 @@ function addMapDebug(line){
  publishRuntimeStatus('map-debug-log',mapDebugLog.join('\n'));
 }
 const sourceName=s=>s==='osm'?'OSM最新':s==='json'?'matsudo.json':'未読込';
-async function loadMatsudoMapInBackground(generation){
- // The Forest must never initiate Matsudo map requests.
- if(generation!==worldGeneration||activeWorld!=='matsudo')return;
+// Matsudo owns the map request lifecycle. World switching only disposes the old session.
+function cancelMatsudoMapRequest(){
  mapLoadController?.abort();
+ mapLoadController=null;
+ ++mapLoadToken;
+}
+function isCurrentMatsudoMapRequest(token,controller){
+ return token===mapLoadToken&&mapLoadController===controller&&!controller.signal.aborted;
+}
+async function loadMatsudoMapInBackground(){
+ cancelMatsudoMapRequest();
  const controller=new AbortController();mapLoadController=controller;
  const token=++mapLoadToken,mode=mapSourceMode;
  mapDebugLog.length=0;addMapDebug('開始 / '+mode+' / 500m四方');
- const onLog=line=>{if(token===mapLoadToken&&generation===worldGeneration)addMapDebug(line);};
+ const onLog=line=>{if(isCurrentMatsudoMapRequest(token,controller))addMapDebug(line);};
  publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得中 / 表示：'+sourceName(mapDisplayedSource));
  try{
   const ignoreRules=await loadOsmTagIgnore();
-  // World switches can happen while the tag rules are loading.
-  if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo'||controller.signal.aborted)return;
+  // Ignore a completed async stage if its Matsudo request has been disposed.
+  if(!isCurrentMatsudoMapRequest(token,controller))return;
   let result=await loadMap({mode,onLog,signal:controller.signal}),next,geometry;
   addMapDebug('地図生成: 開始 / '+result.source);
 
@@ -695,7 +702,7 @@ async function loadMatsudoMapInBackground(generation){
   }
   const {source,fallbackError}=result;
   addMapDebug('地図生成: 完了 / 建物'+next.counts.buildings+' 道路'+next.counts.roads+' 鉄道'+next.counts.rails);
-  if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo')return;
+  if(!isCurrentMatsudoMapRequest(token,controller))return;
   matsudoMeshes=geometry;matsudoMapFeatures=next.mapFeatures;mapDisplayedSource=source;
   if(miniMapVisible)paintDebugMap();
   matsudoLabels?.dispose();matsudoLabels=null;
@@ -705,7 +712,7 @@ async function loadMatsudoMapInBackground(generation){
   publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
   publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
  }catch(error){
-  if(generation!==worldGeneration||token!==mapLoadToken||activeWorld!=='matsudo')return;
+  if(!isCurrentMatsudoMapRequest(token,controller))return;
   addMapDebug('失敗: '+String(error.name||'Error')+' / '+String(error.message||error));
   publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得失敗：'+String(error.message||error)+' / 表示：'+sourceName(mapDisplayedSource));
   publishRuntimeStatus('status','🏙️ 地図読込失敗（現在地図・飛行維持）：'+String(error.message||error));
@@ -717,7 +724,7 @@ async function loadMatsudoMapInBackground(generation){
 function setMapSourceMode(mode){
  if(!['auto','osm','json'].includes(mode))throw RangeError('Invalid map mode');
  mapSourceMode=mode;publishGameState();
- if(activeWorld==='matsudo'&&!warpInProgress)return loadMatsudoMapInBackground(worldGeneration);
+ if(activeWorld==='matsudo'&&!warpInProgress)return loadMatsudoMapInBackground();
  publishRuntimeStatus('map-source-status','🗺️ 次回松戸ワープ：'+mode);
  return Promise.resolve();
 }
@@ -729,13 +736,13 @@ async function setWorld(name){
  try{
   // Invalidate outstanding map loads as soon as a world switch begins.
   const generation=++worldGeneration;
-  // Cancel Matsudo network activity immediately when leaving or changing worlds.
-  mapLoadController?.abort();mapLoadController=null;
+  // Release the previous world's Matsudo session, if any.
+  cancelMatsudoMapRequest();
   // Reinitialize the common renderer to release the previous world's GPU meshes.
   await Promise.allSettled([loadingA,loadingB].filter(Boolean));
   rendererA?.dispose?.();rendererB?.dispose?.();
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
-  ++mapLoadToken;mapDisplayedSource=null;
+  mapDisplayedSource=null;
   matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];matsudoMapFeatures=null;
   groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
   collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
@@ -759,7 +766,7 @@ async function setWorld(name){
    publishRuntimeStatus('label-status','🏙️ 屋上名：地図読み込み中');
    // Give the renderer an opportunity to show the helicopter before map work begins.
    requestAnimationFrame(()=>setTimeout(()=>{
-    if(generation===worldGeneration&&activeWorld==='matsudo')void loadMatsudoMapInBackground(generation);
+    if(generation===worldGeneration)void loadMatsudoMapInBackground();
    },0));
   }else {publishRuntimeStatus('map-source-status','🗺️ 次回松戸：'+mapSourceMode);publishRuntimeStatus('status','🌳 森にワープしました');publishRuntimeStatus('label-status','🏙️ 屋上名：森ワールドでは非表示');}
   // Persist the selected world; map loading is independent of flight.
