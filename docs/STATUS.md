@@ -1,8 +1,13 @@
 # 🌳 松戸OSMタグ編集・テストAPI：現在地（2026-11-13）
 
+## 分割仕様の管理場所を実装Pythonに一本化（2026-11-14）
+- 仕様の正本を `komorebi3d/maps/split-map-tiles.py` の先頭コメントに集約。`docs/rules/map-tiles.md` は削除し、`docs/rules/README.md` からも分割処理の案内を削除。分割Actionの参照コメントを修正。処理ロジックは変更なし。
+
+
+
 ## 2km OSMタイル分割GitHub Action実装（2026-11-14／実データ実行未確認）
 - 分割専用 `.github/workflows/split-matsudo-tiles.yml` を追加。手動 `workflow_dispatch` で、取得用Actionの `matsudo_radius25km-json` 成果物をダウンロードし、分割・検証後に `matsudo-2km-tiles` 成果物として7日保持する。元の25km取得ジョブやOSM APIを再実行しない。
-- `komorebi3d/maps/split-map-tiles.py` を追加。 `docs/rules/map-tiles.md` に基づくEPSG:6677の固定2kmグリッド・ `tile_x_y_YYYYMMDDHHMMSS.json` （UTC）・元のOSM要素保持・跨ぎ地物の完全複製・relationの参照先からの配置・`index.json` を実装。巨大な入力JSONを逐次読み込み、複数タイルの一時書込みにもファイルハンドル数制限を設ける。原本JSONは変更しない。
+- `komorebi3d/maps/split-map-tiles.py` を追加。 `split-map-tiles.py` の先頭コメントに記載した仕様に基づくEPSG:6677の固定2kmグリッド・ `tile_x_y_YYYYMMDDHHMMSS.json` （UTC）・元のOSM要素保持・跨ぎ地物の完全複製・relationの参照先からの配置・`index.json` を実装。巨大な入力JSONを逐次読み込み、複数タイルの一時書込みにもファイルハンドル数制限を設ける。原本JSONは変更しない。
 - `komorebi3d/maps/tests/test_split_map_tiles.py` を追加。中心座標、4方向、境界way、内包polygon、UTCファイル名、relationと元要素保持のテストをAction起動時に実行する。
 - **生成タイルはmainへ自動コミットせず、Actions成果物として提供する**。GitHub保存容量や公開方法は実データのタイル数とサイズの確認後に判断する。
 - **実際の862.9MBデータを使ったGitHub Actionsの分割処理・成果物アップロードは未実行・未確認**。現在の25km取得成果物は期限付き。期限切れの場合は取得用Actionを再実行する。固定Engine・既存の500m `matsudo.json` ・表示処理・モック・安定版は変更していない。
@@ -17,9 +22,9 @@
 
 
 
-## 2km地図タイル分割・取得条件のルールを記録（2026-11-13／仕様のみ）
-- `docs/rules/map-tiles.md` を追加。松戸駅固定基準（35.78444,139.90061）、EPSG:6677、中心 `tile_0_0`、2km四方、OSM形状の無加工保持・跨ぎ地物の完全複製、UTC生成日時付きファイル名、部分収録フラグなし。取得処理とは独立。
-- `docs/rules/README.md` から参照可能にした。地図取得Actionと `fetch-map-radius25km.py` に取得中心・半径25km・現行の緯度経度簡易距離計算・分割との責務分離をコメントとして追加。**取得処理の計算・出力・起動条件は変更なし**。
+## 2km地図タイル分割・取得条件の仕様（2026-11-13）
+- 分割仕様は現在 `komorebi3d/maps/split-map-tiles.py` の先頭コメントのみで管理。固定座標・2kmグリッド・跨ぎ地物の複製・ファイル命名を記載。`docs/rules/` の管理対象ではない。
+- 地図取得Actionと `fetch-map-radius25km.py` は取得中心・半径25km・現行の緯度経度簡易距離計算のみ記録。**取得処理の計算・出力・起動条件は変更なし**。
 - **分割用GitHub Actions・分割Python・2kmタイルJSONの実装と生成は未実施**。25km原本JSONは依然としてGitHub Actions成果物（期限付き）にあり、mainのソースJSONには追加していない。固定Engine・既存500m地図・安定版・モックは変更なし。
 
 
