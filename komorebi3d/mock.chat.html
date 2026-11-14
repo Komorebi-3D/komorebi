@@ -426,8 +426,9 @@ function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false}={}){
  if(!panel)return;
  const value=(kind,side)=>panel.querySelector('input[name="mock-'+kind+'-'+side+'"]:checked')?.value;
  function refresh(){
-  const diffMap=value('map','A')!==value('map','B');
-  const diffEngine=value('engine','A')!==value('engine','B');
+  const comparing=(panel.querySelector('.mock-screen-settings')?.dataset.mockVisible||'compare')==='compare';
+  const diffMap=comparing&&value('map','A')!==value('map','B');
+  const diffEngine=comparing&&value('engine','A')!==value('engine','B');
   panel.querySelectorAll('.mock-setting-map').forEach(el=>el.classList.toggle('mock-diff',diffMap));
   panel.querySelectorAll('.mock-setting-engine').forEach(el=>el.classList.toggle('mock-diff',diffEngine));
  }
@@ -441,6 +442,7 @@ function mountPanelLayoutEditor(doc,initialLayout,{preserveSlotSize=false}={}){
   const mode=button.dataset.mockMode;
   const settings=panel.querySelector('.mock-screen-settings');
   settings.dataset.mockVisible=mode;
+  refresh();
   settings.querySelectorAll('[data-mock-screen]').forEach(card=>{
    card.hidden=mode!=='compare'&&card.dataset.mockScreen!==mode;
   });
