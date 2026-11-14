@@ -25,18 +25,7 @@ export async function loadMap({onLog=()=>{},signal,source='old'}={}){
   const index=await indexResponse.json();
   if(!/^-?\d+_-?\d+$/.test(TEST_TILE_ID))throw Error('テストタイルIDが不正');
   const filename=index?.tiles?.[TEST_TILE_ID];
-  const expected=new RegExp('^tile_'+TEST_TILE_ID+'_\\d{14}\\.json
- }
- onLog('JSON: '+label+' 読み込み開始');
- const response=await fetch(url,{cache:'no-cache',signal});
- onLog('JSON: '+label+' HTTP '+response.status+' / '+Math.round(performance.now()-start)+'ms');
- if(!response.ok)throw Error('JSON HTTP '+response.status);
- const map=verify(await response.json());
- if(source==='new'&&(map.tile?.id!==TEST_TILE_ID||map.tile?.sizeM!==2000))throw Error('タイルのID/サイズが不正: '+TEST_TILE_ID);
- onLog('JSON: '+label+' 検証PASS / 要素 '+map.elements.length+'件 / '+Math.round(performance.now()-start)+'ms');
- return map;
-}
-);
+  const expected=new RegExp('^tile_'+TEST_TILE_ID+'_\\d{14}\\.json$');
   if(typeof filename!=='string'||!expected.test(filename))throw Error('2km索引のタイル指定が不正: '+TEST_TILE_ID);
   label=filename;url=TILE_ROOT+filename;
   onLog('JSON: タイル '+TEST_TILE_ID+' / '+filename+' / 索引タイル '+Object.keys(index.tiles).length+'件');
@@ -46,7 +35,7 @@ export async function loadMap({onLog=()=>{},signal,source='old'}={}){
  onLog('JSON: '+label+' HTTP '+response.status+' / '+Math.round(performance.now()-start)+'ms');
  if(!response.ok)throw Error('JSON HTTP '+response.status);
  const map=verify(await response.json());
- if(source==='new'&&(map.tile?.id!=='0_0'||map.tile?.sizeM!==2000))throw Error('中央タイルのID/サイズが不正');
+ if(source==='new'&&(map.tile?.id!==TEST_TILE_ID||map.tile?.sizeM!==2000))throw Error('タイルのID/サイズが不正: '+TEST_TILE_ID);
  onLog('JSON: '+label+' 検証PASS / 要素 '+map.elements.length+'件 / '+Math.round(performance.now()-start)+'ms');
  return map;
 }
