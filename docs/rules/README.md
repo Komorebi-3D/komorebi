@@ -9,7 +9,7 @@
 | [mock.md](mock.md) | GitHub完成モックの取得・無加工でのAppBlock表示・最新版再取得ボタン |
 | [chat.md](chat.md) | 「00｜統合開発」の質問番号、ラジオボタン形式、コメント、一括送信 |
 | [development.md](development.md) | GitHub変更時の許可、保護資材、検証結果の区別、引き継ぎ |
-| [map-tiles.md](map-tiles.md) | OSMの**分割専用**ルール。固定2kmグリッド、地物の無加工・跨ぎ複製、出力条件（取得処理には適用しない） |
+| [map-tiles.md](map-tiles.md) | OSM分割ルールの案内。**正本は `komorebi3d/maps/split-map-tiles.py` の先頭コメント** |
 
 ## 新しい開発チャットでの確認順
 
