@@ -1,0 +1,125 @@
+name: Publish split Matsudo tiles to repository in small commits
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-matsudo-tiles.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: publish-matsudo-tiles-main
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    if: github.ref == 'refs/heads/main'
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout main with push credentials
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Download successful tile split artifact
+        run: |
+          mkdir -p "$RUNNER_TEMP/downloaded-tiles"
+          gh run download 43547496368 -R "$GITHUB_REPOSITORY" \
+            --name matsudo-2km-tiles --dir "$RUNNER_TEMP/downloaded-tiles"
+
+      - name: Publish in commits under 90 MB each
+        run: |
+          python - <<'PY'
+          import filecmp
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import shutil
+          import subprocess
+
+          def git(*args):
+              subprocess.run(['git', *args], check=True)
+
+          source = Path(os.environ['RUNNER_TEMP']) / 'downloaded-tiles'
+          destination = Path('komorebi3d/maps/data/tiles-2km')
+          index = json.loads((source / 'index.json').read_text(encoding='utf-8'))
+          assert set(index) == {'generatedAt', 'tiles'}, 'Unexpected index format'
+          assert index['tiles'], 'No tiles in index'
+          stamp = index['generatedAt'].replace('-', '').replace(':', '').replace('T', '').replace('Z', '')
+          assert re.fullmatch(r'\d{14}', stamp), 'Invalid generatedAt'
+          expected = set()
+          for tile_id, filename in index['tiles'].items():
+              assert re.fullmatch(r'-?\d+_-?\d+', tile_id), tile_id
+              assert filename == f'tile_{tile_id}_{stamp}.json', filename
+              assert '/' not in filename and '\\' not in filename, filename
+              expected.add(filename)
+          assert len(expected) == len(index['tiles']), 'Duplicate filenames'
+          expected.add('index.json')
+          actual = {p.name for p in source.iterdir() if p.is_file()}
+          assert actual == expected, f'Missing or extra artifact files: {len(actual)} vs {len(expected)}'
+          assert not [p for p in source.iterdir() if not p.is_file()], 'Unexpected artifact folders'
+
+          destination.mkdir(parents=True, exist_ok=True)
+          files = sorted(expected - {'index.json'}) + ['index.json']
+          remaining = []
+          for name in files:
+              incoming = source / name
+              existing = destination / name
+              if existing.exists():
+                  assert filecmp.cmp(incoming, existing, shallow=False), f'File differs: {name}'
+                  continue
+              assert incoming.stat().st_size < 100_000_000, f'File exceeds GitHub limit: {name}'
+              remaining.append((name, incoming.stat().st_size))
+
+          total = sum(size for _, size in remaining)
+          print(f'Artifact: {len(files)} files, remaining: {len(remaining)}, {total} bytes')
+          git('config', 'user.name', 'github-actions[bot]')
+          git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com')
+          max_batch = 90_000_000
+          batches = []
+          pending = []
+          pending_bytes = 0
+          for name, size in remaining:
+              if pending and pending_bytes + size > max_batch:
+                  batches.append((pending, pending_bytes))
+                  pending, pending_bytes = [], 0
+              pending.append(name)
+              pending_bytes += size
+          if pending:
+              batches.append((pending, pending_bytes))
+
+          for number, (batch, size) in enumerate(batches, 1):
+              assert size <= max_batch, f'Batch too large: {size}'
+              for name in batch:
+                  shutil.copyfile(source / name, destination / name)
+                  git('add', '--', str(destination / name))
+              git('commit', '-m', f'maps: publish 2km tiles batch {number}/{len(batches)} ({len(batch)} files, {size} bytes)')
+              git('push', 'origin', 'HEAD:main')
+              print(f'Published batch {number}/{len(batches)}: {len(batch)} files, {size} bytes', flush=True)
+
+          print(f'Finished: {len(expected)} artifact files available at {destination}')
+          PY
+
+      - name: Verify repository file count
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          directory = Path('komorebi3d/maps/data/tiles-2km')
+          index = json.loads((directory / 'index.json').read_text())
+          expected = set(index['tiles'].values()) | {'index.json'}
+          actual = {p.name for p in directory.iterdir() if p.is_file()}
+          assert actual == expected, (len(actual), len(expected))
+          print('Published tile count:', len(index['tiles']))
+          print('Published total bytes:', sum(p.stat().st_size for p in directory.iterdir() if p.is_file()))
+          PY
