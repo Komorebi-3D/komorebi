@@ -47,8 +47,7 @@ applyPanelLayout(PANEL_LAYOUT);
   const info = infoResult.status === 'fulfilled' ? infoResult.value : null;
   for (const category of categories) {
     const target = document.getElementById('dev-'+category);
-    const value = info && info[category];
-    if (target && typeof value === 'string' && value.trim()) target.textContent = value.trim();
+    if (target) target.textContent = info ? info[category] : '取得失敗';
   }
   const engine = document.getElementById('dev-engine');
   if (engine && info && typeof info.engine === 'string' && /^[a-f0-9]{7,40}$/i.test(info.engine))
@@ -79,9 +78,7 @@ applyPanelLayout(PANEL_LAYOUT);
     }
     for (const category of categories) {
       const badge = document.getElementById('dev-'+category+'-new');
-      const description = document.getElementById('dev-'+category);
-      if (badge) badge.hidden = !(info && changed.has(category) && description &&
-        description.textContent.trim() !== '更新履歴なし');
+      if (badge) badge.hidden = !(info && changed.has(category) && info[category]);
     }
   } catch (_) {
     hash.textContent = 'GitHub main最新：取得できません';
