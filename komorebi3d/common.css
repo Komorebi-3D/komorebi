@@ -13,6 +13,11 @@ button.panel-help-button:focus-visible{outline:var(--help-focus-outline);outline
 .panel-help-overlay[hidden]{display:none}
 .panel-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;font-size:16px;font-weight:750;text-align:center;background:var(--help-label-bg);color:var(--help-label-color);box-shadow:0 4px 18px rgba(0,0,0,.25);box-shadow:0 4px 18px color-mix(in srgb,currentColor 25%,transparent)}
 .test-panel-body{padding:10px 11px 11px}
+/* Test controls: keep the reset header visible; scroll only the body. */
+.test-panel{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.test-panel-header{flex:0 0 auto}
+.test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
 button.game-help-button{display:none}
 .game-help-overlay{display:none}
 .panel-slot{min-width:0;min-height:0}
@@ -40,5 +45,6 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .panel-slot[data-slot-size-fixed]{overflow:hidden}
 .panel-slot[data-slot-size-fixed][data-panel="empty"]{overflow:visible}
 .panel-slot[data-slot-size-fixed]>[data-panel-id]{height:100%;max-height:100%;min-height:0;margin:0;overflow-y:auto}
+.panel-slot[data-slot-size-fixed]>.test-panel{overflow:hidden}
 .panel-slot[data-slot-size-fixed]>.landscape-game{display:flex;align-items:center;justify-content:center;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;overflow:hidden}
 .panel-slot[data-slot-size-fixed]>.landscape-game .play-surface:not(.ab-compare){height:100%;max-width:100%;min-width:0;min-height:0;width:auto;aspect-ratio:3/4;flex:0 1 auto}
