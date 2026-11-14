@@ -48,6 +48,8 @@
 
 **上野負荷テスト切替（2026-11-14）：** Bの `TEST_TILE_ID` を `0_0` から `-6_-4` に1行変更。索引では `tile_-6_-4_20261114023930.json` を参照する。ローダー構文チェック・索引/JSON検証の模擬テストPASS。JSONマスタ・index・座標投影・A・Engine・カメラは変更なし。Safari表示・実測負荷は未確認。
 
+**上野切替の表示修正（2026-11-14）：** ユーザーよりBが松戸のまま・開発情報も松戸のままとの報告。`map-loader.js` 本体の `TEST_TILE_ID='-6_-4'` はmainで確認済み。`dev.template.html`/`dev.html` の `map-loader.js` importクエリが従来と同じだったため、Safariの旧モジュールキャッシュが疑われる（原因の実機確証は未取得）。参照URLのバージョンを更新し、`development-info.json` の松戸欄を上野テスト表示へ更新。main再取得と構文チェックはPASS。GitHub Pages配信・Safari実機での上野表示は再確認待ち。JSONマスタとindexは変更なし。
+
 ## 3. 完了・確認済みの主な工程
 
 | 日付 | 工程 | 現在の状態 |
