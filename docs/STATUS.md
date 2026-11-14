@@ -1,5 +1,13 @@
 # 🌳 松戸OSMタグ編集・テストAPI：現在地（2026-11-13）
 
+## 2kmタイルJSONをGitHub mainに分割コミットして保存（2026-11-14／本番検証成功）
+- 分割Action実行 [43547496368](https://github.com/Komorebi-3D/komorebi/actions/runs/43547496368) が成功。入力約2,344,556 OSM要素から559タイルを生成。出力合計897,894,074バイト。
+- ZIP成果物（`matsudo-2km-tiles`）から `komorebi3d/maps/data/tiles-2km/` へ560ファイル（タイル559枚＋最小構成 `index.json`）を保存。保存用Action [43548293473](https://github.com/Komorebi-3D/komorebi/actions/runs/43548293473) が成功し、1回90MB未満の11コミットでmainへpush。最大バッチ89,852,414バイト。
+- `index.json` は `generatedAt` と `tiles` のみで、559タイルの参照先を検証済み。元の `komorebi3d/maps/data/matsudo.json`、固定Engineおよびゲーム側地図読み込みロジックは変更していない。
+- 成果物のリポジトリ保存は完了。ゲーム側による2kmタイルの読み込み・描画テストは別工程で未実施。
+
+
+
 ## index.jsonの最小構成へ変更（2026-11-14／実データ実行未確認）
 - `komorebi3d/maps/split-map-tiles.py` の先頭仕様と生成処理を更新。分割出力の `index.json` は `generatedAt`（UTC）と `tiles`（タイルID→ファイル名の文字列）のみ。座標系・サイズ・原点・出典・件数・ファイル容量は含めない。
 - 個々のタイルJSONには従来どおり出典・ライセンス・タイルメタデータと元OSM要素を保持。グリッド・配置・命名規則は変更なし。
