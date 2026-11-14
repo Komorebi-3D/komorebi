@@ -1308,6 +1308,8 @@ async function reconfigureScreenRenderer(screen){
  if(generation!==(isA?rendererGenerationA:rendererGenerationB))return;
  const renderer=isA?rendererA:rendererB;
  renderer?.dispose?.();
+ // A fresh canvas is needed when switching WebGL1 and Three.js/WebGL2 backends.
+ gameView?.replaceCanvas(screen);
  if(isA){rendererA=null;loadingA=null;okA=false;}
  else{rendererB=null;loadingB=null;okB=false;}
  if(isVisibleScreen(screen))await ensureScreen(screen);
