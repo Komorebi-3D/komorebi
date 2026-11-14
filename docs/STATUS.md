@@ -1,7 +1,7 @@
 # 🌳 Komorebi 3D｜開発ステータス・次チャット引き継ぎ
 
-> 更新日：2026-11-14（JST）／コードの正本：[`Komorebi-3D/komorebi` の `main`](https://github.com/Komorebi-3D/komorebi/tree/main)  
-> **現在の最優先作業：Bのテストタイルを `-6_-4`（上野）へ切替済み。Safariで表示と生成時間を確認する。Aは松戸500mを維持、隣接タイル連動は未実装。**  
+> 更新日：2026-11-15（JST）／コードの正本：[`Komorebi-3D/komorebi` の `main`](https://github.com/Komorebi-3D/komorebi/tree/main)  
+> **現在の最優先作業：Bを上野 `-6_-4` から松戸中央 `0_0` へ復帰済み。A=松戸500m/B=松戸2kmの基準で、隣接タイルへのシームレス移動基盤に着手する（隣接読み込み自体は未実装）。**  
 > この文書は「現状・完了事項・未確認事項・次の実装」に集中する。旧実装の時系列や試行錯誤はGit履歴を参照する。コミットSHAや開発情報の最新表示は実際の `main` を確認すること。
 
 ## 1. 現在地（次のチャットはここから）
@@ -49,6 +49,8 @@
 **上野負荷テスト切替（2026-11-14）：** Bの `TEST_TILE_ID` を `0_0` から `-6_-4` に1行変更。索引では `tile_-6_-4_20261114023930.json` を参照する。ローダー構文チェック・索引/JSON検証の模擬テストPASS。JSONマスタ・index・座標投影・A・Engine・カメラは変更なし。Safari表示・実測負荷は未確認。
 
 **上野切替の表示修正（2026-11-14）：** ユーザーよりBが松戸のまま・開発情報も松戸のままとの報告。`map-loader.js` 本体の `TEST_TILE_ID='-6_-4'` はmainで確認済み。`dev.template.html`/`dev.html` の `map-loader.js` importクエリが従来と同じだったため、Safariの旧モジュールキャッシュが疑われる（原因の実機確証は未取得）。参照URLのバージョンを更新し、`development-info.json` の松戸欄を上野テスト表示へ更新。main再取得と構文チェックはPASS。GitHub Pages配信・Safari実機での上野表示は再確認待ち。JSONマスタとindexは変更なし。
+
+**松戸中央タイルへの復帰（2026-11-15）：** 上野 `-6_-4` の実機表示PASS・3D生成約22秒・JSON 22,815件を記録。次の目的を隣接タイルへのシームレス移動とし、Bの `TEST_TILE_ID` を `0_0` に戻した。Safariキャッシュ対策として `dev.template.html` と生成版 `dev.html` のmap-loader importバージョンを同時更新。`development-info.json` の松戸欄も更新。上野テストで得た基準ログは保持。コード構文PASS／復帰後のSafari実機確認待ち。マスタJSON・index・固定Engineは変更なし。
 
 ## 3. 完了・確認済みの主な工程
 
