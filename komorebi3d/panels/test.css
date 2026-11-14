@@ -1,7 +1,5 @@
 /* Styles for test panel from canonical dev.html. */
-.mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 4px}
 .mode-buttons button{min-width:0;padding:11px 3px}
-.mode-buttons button.selected{color:#fff;background:#4f8161;border-color:#4f8161}
 #mode-status{font-size:11px;color:#55725c;margin:4px 0 7px}
 .buttons{display:flex;gap:7px;margin-top:8px}
 .debug-controls{display:grid;gap:7px;margin-top:8px}
@@ -22,9 +20,6 @@ button.slider-step:active{background:#c4dec1}
 .test-panel button.test-reset,.test-panel .test-panel-body button{min-height:44px;padding:9px 7px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3;color:#554a3f;font:700 12px system-ui;cursor:pointer;touch-action:manipulation}
 .test-panel button.test-reset{display:block;width:100%;margin:0;background:#f6e5da;border-color:#d0a793;color:#8a4a38}
 .test-section-title{margin:3px 0 8px;font-weight:750}
-.test-panel .mode-buttons{margin:0;grid-template-columns:repeat(3,minmax(0,1fr))}
-.test-panel .mode-buttons button{min-width:0}
-.test-panel .mode-buttons button.selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
 .test-panel #mode-status{margin-top:5px;margin-bottom:0;font-size:11px;color:#81715f}
 .test-separator{height:1px;background:#d9c9b4;margin:15px 0 11px}
 .test-panel .buttons{margin-top:8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}

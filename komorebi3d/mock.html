@@ -17,6 +17,10 @@ button.panel-help-button:focus-visible{outline:var(--help-focus-outline);outline
 .test-panel{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:visible}
 .test-panel-header{position:sticky;top:0;flex:0 0 auto}
 .test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+/* Shared display-mode controls used by product and lightweight mocks. */
+.test-panel .mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0}
+.test-panel .mode-buttons button{min-width:0}
+.test-panel .mode-buttons button.selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
 
 button.game-help-button{display:none}
 .game-help-overlay{display:none}
@@ -71,9 +75,7 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .test-panel button:disabled{opacity:1;cursor:default}
 .test-panel button.test-reset{display:block;width:100%;background:#f6e5da;border-color:#d0a793;color:#8a4a38}
 .test-section-title{font-weight:750;margin:5px 0 8px}
-.test-panel .mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .test-panel .selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
-.test-panel .test-panel-body .mode-buttons button.selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
 .test-caption{font-size:11px;color:#81715f;margin-top:5px}
 .test-separator{height:1px;background:#d9c9b4;margin:13px 0 10px}
 .test-two-buttons,.test-locations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}

@@ -6,9 +6,7 @@
 .test-panel button:disabled{opacity:1;cursor:default}
 .test-panel button.test-reset{display:block;width:100%;background:#f6e5da;border-color:#d0a793;color:#8a4a38}
 .test-section-title{font-weight:750;margin:5px 0 8px}
-.test-panel .mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .test-panel .selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
-.test-panel .test-panel-body .mode-buttons button.selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
 .test-caption{font-size:11px;color:#81715f;margin-top:5px}
 .test-separator{height:1px;background:#d9c9b4;margin:13px 0 10px}
 .test-two-buttons,.test-locations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}

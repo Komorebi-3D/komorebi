@@ -17,6 +17,10 @@ button.panel-help-button:focus-visible{outline:var(--help-focus-outline);outline
 .test-panel{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:visible}
 .test-panel-header{position:sticky;top:0;flex:0 0 auto}
 .test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+/* Shared display-mode controls used by product and lightweight mocks. */
+.test-panel .mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0}
+.test-panel .mode-buttons button{min-width:0}
+.test-panel .mode-buttons button.selected{background:#d9ebd5;border-color:#64956c;color:#31563b}
 
 button.game-help-button{display:none}
 .game-help-overlay{display:none}
