@@ -64,6 +64,8 @@ class TileTests(unittest.TestCase):
             output = root / 'tiles'
             index = mod.split(original, output, timestamp='20261114000000')
             self.assertEqual(set(index['tiles']), {'0_0', '1_0'})
+            self.assertNotIn('sourceCoverageRadiusM', index)
+            self.assertEqual(index['tileSizeM'], 2000)
             for tile in index['tiles'].values():
                 result = json.loads((output / tile['file']).read_text(encoding='utf-8'))
                 self.assertIn(way, result['elements'])
