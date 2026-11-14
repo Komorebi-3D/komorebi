@@ -94,14 +94,22 @@ jobs:
           import json, os, pathlib
           base = pathlib.Path(os.environ['RUNNER_TEMP']) / 'tiles-2km'
           index = json.loads((base/'index.json').read_text())
-          assert index['tileSizeM'] == 2000
-          assert index['coordinateSystem'] == 'EPSG:6677'
-          assert index['origin']['lat'] == 35.78444
-          assert index['origin']['lon'] == 139.90061
+          from datetime import datetime, timezone
+          assert set(index) == {'generatedAt', 'tiles'}
+          generated = datetime.fromisoformat(index['generatedAt'].replace('Z', '+00:00'))
+          assert generated.tzinfo is not None
+          stamp = generated.astimezone(timezone.utc).strftime('%Y%m%d%H%M%S')
           assert index['tiles'], 'No tiles produced'
-          assert all((base/item['file']).is_file() for item in index['tiles'].values())
+          total_bytes = 0
+          for tile_id, filename in index['tiles'].items():
+              x, y = map(int, tile_id.split('_'))
+              assert filename == f'tile_{x}_{y}_{stamp}.json', (tile_id, filename)
+              tile_path = base / filename
+              assert tile_path.is_file(), filename
+              total_bytes += tile_path.stat().st_size
+          assert {p.name for p in base.iterdir()} == {'index.json', *index['tiles'].values()}
           print('Validated tiles:', len(index['tiles']))
-          print('Stored tile bytes:', sum(item['sizeBytes'] for item in index['tiles'].values()))
+          print('Stored tile bytes:', total_bytes)
           PY
 
       - name: Upload tiles and index as workflow artifact
