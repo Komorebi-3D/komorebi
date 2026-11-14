@@ -13,6 +13,11 @@ button.panel-help-button:focus-visible{outline:var(--help-focus-outline);outline
 .panel-help-overlay[hidden]{display:none}
 .panel-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;font-size:16px;font-weight:750;text-align:center;background:var(--help-label-bg);color:var(--help-label-color);box-shadow:0 4px 18px rgba(0,0,0,.25);box-shadow:0 4px 18px color-mix(in srgb,currentColor 25%,transparent)}
 .test-panel-body{padding:10px 11px 11px}
+/* Test controls: keep the reset header visible; scroll only the body. */
+.test-panel{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.test-panel-header{flex:0 0 auto}
+.test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
 button.game-help-button{display:none}
 .game-help-overlay{display:none}
 .panel-slot{min-width:0;min-height:0}
@@ -40,6 +45,7 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .panel-slot[data-slot-size-fixed]{overflow:hidden}
 .panel-slot[data-slot-size-fixed][data-panel="empty"]{overflow:visible}
 .panel-slot[data-slot-size-fixed]>[data-panel-id]{height:100%;max-height:100%;min-height:0;margin:0;overflow-y:auto}
+.panel-slot[data-slot-size-fixed]>.test-panel{overflow:hidden}
 .panel-slot[data-slot-size-fixed]>.landscape-game{display:flex;align-items:center;justify-content:center;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;overflow:hidden}
 .panel-slot[data-slot-size-fixed]>.landscape-game .play-surface:not(.ab-compare){height:100%;max-width:100%;min-width:0;min-height:0;width:auto;aspect-ratio:3/4;flex:0 1 auto}
 
@@ -58,10 +64,9 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .landscape-game .game-help-overlay:not([hidden]){display:flex}
 
 /* Display-only test controls; shared help, trash and layout are in common.css. */
-.test-panel{position:relative;min-width:0;min-height:0;height:100%;margin:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #d5c8b6;border-radius:9px;background:#f5ede0;color:#554a3f;font:12px/1.65 system-ui;--help-button-color:#554a3f;--help-overlay-bg:rgba(69,50,28,.34);--help-label-bg:#fffdf8;--help-label-color:#554a3f;--help-focus-outline:2px solid #8a6b4a;--help-focus-offset:-4px}
-.test-panel-header{position:relative;flex:0 0 auto;padding:10px 11px 9px;border-bottom:1px solid #dccbb5}
+.test-panel{position:relative;height:100%;margin:0;border:1px solid #d5c8b6;border-radius:9px;background:#f5ede0;color:#554a3f;font:12px/1.65 system-ui;--help-button-color:#554a3f;--help-overlay-bg:rgba(69,50,28,.34);--help-label-bg:#fffdf8;--help-label-color:#554a3f;--help-focus-outline:2px solid #8a6b4a;--help-focus-offset:-4px}
+.test-panel-header{position:relative;padding:10px 11px 9px;border-bottom:1px solid #dccbb5}
 .test-panel-heading{display:block;min-height:38px;padding-right:43px;font-size:12px;font-weight:750}
-.test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .test-panel button.test-reset,.test-panel .test-panel-body button{min-width:0;min-height:44px;padding:8px 6px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3;color:#554a3f;font:700 12px system-ui}
 .test-panel button:disabled{opacity:1;cursor:default}
 .test-panel button.test-reset{display:block;width:100%;background:#f6e5da;border-color:#d0a793;color:#8a4a38}
@@ -76,7 +81,6 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .test-slider{display:flex;align-items:center;gap:9px;margin-top:5px}
 .test-panel .test-slider button{flex:0 0 44px;padding:0;font-size:23px;background:#efe2d1}
 .test-slider input{width:100%;min-width:0;flex:1;accent-color:#8f7355}
-.mock-root .panel-slot[data-slot-size-fixed]>.test-panel{overflow:hidden}
 
 .screen-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px;height:290px}
 .screen-settings[data-visible="A"],.screen-settings[data-visible="B"]{grid-template-columns:minmax(0,1fr)}
