@@ -61,14 +61,14 @@ export function createGameView(root){
    elements.map.hidden=!visible;
    elements.map.setAttribute('aria-hidden',String(!visible));
   },
-  paintMap({worldId,playerX,playerZ,agents=[],cafeX=0,cafeZ=0,features=null}){
+  paintMap({worldId,playerX,playerZ,agents=[],cafeX=0,cafeZ=0,features=null,mapSpan=null}){
    if(!ctx)return;
-   const town=worldId==='matsudo',span=town?500:100,half=span/2;
+   const town=worldId==='matsudo',span=town?(mapSpan===2000?2000:500):100,half=span/2;
    const w=elements.mapCanvas.width,h=elements.mapCanvas.height;
    const wx=x=>(x+half)*w/span,wz=z=>(z+half)*h/span;
    const title=elements.map.querySelector('.debug-map-title');
    const legend=elements.map.querySelector('.debug-map-legend');
-   if(title)title.textContent=town?'🗺️ 松戸 500m × 500m':'🗺️ 100m × 100m / 全NPC位置';
+   if(title)title.textContent=town?'🗺️ 松戸 '+span+'m × '+span+'m':'🗺️ 100m × 100m / 全NPC位置';
    if(legend)legend.textContent=town?'🔴 おばけヘリ　▧ 建物　━ 道路・鉄道':'🔴 主人公　🟡 ハム全員（3D非表示も）';
    ctx.clearRect(0,0,w,h);
    ctx.fillStyle='rgba(15,36,27,.74)';ctx.fillRect(0,0,w,h);
