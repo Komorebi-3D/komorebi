@@ -1,4 +1,4 @@
-.mock-root{width:100%;max-width:100%;container-type:inline-size}
+.mock-root{--test-panel-height:440px;width:100%;max-width:100%;container-type:inline-size}
 .mock-root .mock-frame{width:100%;max-width:850px;margin:0 auto;padding:12px;background:#f2f0e4;border:0;border-radius:0;color:#4d5540;font:12px system-ui}
 .mock-root .shell{width:100%;max-width:none;margin:0;min-width:0}
 .mock-root .landscape-hero{display:flex;flex-direction:column;gap:8px;min-height:0;height:auto;overflow:visible}
@@ -12,7 +12,7 @@
 .mock-root .landscape-main .panel-slot-main{min-width:0;min-height:0;overflow:hidden}
 .mock-root .landscape-main .panel-slot-main>[data-panel-id]{min-width:0;min-height:0;height:100%;margin:0}
 .mock-root .landscape-main .panel-slot-main>.test-panel{overflow:hidden}
-.mock-root .landscape-main .panel-slot-main>.landscape-game{height:440px}
+.mock-root .landscape-main .panel-slot-main>.landscape-game{height:var(--test-panel-height)}
 .mock-root .landscape-main .panel-slot-main[data-slot-size-fixed]>.landscape-game{height:100%}
 .mock-root .landscape-main .panel-slot-main>.build-info{overflow-y:auto}
 .mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:72px;min-height:72px;overflow:visible}
@@ -20,7 +20,7 @@
 .mock-root .panel-slot-bottom{margin-top:8px}
 .mock-root .panel-slot-bottom[data-panel="empty"]{height:130px;min-height:130px;overflow:visible}
 @container (min-width:650px){
- .mock-root .landscape-main{flex:none;min-height:440px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .mock-root .landscape-main{flex:none;min-height:var(--test-panel-height);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
  .mock-root .landscape-main .panel-slot-main{height:100%;overflow:hidden}
  .mock-root .landscape-main .panel-slot-main[data-panel="empty"]{height:100%;min-height:0;overflow:visible}
  .mock-root .landscape-main .panel-slot-main>.landscape-game{height:100%}
@@ -39,8 +39,8 @@
  .mock-root .panel-slot-bottom .runtime-status-heading,.mock-root .panel-slot-bottom .mock-runtime-notice,.mock-root .panel-slot-bottom #collision-status,.mock-root .panel-slot-bottom #sync-status,.mock-root .panel-slot-bottom .stats,.mock-root .panel-slot-bottom #status{grid-column:1/-1}
 }
 /* Four-panel mock: game and test slots keep the same height. */
-.mock-root .landscape-main .panel-slot-main{height:440px;flex:none}
+.mock-root .landscape-main .panel-slot-main{height:var(--test-panel-height);flex:none}
 @container (min-width:650px){
- .mock-root .landscape-main{height:440px;min-height:0}
+ .mock-root .landscape-main{height:var(--test-panel-height);min-height:0}
  .mock-root .landscape-main .panel-slot-main{height:100%}
 }
