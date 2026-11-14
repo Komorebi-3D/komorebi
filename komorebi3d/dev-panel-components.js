@@ -41,7 +41,14 @@ export function createGameView(root){
  const ctx=elements.mapCanvas.getContext('2d');
  return {
   movePad:elements.movePad,cameraPad:elements.cameraPad,
-  canvasA:elements.canvasA,canvasB:elements.canvasB,
+  get canvasA(){return elements.canvasA;},get canvasB(){return elements.canvasB;},
+  replaceCanvas(screen){
+   const key=screen==='A'?'canvasA':screen==='B'?'canvasB':null;
+   if(!key)throw new Error('Invalid screen');
+   const old=elements[key],next=old.cloneNode(false);
+   old.replaceWith(next);elements[key]=next;
+   return next;
+  },
   surface:elements.surface,
   setRenderMode(mode){
    const showA=mode!=='B',showB=mode!=='A';
