@@ -13,6 +13,11 @@ button.panel-help-button:focus-visible{outline:var(--help-focus-outline);outline
 .panel-help-overlay[hidden]{display:none}
 .panel-help-label{width:max-content;max-width:100%;padding:14px 19px;border-radius:13px;font-size:16px;font-weight:750;text-align:center;background:var(--help-label-bg);color:var(--help-label-color);box-shadow:0 4px 18px rgba(0,0,0,.25);box-shadow:0 4px 18px color-mix(in srgb,currentColor 25%,transparent)}
 .test-panel-body{padding:10px 11px 11px}
+/* Test controls: keep the reset header visible; scroll only the body. */
+.test-panel{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.test-panel-header{flex:0 0 auto}
+.test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
 button.game-help-button{display:none}
 .game-help-overlay{display:none}
 .panel-slot{min-width:0;min-height:0}
@@ -40,8 +45,10 @@ button.panel-trash-target.panel-trash-hot{background:#bf584d;box-shadow:0 0 0 6p
 .panel-slot[data-slot-size-fixed]{overflow:hidden}
 .panel-slot[data-slot-size-fixed][data-panel="empty"]{overflow:visible}
 .panel-slot[data-slot-size-fixed]>[data-panel-id]{height:100%;max-height:100%;min-height:0;margin:0;overflow-y:auto}
+.panel-slot[data-slot-size-fixed]>.test-panel{overflow:hidden}
 .panel-slot[data-slot-size-fixed]>.landscape-game{display:flex;align-items:center;justify-content:center;padding:7px;background:#edf3eb;border:1px solid #c4d7c9;border-radius:9px;overflow:hidden}
-.panel-slot[data-slot-size-fixed]>.landscape-game .play-surface:not(.ab-compare){height:100%;max-width:100%;min-width:0;min-height:0;width:auto;aspect-ratio:3/4;flex:0 1 auto}
+.panel-slot[data-slot-size-fixed]>.landscape-game .play-surface:not(.ab-compare){height:100%;max-width:100%;min-width:0;min-height:0;width:auto;aspect-ratio:3/4;flex:0 1 auto}/* Product-only height cap for unconstrained slots (including portrait). */
+.panel-slot:not([data-slot-size-fixed])>.test-panel{max-height:min(75svh,640px)}
 .panel-slot[data-slot-size-fixed]>.landscape-game .play-surface.ab-compare{width:100%;height:100%;aspect-ratio:auto;flex:1 1 auto}
 .panel-slot[data-slot-size-fixed]>.landscape-game .views{width:100%;height:100%;min-height:0}
 .panel-slot[data-slot-size-fixed]>.landscape-game .view-panel:not(.off){min-height:0;min-width:0;display:flex;align-items:center;justify-content:center}
@@ -158,10 +165,8 @@ button.slider-step:active{background:#c4dec1}
  .landscape-main .panel-slot-main{min-width:0;min-height:0;height:100%;overflow:hidden}
  .landscape-main .panel-slot-main>[data-panel-id]{min-width:0;min-height:0;height:100%;margin:0}
  .landscape-main .panel-slot-main>.build-info,.landscape-main .panel-slot-main>.runtime-status{overflow-y:auto}
- .panel-slot .test-panel{min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden}
- .landscape-main .panel-slot-main>.test-panel{height:100%;margin:0}
- .panel-slot .test-panel-header{flex:0 0 auto;box-shadow:0 3px 8px #65432113}
- .panel-slot .test-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+ .landscape-main .panel-slot-main>.test-panel{height:100%;max-height:100%;margin:0}
+ .panel-slot .test-panel-header{box-shadow:0 3px 8px #65432113}
  .panel-slot-top>.runtime-status,.panel-slot-main>.runtime-status{margin-top:0}
  .panel-slot-bottom>.landscape-game{height:min(55svh,420px);margin-top:12px}
  .panel-slot-bottom>.test-panel,.panel-slot-bottom>.build-info{margin-top:12px}
