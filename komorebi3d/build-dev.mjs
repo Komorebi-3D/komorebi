@@ -14,6 +14,14 @@ const panelIds=mock?['build','game','test','runtime']:['build','game','test','ru
 const variant=id=>mock&&['game','test'].includes(id)?id+'.mock':id;
 const names=['common',...panelIds.map(variant),...(mock?['mock-layout']:[])];
 const read=path=>readFileSync(join(dir,path),'utf8');
+const extract=(source,start,end)=>{
+ const a=source.indexOf(start),b=source.indexOf(end,a+start.length);
+ if(a<0||b<0||source.indexOf(start,a+1)>=0||source.indexOf(end,b+1)>=0)throw Error('Invalid shared UI markers');
+ return source.slice(a+start.length,b).trim();
+};
+const screenHtml=extract(read('panels/test.html'),'<!-- @screen-settings:start -->','<!-- @screen-settings:end -->');
+const screenCSS=extract(read('panels/test.css'),'/* @screen-settings:start */','/* @screen-settings:end */');
+const screenJS=extract(read('dev-panel-components.js'),'// @screen-settings-ui:start','// @screen-settings-ui:end').replace(/^export /,'');
 const split=css=>{
  const pos=css.indexOf('@media ');
  return pos<0?[css.trim(),'']:[css.slice(0,pos).trim(),css.slice(pos).trim()];
@@ -21,7 +29,7 @@ const split=css=>{
 const cssPath=name=>name==='common'?'common.css':name==='mock-layout'?'mock-layout.css':'panels/'+name+'.css';
 // Keep production CSS byte-for-byte identical while excluding dev styles from mocks.
 const commonCSS=read('common.css')+(mock?'':read('dev-layout.css'));
-const pieces=names.map(name=>split(name==='common'?commonCSS:read(cssPath(name))));
+const pieces=names.map(name=>split(name==='common'?commonCSS:(read(cssPath(name))+(mock&&name==='test.mock'?'\n'+screenCSS:''))));
 const css=[...pieces.map(x=>x[0]),...pieces.map(x=>x[1])].filter(Boolean).join('\n\n');
 let html=read(mock?'mock.template.html':'dev.template.html');
 if(!mock){
@@ -39,6 +47,10 @@ for(const id of panelIds){
  const marker='<!-- @panel:'+id+' -->';
  if(!html.includes(marker))throw Error('Missing panel '+id);
  let panelHtml=read('panels/'+variant(id)+'.html').trimEnd();
+ if(mock&&id==='test'){
+  if(!panelHtml.includes('<!-- @screen-settings -->'))throw Error('Missing shared test controls');
+  panelHtml=panelHtml.replace('<!-- @screen-settings -->',screenHtml);
+ }
  if(mock&&id==='build'){
   const real='id="dev-engine">d4a392a</code>';
   if(!panelHtml.includes(real))throw Error('Missing mock Engine label');
@@ -47,6 +59,10 @@ for(const id of panelIds){
  html=html.replace(marker,panelHtml);
 }
 if(html.includes('<!-- @panel:')||html.includes('/* @component-styles */'))throw Error('Unresolved placeholder');
+if(mock){
+ if(!html.includes('/* @screen-settings-ui */'))throw Error('Missing shared UI function');
+ html=html.replace('/* @screen-settings-ui */',screenJS);
+}
 if(chat){
  // Inline the canonical layout editor in a classic script for chat HTML sandboxes.
  // Keep its runtime logic intact: only the ES-module export prefixes are removed.
