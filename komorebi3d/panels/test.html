@@ -8,10 +8,23 @@
 <div class="test-section-title">🌍 ワールドワープ</div>
 <div class="buttons" role="group" aria-label="ワールド切替"><button type="button" data-world="forest" aria-pressed="true">🌳 森</button><button type="button" data-world="matsudo" aria-pressed="false">🏙️ 松戸</button></div>
 <div class="test-separator"></div>
-<div class="test-section-title">🗺️ 松戸の地図データ</div>
-<div class="map-source-description">matsudo.json（固定500m）を自動読み込み</div><div class="test-separator"></div>
-<div class="test-section-title">🎮 描画方式</div>
-<div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div>
+<!-- @screen-settings:start -->
+<div class="test-section-title">🎮 表示モード</div>
+<div class="mode-buttons" role="group" aria-label="表示モード"><button type="button" id="mode-a" data-mode="A" aria-pressed="false">A</button><button type="button" id="mode-b" data-mode="B" aria-pressed="false">B</button><button type="button" id="mode-compare" data-mode="compare" aria-pressed="true">A/B比較</button></div>
+<div id="mode-status" aria-live="polite">表示：画面A＋画面B</div>
+<div class="screen-settings" data-visible="compare">
+<div class="screen-card" data-screen="A">
+<div class="screen-title">画面A</div>
+<fieldset class="setting-group" data-setting="map"><legend>🗺️ 地図データ</legend><label><input type="radio" name="screen-map-A" value="old" checked>旧500m</label><label><input type="radio" name="screen-map-A" value="new">新2km</label></fieldset>
+<fieldset class="setting-group" data-setting="engine"><legend>🎨 Engine</legend><label><input type="radio" name="screen-engine-A" value="A">Engine A</label><label><input type="radio" name="screen-engine-A" value="B" checked>Engine B</label></fieldset>
+</div>
+<div class="screen-card" data-screen="B">
+<div class="screen-title">画面B</div>
+<fieldset class="setting-group" data-setting="map"><legend>🗺️ 地図データ</legend><label><input type="radio" name="screen-map-B" value="old">旧500m</label><label><input type="radio" name="screen-map-B" value="new" checked>新2km</label></fieldset>
+<fieldset class="setting-group" data-setting="engine"><legend>🎨 Engine</legend><label><input type="radio" name="screen-engine-B" value="A">Engine A</label><label><input type="radio" name="screen-engine-B" value="B" checked>Engine B</label></fieldset>
+</div>
+</div>
+<!-- @screen-settings:end -->
 <div class="test-separator"></div>
 <div class="test-section-title npc-anchor">🐹 NPC負荷・表示テスト</div>
 <div class="buttons"><button type="button" id="npc-stress-toggle" aria-pressed="false">🐹 ハムスター ×1000</button><button type="button" id="map-toggle" aria-pressed="false">🗺️ マップ表示</button></div>
