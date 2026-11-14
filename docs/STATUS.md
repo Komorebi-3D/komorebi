@@ -1,5 +1,12 @@
 # 🌳 松戸OSMタグ編集・テストAPI：現在地（2026-11-13）
 
+## 松戸地図読み込みをmatsudo.json専用に整理（2026-11-14／静的確認済み・実機未確認）
+- `maps/map-loader.js` からOverpass APIのエンドポイント・クエリ・再試行・タイムアウトと `auto/osm/json` 切替を削除。ゲームは従来の `maps/data/matsudo.json`（500m）だけをHTTPで読み込む。
+- `dev.template.html` / `dev.html` から `mapSourceMode`・切替API・地図生成失敗時のOSM→JSONフォールバックを削除。松戸入場時のJSON自動読込、地図3D生成、ログ、AbortControllerによる切替中断を維持。
+- `panels/test.html` から3モードボタンをなくし、固定500m JSON読込の説明のみ表示。`dev-panel-components.js` の不要な切替状態・クリックイベントを削除し、ログ名を地図JSON読み込みログへ変更。
+- 559個の2kmタイル・`index.json`・既存 `matsudo.json` ・森処理・固定Engine・安定版は変更なし。2kmタイルのゲーム読み込みは未実装。静的照合で残存参照がないことを確認済み。Safari実機は未確認。
+
+
 ## 開発情報パネルの取得中・成功・失敗表示（2026-11-14／静的確認済み・実機未確認）
 - 森・松戸・共通の初期文言は「確認中…」に統一（`panels/build.html`、`dev.html`）。
 - `development-info.json` の取得成功時はJSONの各値を加工せず `textContent` に設定。空文字は空欄のまま。取得失敗時は「取得失敗」。
