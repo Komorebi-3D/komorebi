@@ -39,10 +39,30 @@
 # - タイル間重複のゲーム側描画処理、OSM新旧比較・修復は実装しない。
 #
 # 【ファイル形式と日時】
+# - 入力ファイルは実行時の --input で指定する、取得済みの地図JSON。
+#   Python内に入力ファイル名や保存先ディレクトリを固定しない。
 # - 出力先は実行時の --output-dir で指定するディレクトリ。Python内では固定しない。
+# - 入出力のディレクトリ構造例（ファイル名・生成日時はサンプル）：
+#     作業ディレクトリ/
+#     ├── source/
+#     │   └── map.json                         # --input に指定
+#     └── tiles-2km/                           # --output-dir に指定
+#         ├── index.json
+#         ├── tile_0_0_20261114000000.json
+#         ├── tile_1_0_20261114000000.json
+#         ├── tile_-1_0_20261114000000.json
+#         └── ...（対象地物のあるタイルだけ生成）
+# - 単独実行例：
+#     python komorebi3d/maps/split-map-tiles.py \\
+#       --input ./source/map.json --output-dir ./tiles-2km
+# - 現行GitHub Actionsでは、別の取得Actionの成果物をランナーの
+#   $RUNNER_TEMP/source/ に展開して --input に渡し、
+#   $RUNNER_TEMP/tiles-2km/ を --output-dir に指定する。
+#   具体的な入力成果物名・入力JSONファイル名は分割Action側で管理する。
+# - Actionsでの出力は matsudo-2km-tiles という成果物にまとめて保存する。
+#   GitHub mainブランチ内のディレクトリへは自動コミットしない。
 # - 分割JSONと index.json は同じ出力先ディレクトリに保存する。
-# - 現行GitHub Actionsではランナーの一時ディレクトリ tiles-2km/ に生成し、
-#   matsudo-2km-tiles というActions成果物として保存する（mainには自動コミットしない）。
+
 # - 出力名 = tile_x_y_YYYYMMDDHHMMSS.json。
 # - YYYYMMDDHHMMSSはJSON生成時刻をUTCで表す（OSM自体の更新日時ではない）。
 # - JSTでの日時表示はゲーム側で行う。位置ID tile_x_y は日時を含めない。
