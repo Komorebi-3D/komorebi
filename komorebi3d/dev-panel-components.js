@@ -78,7 +78,7 @@ export function mountRuntimeStatusPanel(root,api){
  // Diagnostics are created only for the live runtime panel, not the protected mock.
  const diagnostic=document.createElement('div');
  diagnostic.style.cssText='margin:8px 0;padding:8px;border:1px solid #a5bcb0;border-radius:8px;';
- const title=document.createElement('div');title.textContent='🧪 OSM通信ログ（直近の取得）';
+ const title=document.createElement('div');title.textContent='🧪 地図JSON読み込みログ';
  title.style.cssText='font-weight:700;font-size:12px;margin-bottom:6px;';
  const copy=document.createElement('button');copy.type='button';copy.textContent='📋 ログをコピー';
  copy.style.cssText='font-size:12px;margin-bottom:6px;padding:5px 8px;';
@@ -114,7 +114,7 @@ export function mountTestControlsPanel(root,api){
   npcRenderDistance:Number(find('npc-render-distance')?.defaultValue ?? 70),
   renderMode:find('mode-a')?.getAttribute('aria-pressed')==='true'?'A':
    find('mode-compare')?.getAttribute('aria-pressed')==='true'?'compare':'B',
-  mapVisible:find('map-toggle')?.getAttribute('aria-pressed')==='true',mapSourceMode:'json'
+  mapVisible:find('map-toggle')?.getAttribute('aria-pressed')==='true'
  });
  let localState={...initial};
  const readState=()=>api?api.getState():localState;
@@ -127,7 +127,6 @@ export function mountTestControlsPanel(root,api){
   else if(method==='setNpcRenderLimit')localState.npcRenderLimit=Number(value);
   else if(method==='setNpcRenderDistance')localState.npcRenderDistance=Number(value);
   else if(method==='setMapVisible')localState.mapVisible=Boolean(value);
-  else if(method==='setMapSourceMode')localState.mapSourceMode=value;
   // A location button has no game world to teleport in standalone mode.
   render();
  };
@@ -144,11 +143,6 @@ export function mountTestControlsPanel(root,api){
    stressButton.setAttribute('aria-pressed',String(stress));
    stressButton.classList.toggle('selected',stress);
   }
-  for(const [id,mode] of [['map-source-auto','auto'],['map-source-osm','osm'],['map-source-json','json']]){
-   const button=find(id);if(!button)continue;const selected=(s.mapSourceMode||'json')===mode;
-   button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
-  }
-  write('map-source-choice',s.mapSourceMode==='osm'?'OSM最新（失敗時は現在地図を維持）':s.mapSourceMode==='json'?'JSON固定500m':'自動：OSM優先・失敗時JSON');
   const mapButton=find('map-toggle');
   if(mapButton){
    mapButton.textContent=s.mapVisible?'🗺️ マップを閉じる':'🗺️ マップ表示';
@@ -191,8 +185,6 @@ export function mountTestControlsPanel(root,api){
   catch(error){console.error('NPC負荷テストエラー',error);}
  });
  bind(find('map-toggle'),'click',()=>act('setMapVisible',!readState().mapVisible));
- for(const [id,mode] of [['map-source-auto','auto'],['map-source-osm','osm'],['map-source-json','json']])
-  bind(find(id),'click',()=>{try{Promise.resolve(act('setMapSourceMode',mode)).catch(e=>write('map-source-choice','切替失敗：'+String(e.message||e)));}catch(e){write('map-source-choice','切替失敗：'+String(e.message||e));}});
  for(const button of root.querySelectorAll('[data-spot]'))
   bind(button,'click',()=>act('teleport',button.dataset.spot));
  const unsubscribe=api?api.subscribe(e=>{if(e.type==='state')render();}):()=>{};
