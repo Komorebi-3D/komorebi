@@ -330,7 +330,7 @@ import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komore
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
 import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js?v=map-json-forest-20261113";
 import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=slot-size-20261110";
-import {loadMap} from "./maps/map-loader.js?v=matsudo-json-only-20261114";
+import {loadMap} from "./maps/map-loader.js?v=matsudo-ab-center-2km-20261114";
 import {buildMap} from "./maps/map-builder.js?v=tags-json-editor-20261113";
 import {drawConvenienceSign,drawConvenienceRoof,drawConvenienceWindows} from "./objects/buildings/convenience/common.js?v=convenience-dark-handles-v10-20261112";
 import {createMapLabels,loadOsmTagIgnore} from "./maps/map-labels.js?v=osm-auto-comment-20261113";
@@ -782,12 +782,12 @@ function setNpcCount(v){
 // 5Hz canvas redraw is decoupled from the 3D renderer, with pointer-events disabled.
 let miniMapVisible=false,lastMiniMapFrame=-1000;
 // Matsudo hamster stress remains a button-only test state; the map works in both worlds.
-let matsudoNpcStressSelected=false,matsudoMapFeatures=null;
+let matsudoNpcStressSelected=false;
 function paintDebugMap(){
  if(!miniMapVisible||!gameView)return;
  gameView.paintMap({worldId:activeWorld,playerX:game.x,playerZ:game.z,
   agents:activeWorld==='forest'?npcManager.agents:[],cafeX:CAFE_X,cafeZ:CAFE_Z,
-  features:activeWorld==='matsudo'?matsudoMapFeatures:null});
+  features:activeWorld==='matsudo'?(matsudoMaps[screenConfigs[renderMode==='A'?'A':'B'].map]?.mapFeatures??null):null});
 }
 function setMiniMapVisible(value){
  miniMapVisible=Boolean(value);
@@ -1122,15 +1122,17 @@ const hamsterLiteGeometry=createMeshGeometry({
 
 let renderFrameId=0;
 const SAVED_WORLD_KEY='komorebi3d-last-world-dev';
-let activeWorld='forest',matsudoMeshes=[],matsudoLabels=null,warpInProgress=false,worldGeneration=0;
+let activeWorld='forest',matsudoLabels={A:null,B:null},warpInProgress=false,worldGeneration=0;
+const matsudoMaps={old:null,new:null};
 let flightAltitude=0;
-function productRenderSnapshot(){
+function productRenderSnapshot(screen,frameId){
  const pose=cameraRig.getPose({x:game.x,z:game.z},0);
  if(activeWorld==='matsudo'){
   const ghostIndex=renderParts.findIndex(p=>p.name==='ghost-helicopter');
-  const objs=matsudoMeshes.map((geometry,i)=>({id:'matsudo:'+i,geometry,position:[0,0,0],yaw:0,opacity:1,visible:true}));
+  const source=screenConfigs[screen].map;
+  const objs=(matsudoMaps[source]?.meshes||[]).map((geometry,i)=>({id:'matsudo:'+source+':'+i,geometry,position:[0,0,0],yaw:0,opacity:1,visible:true}));
   if(ghostIndex>=0)objs.push({id:'ghost-helicopter',geometry:engineMeshes[ghostIndex],position:[game.x,flightAltitude,game.z],yaw:game.angle,opacity:1,visible:true});
-  return createMeshRenderSnapshot({frameId:++renderFrameId,camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:650},objects:objs});
+  return createMeshRenderSnapshot({frameId,camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:2200},objects:objs});
  }
  const objects=renderParts.map((p,i)=>({
    id:p.name+":"+i,geometry:engineMeshes[i],
@@ -1152,7 +1154,7 @@ function productRenderSnapshot(){
    position:[a.drawX,0,a.drawZ],yaw:a.drawYaw,opacity:1,visible:true});
  }
  return createMeshRenderSnapshot({
-  frameId:++renderFrameId,
+  frameId,
   camera:{eye:pose.eye,target:pose.target,fovDegrees:45,near:.1,far:220},
   objects
  });
@@ -1178,37 +1180,51 @@ async function loadMatsudoMapInBackground(){
  cancelMatsudoMapRequest();
  const controller=new AbortController();mapLoadController=controller;
  const token=++mapLoadToken;
- mapDebugLog.length=0;addMapDebug('開始 / matsudo.json / 500m四方');
+ mapDebugLog.length=0;addMapDebug('開始 / A: matsudo.json / B: 2km中央タイル 0_0');
  const onLog=line=>{if(isCurrentMatsudoMapRequest(token,controller))addMapDebug(line);};
- publishRuntimeStatus('map-source-status','🗺️ matsudo.json 読み込み中');
+ publishRuntimeStatus('map-source-status','🗺️ A/B地図 読み込み中');
  try{
   const ignoreRules=await loadOsmTagIgnore();
-  // Ignore a completed async stage if its Matsudo request has been disposed.
   if(!isCurrentMatsudoMapRequest(token,controller))return;
-  const map=await loadMap({onLog,signal:controller.signal});
-  if(!isCurrentMatsudoMapRequest(token,controller))return;
-  addMapDebug('地図生成: 開始 / matsudo.json');
-  const next=buildMap(map);
-  if(next.counts.buildings<10||next.counts.roads<10)throw Error('3D地図生成データ不足');
-  const geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
-  addMapDebug('地図生成: 完了 / 建物'+next.counts.buildings+' 道路'+next.counts.roads+' 鉄道'+next.counts.rails);
-  if(!isCurrentMatsudoMapRequest(token,controller))return;
-  matsudoMeshes=geometry;matsudoMapFeatures=next.mapFeatures;
-  if(miniMapVisible)paintDebugMap();
-  matsudoLabels?.dispose();matsudoLabels=null;
-  if(gameView?.surface){matsudoLabels=createMapLabels(gameView.surface,ignoreRules);matsudoLabels.setLabels(next.labels);}
-  addMapDebug('表示完了: matsudo.json');
-  publishRuntimeStatus('map-source-status','🗺️ matsudo.json 読み込み完了');
-  publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
-  publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
+  for(const source of ['old','new']){
+   if(!isCurrentMatsudoMapRequest(token,controller))return;
+   const name=source==='old'?'500m matsudo.json':'2km中央タイル 0_0';
+   try{
+    onLog('取得開始 / '+name);
+    const map=await loadMap({source,onLog,signal:controller.signal});
+    if(!isCurrentMatsudoMapRequest(token,controller))return;
+    onLog('地図生成: 開始 / '+name);
+    const next=buildMap(map,{halfSize:source==='old'?250:1000});
+    if(next.counts.buildings<10||next.counts.roads<10)throw Error('3D地図生成データ不足');
+    if(!isCurrentMatsudoMapRequest(token,controller))return;
+    const meshes=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+source+':'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
+    matsudoMaps[source]={meshes,mapFeatures:next.mapFeatures,labels:next.labels};
+    for(const screen of ['A','B'])if(screenConfigs[screen].map===source)applyMatsudoScreenLabels(screen,ignoreRules);
+    if(miniMapVisible)paintDebugMap();
+    onLog('地図生成: 完了 / '+name+' / 建物'+next.counts.buildings+' 道路'+next.counts.roads+' 鉄道'+next.counts.rails+' ラベル'+next.labels.length);
+    onLog('表示準備: 完了 / '+name);
+    publishRuntimeStatus('map-source-status','🗺️ '+name+' 読み込み完了');
+    publishRuntimeStatus('status','🏙️ '+name+'：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
+   }catch(error){
+    if(!isCurrentMatsudoMapRequest(token,controller))return;
+    onLog('失敗 / '+name+': '+String(error.name||'Error')+' / '+String(error.message||error));
+    publishRuntimeStatus('map-source-status','🗺️ '+name+' 読み込み失敗：'+String(error.message||error));
+   }
+  }
  }catch(error){
   if(!isCurrentMatsudoMapRequest(token,controller))return;
-  addMapDebug('失敗: '+String(error.name||'Error')+' / '+String(error.message||error));
-  publishRuntimeStatus('map-source-status','🗺️ matsudo.json 読み込み失敗：'+String(error.message||error));
-  publishRuntimeStatus('status','🏙️ 地図読込失敗（現在地図・飛行維持）：'+String(error.message||error));
-  publishRuntimeStatus('label-status','🏙️ 屋上名：地図読込失敗');
+  onLog('失敗: '+String(error.name||'Error')+' / '+String(error.message||error));
+  publishRuntimeStatus('map-source-status','🗺️ 地図準備失敗：'+String(error.message||error));
  }finally{
   if(mapLoadController===controller)mapLoadController=null;
+ }
+}
+function applyMatsudoScreenLabels(screen,ignoreRules){
+ matsudoLabels[screen]?.dispose();matsudoLabels[screen]=null;
+ const data=matsudoMaps[screenConfigs[screen].map];
+ if(data&&gameView?.surface){
+  matsudoLabels[screen]=createMapLabels(gameView.surface,ignoreRules,{screen});
+  matsudoLabels[screen].setLabels(data.labels);
  }
 }
 // Only world-specific geometry changes; the common Engine input/camera are reused.
@@ -1226,7 +1242,8 @@ async function setWorld(name){
   await Promise.allSettled([loadingA,loadingB].filter(Boolean));
   rendererA?.dispose?.();rendererB?.dispose?.();
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
-  matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];matsudoMapFeatures=null;
+  for(const screen of ['A','B']){matsudoLabels[screen]?.dispose();matsudoLabels[screen]=null;}
+   matsudoMaps.old=null;matsudoMaps.new=null;
   groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
   collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
   core=new CharacterMotionCore2D({ground:groundSystem,collision:collisionSystem,
@@ -1270,7 +1287,11 @@ function setScreenConfig({screen,setting,value}={}){
  if(screenConfigs[screen][setting]===value)return true;
  screenConfigs={...screenConfigs,[screen]:{...screenConfigs[screen],[setting]:value}};
  if(setting==='engine')void reconfigureScreenRenderer(screen);
- if(setting==='map'&&value==='new')publishRuntimeStatus('map-source-status','🗺️ 新2kmタイル：未接続（現在は旧500m地図を表示）');
+ if(setting==='map'&&activeWorld==='matsudo'){
+   if(matsudoMaps[value])loadOsmTagIgnore().then(rules=>applyMatsudoScreenLabels(screen,rules)).catch(error=>addMapDebug('ラベル切替失敗: '+error.message));
+   else{matsudoLabels[screen]?.dispose();matsudoLabels[screen]=null;}
+   if(miniMapVisible)paintDebugMap();
+  }
  publishGameState();return true;
 }
 let last=0,start=0,frames=0;
@@ -1318,7 +1339,7 @@ async function reconfigureScreenRenderer(screen){
  renderer?.dispose?.();
  // A fresh canvas is needed when switching WebGL1 and Three.js/WebGL2 backends.
  const nextCanvas=gameView?.replaceCanvas(screen);
- matsudoLabels?.replaceCanvas(screen,nextCanvas);
+ matsudoLabels[screen]?.replaceCanvas(screen,nextCanvas);
  if(isA){rendererA=null;loadingA=null;okA=false;}
  else{rendererB=null;loadingB=null;okB=false;}
  if(isVisibleScreen(screen))await ensureScreen(screen);
@@ -1374,22 +1395,26 @@ function frame(t){
  // HUD updates are independent of the GPU renderer, so failures remain diagnosable.
  if(activeWorld==='matsudo'){
   try{
-   if(matsudoLabels){
-    const hudPose=cameraRig.getPose({x:game.x,z:game.z},0);
-    const labelStats=matsudoLabels.update({...hudPose,fovDegrees:45},{x:game.x,y:flightAltitude,z:game.z});
-    publishRuntimeStatus('label-status',`🏙️ 屋上名：データ ${labelStats.total} / 200m以内 ${labelStats.inRange} / 画面内 ${labelStats.inView} / 表示 ${labelStats.shown}`);
-   }else publishRuntimeStatus('label-status','🏙️ 屋上名：松戸ラベルレイヤー未作成');
+   const hudPose=cameraRig.getPose({x:game.x,z:game.z},0);
+    const descriptions=[];
+    for(const screen of ['A','B']){
+     const layer=matsudoLabels[screen];
+     if(!layer){descriptions.push(screen+':未作成');continue;}
+     const stats=layer.update({...hudPose,fovDegrees:45},{x:game.x,y:flightAltitude,z:game.z});
+     descriptions.push(screen+':'+stats.shown+'/'+stats.total);
+    }
+    publishRuntimeStatus('label-status','🏙️ 屋上名：'+descriptions.join(' / '));
   }catch(error){publishRuntimeStatus('label-status','🏙️ 屋上名：描画診断エラー '+String(error.message||error));}
  }
  // When the game panel is removed, keep simulation state but pause GPU drawing.
  if(gameView?.canvasB.isConnected){
   try{
-   const snapshot=productRenderSnapshot();
-   if(renderMode!=='B'&&okA)rendererA.render(snapshot);
-   if(renderMode!=='A'&&okB)rendererB.render(snapshot);
+   const frameId=++renderFrameId;
+   if(renderMode!=='B'&&okA)rendererA.render(productRenderSnapshot('A',frameId));
+   if(renderMode!=='A'&&okB)rendererB.render(productRenderSnapshot('B',frameId));
    const a=renderMode!=='B'&&okA?rendererA.lastFrameId:'―';
    const b=renderMode!=='A'&&okB?rendererB.lastFrameId:'―';
-   publishRuntimeStatus('sync-status','共通Snapshot #'+snapshot.frameId+' / 画面A(Engine '+screenConfigs.A.engine+'):'+a+' / 画面B(Engine '+screenConfigs.B.engine+'):'+b+
+   publishRuntimeStatus('sync-status','共通Snapshot #'+frameId+' / 画面A(Engine '+screenConfigs.A.engine+'):'+a+' / 画面B(Engine '+screenConfigs.B.engine+'):'+b+
      (renderMode==='compare'&&okA&&okB?(a===b?' / 同期OK':' / 同期ずれ'):''));
   }catch(error){
    publishRuntimeStatus('renderer-status','🎨 描画エラー：'+String(error.message||error));
