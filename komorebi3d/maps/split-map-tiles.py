@@ -69,7 +69,15 @@
 # - 現行版は1世代だけ管理し、旧ファイルの自動蓄積はしない。
 # - 各JSONのelementsは元のOSM要素を可能な限りそのまま保持し、
 #   追加情報はtile ID/生成時刻など必要最小限にする。
-# - index.jsonは生成物の一覧・参照情報。ゲーム内の配信/更新UIは別工程。
+# - index.jsonは生成日時（generatedAt）と、タイルID -> JSONファイル名の
+#   対応表（tiles）だけを保存する。位置、座標系、件数、容量、出典は含めない。
+#   例：{"generatedAt":"2026-11-14T00:00:00Z",
+#       "tiles":{"0_0":"tile_0_0_20261114000000.json",
+#                "1_0":"tile_1_0_20261114000000.json"}}
+# - 分割方法・固定グリッド等の仕様は本Pythonの先頭コメントを正本とする。
+#   OSMの出典とライセンス情報は各タイルJSONに保持する。
+# - index.jsonはファイル検索用であり、分割の設定ファイルではない。
+#   ゲーム内の配信/更新UIは別工程。
 # - 巨大入力はストリーミング処理し、各タイルのJSON妥当性、件数、
 #   交差とサイズ制限（GitHub単一ファイル100MB未満の安全余裕）を検証する。
 #
@@ -304,20 +312,14 @@ def split(source: Path, destination: Path, *, timestamp: str | None = None,
             raise ValueError('No tiles generated')
         generated = datetime.strptime(stamp, '%Y%m%d%H%M%S').replace(
             tzinfo=timezone.utc).isoformat().replace('+00:00', 'Z')
-        index = {
-            'schemaVersion': 1, 'tileSizeM': TILE_M,
-            'coordinateSystem': 'EPSG:6677',
-            'origin': {'lat': LAT, 'lon': LON, 'placement': 'tile_0_0_center'},
-            'generatedAt': generated,
-            'source': header.get('source', 'OpenStreetMap contributors'),
-            'license': header.get('license', 'ODbL-1.0'),
-            'tiles': {}
-        }
+        index = {'generatedAt': generated, 'tiles': {}}
         for (x, y), n in sorted(spool.counts.items()):
             filename = f'tile_{x}_{y}_{stamp}.json'
             path = output / filename
             metadata = {
-                'schemaVersion': 1, 'source': index['source'], 'license': index['license'],
+                'schemaVersion': 1,
+                'source': header.get('source', 'OpenStreetMap contributors'),
+                'license': header.get('license', 'ODbL-1.0'),
                 'tile': {'id': f'{x}_{y}', 'gridX': x, 'gridY': y,
                          'sizeM': TILE_M, 'generatedAt': generated}
             }
@@ -337,9 +339,7 @@ def split(source: Path, destination: Path, *, timestamp: str | None = None,
                 actual = sum(1 for _ in ijson.items(stream, 'elements.item', use_float=True))
             if actual != n:
                 raise ValueError(f'Tile {filename}: expected {n}, got {actual}')
-            index['tiles'][f'{x}_{y}'] = {
-                'file': filename, 'x': x, 'y': y, 'elementCount': n, 'sizeBytes': size
-            }
+            index['tiles'][f'{x}_{y}'] = filename
         (output / 'index.json').write_text(
             json.dumps(index, ensure_ascii=False, separators=(',', ':')) + '\n',
             encoding='utf-8')
