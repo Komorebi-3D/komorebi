@@ -740,7 +740,12 @@ async function setWorld(name){
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
   for(const screen of ['A','B']){matsudoLabels[screen]?.dispose();matsudoLabels[screen]=null;}
    matsudoMaps.old=null;matsudoMaps.new=null;
-  groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
+  // Matsudo has no movement boundary; map data coverage is independent of flight range.
+  // The fixed Engine accepts a GroundBounds-like object with unbounded extents.
+  groundSystem=name==='matsudo'?{
+   getBounds:()=>({minX:-Infinity,maxX:Infinity,minZ:-Infinity,maxZ:Infinity}),
+   constrain:state=>state
+  }:new GroundBounds({centerX:0,centerZ:0,width:100,depth:100});
   collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
   core=new CharacterMotionCore2D({ground:groundSystem,collision:collisionSystem,
    initialState:name==='forest'?{x:0,z:4.5,angle:.55,spin:0}:{x:-42,z:28,angle:-Math.PI/2,spin:0},
@@ -887,7 +892,7 @@ function frame(t){
   publishRuntimeStatus('collision-status',moved<.001?'● 移動停止（障害物または地面端）':'● 移動中（壁沿い移動も確認）');
  }
  publishRuntimeStatus('pos',activeWorld==='matsudo'?`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / 🚁 高度 ${flightAltitude.toFixed(1)}m`:`X ${game.x.toFixed(1)} / Z ${game.z.toFixed(1)} / ${houseLevel===2?'2階':houseLevel===1?'1階':cafeInside?'カフェ店内':'屋外'}`);
- publishRuntimeStatus('edge',(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内');
+ publishRuntimeStatus('edge',activeWorld==='matsudo'?'● 移動制限なし':(()=>{const b=groundSystem.getBounds(),r=collisionSystem.characterRadius;return game.x<=b.minX+r+.01||game.x>=b.maxX-r-.01||game.z<=b.minZ+r+.01||game.z>=b.maxZ-r-.01})()?'● 地面の端':'● 境界内');
  // HUD updates are independent of the GPU renderer, so failures remain diagnosable.
  if(activeWorld==='matsudo'){
   try{
