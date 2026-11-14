@@ -1,9 +1,13 @@
 import {CONVENIENCE_DOOR_WIDTH_M} from '../objects/buildings/convenience/const.js?v=convenience-one-sign-v3-20261112';
+import {tileCenterWgs84} from './tile-grid.js?v=tile-grid-epsg6677-20261114';
 import {matchConvenienceBuildings,resolveConveniencePaint,paintConvenienceWall,resolveOsmConvenienceRoofColor} from '../objects/buildings/convenience/osm-adapter.js?v=convenience-dark-handles-v9-20261112';
 // Convert verified OSM map data into renderer-independent meshes and roof labels.
 // Defaults preserve the original Matsudo 500m test snapshot.
 export function buildMap(map,{latitude=35.78444,longitude=139.90061,halfSize=250}={}){
- const LAT=latitude,LON=longitude,HALF=halfSize;
+ // Legacy snapshots keep their exact origin; indexed 2km tiles derive it
+ // from the immutable EPSG:6677 grid rather than caller-supplied coordinates.
+ const center=map.tile?tileCenterWgs84(map.tile):{latitude,longitude};
+ const LAT=center.latitude,LON=center.longitude,HALF=halfSize;
  const xy=p=>[(p.lon-LON)*111320*Math.cos(LAT*Math.PI/180),-(p.lat-LAT)*111320];
 const color=c=>[(c>>16&255)/255,(c>>8&255)/255,(c&255)/255];
 const palette=[0xc9bba8,0x9baeb8,0xb7b0a8,0xdbbfaa,0xabae9e,0xc4a99d];
