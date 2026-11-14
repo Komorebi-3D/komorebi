@@ -756,6 +756,14 @@ async function setWorld(name){
 }
 let rendererA=null,rendererB=null,loadingA=null,loadingB=null;
 let okA=false,okB=false,renderMode='B';
+let screenConfigs={A:{map:'old',engine:'B'},B:{map:'new',engine:'B'}};
+function setScreenConfig({screen,setting,value}={}){
+ if(!['A','B'].includes(screen)||!['map','engine'].includes(setting)||
+    !(setting==='map'?['old','new']:['A','B']).includes(value))return false;
+ if(screenConfigs[screen][setting]===value)return true;
+ screenConfigs={...screenConfigs,[screen]:{...screenConfigs[screen],[setting]:value}};
+ publishGameState();return true;
+}
 let last=0,start=0,frames=0;
 function ensureA(){
  if(!gameView)return Promise.resolve();
@@ -812,7 +820,7 @@ setRenderMode(initialMode);
 const gameApi=Object.freeze({
  getState(){
   return {
-   ...core.getState(),houseLevel,renderMode,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
+   ...core.getState(),houseLevel,renderMode,screens:screenConfigs,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
    npcCount:activeWorld==='forest'?npcManager.agents.length:(matsudoNpcStressSelected?1000:0),npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
    npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
    npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
@@ -824,7 +832,7 @@ const gameApi=Object.freeze({
   gameStateListeners.add(listener);
   return ()=>gameStateListeners.delete(listener);
  },
- reset:resetGameForTest,setRenderMode,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
+ reset:resetGameForTest,setRenderMode,setScreenConfig,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
  setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot,setWorld
 });
 // Panel views subscribe to Game API without controlling each other.
