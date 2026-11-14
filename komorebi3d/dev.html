@@ -119,6 +119,22 @@ button.slider-step:active{background:#c4dec1}
 .test-panel .test-locations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .test-panel .test-locations button{min-width:0}
 
+/* @screen-settings:start */
+.screen-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px;height:290px}
+.screen-settings[data-visible="A"],.screen-settings[data-visible="B"]{grid-template-columns:minmax(0,1fr)}
+.screen-card{min-width:0;height:100%;padding:8px;border:1px solid #c4b29c;border-radius:9px;background:#fffaf3}
+.screen-card[hidden]{display:none}
+.screen-title{padding:6px 4px;margin-bottom:8px;border-radius:5px;background:#e9e1d3;text-align:center;font-weight:750}
+.setting-group{min-width:0;margin:0 0 9px;padding:8px 6px;border:1px solid #c4b29c;border-radius:8px;background:#fffaf3}
+.setting-group:last-child{margin-bottom:0}
+.setting-group legend{float:left;width:100%;padding:0;margin:0 0 7px;font-size:11px;font-weight:700;color:#554a3f}
+.setting-group legend+label{clear:both}
+.setting-group label{display:flex;align-items:center;gap:4px;min-height:31px;font-size:11px;white-space:nowrap;cursor:pointer}
+.setting-group input{margin:0;flex:0 0 auto;accent-color:#64956c}
+.setting-group.is-different{background:#fff0d5;border-color:#e5b86f}
+.setting-group.is-different legend{color:#995a1e}
+/* @screen-settings:end */
+
 /* Styles for runtime panel from canonical dev.html. */
 .runtime-status{position:relative;--help-button-color:#455a49;--help-overlay-bg:rgba(29,52,35,.42);--help-label-bg:#fffdf3;--help-label-color:#30533b;--help-focus-outline:2px solid #397452;--help-focus-offset:-4px}
 .runtime-status-heading{display:block;min-height:36px;margin:0 0 8px;padding-right:43px;font-size:13px}
@@ -177,10 +193,23 @@ button.slider-step:active{background:#c4dec1}
 <div class="test-section-title">🌍 ワールドワープ</div>
 <div class="buttons" role="group" aria-label="ワールド切替"><button type="button" data-world="forest" aria-pressed="true">🌳 森</button><button type="button" data-world="matsudo" aria-pressed="false">🏙️ 松戸</button></div>
 <div class="test-separator"></div>
-<div class="test-section-title">🗺️ 松戸の地図データ</div>
-<div class="map-source-description">matsudo.json（固定500m）を自動読み込み</div><div class="test-separator"></div>
-<div class="test-section-title">🎮 描画方式</div>
-<div class="mode-buttons" role="group" aria-label="描画方式"><button type="button" id="mode-a" aria-pressed="false">Aのみ</button><button type="button" id="mode-b" class="selected" aria-pressed="true">Bのみ</button><button type="button" id="mode-compare" aria-pressed="false">A/B比較</button></div><div id="mode-status" aria-live="polite">描画モード：B（Three.js）</div>
+<!-- @screen-settings:start -->
+<div class="test-section-title">🎮 表示モード</div>
+<div class="mode-buttons" role="group" aria-label="表示モード"><button type="button" id="mode-a" data-mode="A" aria-pressed="false">A</button><button type="button" id="mode-b" data-mode="B" aria-pressed="false">B</button><button type="button" id="mode-compare" data-mode="compare" aria-pressed="true">A/B比較</button></div>
+<div id="mode-status" aria-live="polite">表示：画面A＋画面B</div>
+<div class="screen-settings" data-visible="compare">
+<div class="screen-card" data-screen="A">
+<div class="screen-title">画面A</div>
+<fieldset class="setting-group" data-setting="map"><legend>🗺️ 地図データ</legend><label><input type="radio" name="screen-map-A" value="old" checked>旧500m</label><label><input type="radio" name="screen-map-A" value="new">新2km</label></fieldset>
+<fieldset class="setting-group" data-setting="engine"><legend>🎨 Engine</legend><label><input type="radio" name="screen-engine-A" value="A">Engine A</label><label><input type="radio" name="screen-engine-A" value="B" checked>Engine B</label></fieldset>
+</div>
+<div class="screen-card" data-screen="B">
+<div class="screen-title">画面B</div>
+<fieldset class="setting-group" data-setting="map"><legend>🗺️ 地図データ</legend><label><input type="radio" name="screen-map-B" value="old">旧500m</label><label><input type="radio" name="screen-map-B" value="new" checked>新2km</label></fieldset>
+<fieldset class="setting-group" data-setting="engine"><legend>🎨 Engine</legend><label><input type="radio" name="screen-engine-B" value="A">Engine A</label><label><input type="radio" name="screen-engine-B" value="B" checked>Engine B</label></fieldset>
+</div>
+</div>
+<!-- @screen-settings:end -->
 <div class="test-separator"></div>
 <div class="test-section-title npc-anchor">🐹 NPC負荷・表示テスト</div>
 <div class="buttons"><button type="button" id="npc-stress-toggle" aria-pressed="false">🐹 ハムスター ×1000</button><button type="button" id="map-toggle" aria-pressed="false">🗺️ マップ表示</button></div>
@@ -1224,6 +1253,14 @@ async function setWorld(name){
 }
 let rendererA=null,rendererB=null,loadingA=null,loadingB=null;
 let okA=false,okB=false,renderMode='B';
+let screenConfigs={A:{map:'old',engine:'B'},B:{map:'new',engine:'B'}};
+function setScreenConfig({screen,setting,value}={}){
+ if(!['A','B'].includes(screen)||!['map','engine'].includes(setting)||
+    !(setting==='map'?['old','new']:['A','B']).includes(value))return false;
+ if(screenConfigs[screen][setting]===value)return true;
+ screenConfigs={...screenConfigs,[screen]:{...screenConfigs[screen],[setting]:value}};
+ publishGameState();return true;
+}
 let last=0,start=0,frames=0;
 function ensureA(){
  if(!gameView)return Promise.resolve();
@@ -1280,7 +1317,7 @@ setRenderMode(initialMode);
 const gameApi=Object.freeze({
  getState(){
   return {
-   ...core.getState(),houseLevel,renderMode,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
+   ...core.getState(),houseLevel,renderMode,screens:screenConfigs,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
    npcCount:activeWorld==='forest'?npcManager.agents.length:(matsudoNpcStressSelected?1000:0),npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
    npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
    npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
@@ -1292,7 +1329,7 @@ const gameApi=Object.freeze({
   gameStateListeners.add(listener);
   return ()=>gameStateListeners.delete(listener);
  },
- reset:resetGameForTest,setRenderMode,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
+ reset:resetGameForTest,setRenderMode,setScreenConfig,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
  setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot,setWorld
 });
 // Panel views subscribe to Game API without controlling each other.
