@@ -20,7 +20,7 @@
 
 ### 2.1 目標
 
-`matsudo.json` の単一500mデータ読み込みを、事前にダウンロード・分割しGitHub `main` に保存した **2kmタイルJSON** 参照へ置き換える。ブラウザからOSM/Overpass APIを直接呼び出さず、静的JSONだけを取得する。森ワールド、固定Engine、v0.6/v0.7安定版、既存地図ファイルには不要な変更を加えない。
+`matsudo.json` の単一500mデータ読み込みを、事前にダウンロード・分割しGitHub `main` に保存した **2kmタイルJSON** 参照へ置き換える。ブラウザからOSM/Overpass APIを直接呼び出さず、静的JSONだけを取得する。森ワールド、固定Engine、既存地図ファイルには不要な変更を加えない。
 
 ### 2.2 保存済みデータと参照元
 
@@ -93,7 +93,7 @@
 | タイル保存先 | `komorebi3d/maps/data/tiles-2km/index.json` と559枚のJSON |
 | 開発情報 | `komorebi3d/development-info.json`（`engine`、`forest`、`matsudo`、`common`） |
 | 固定Engine | `d4a392aba35c840e0bea8b585c6852515bf58f30`。固定参照と `engine/` を保護 |
-| 実機PASS済み安定版 | `komorebi3d/komorebi3d-app-v07-engine-main-test.html`（blob `332ab75d9ac45eb51aed54379655ad35d2b22136`）、`komorebi3d/komorebi3d-app-v06-core-test.html`（blob `c98a8d8acccac3ca24c7b168c4a6a1408c358348`） |
+| 実機PASS済みの状態 | Git履歴で管理。旧v0.6／v0.7テストHTMLは整理済み |
 | モック | `komorebi3d/mock.html`／`mock.chat.html` はUI確認用。安定版とは別 |
 | 削除済み旧アーカイブ | `dev-before-decouple.html` は `1144253b7af98ad6c28f5c4bdf4f3434f2cb9aaa` のGit履歴から復元可能 |
 
@@ -102,5 +102,5 @@
 1. [`docs/rules/README.md`](rules/README.md) と [`docs/rules/chat.md`](rules/chat.md)、[`docs/rules/mock.md`](rules/mock.md)、[`docs/rules/development.md`](rules/development.md)、そして**このSTATUS**を読む。最新コードをGitHub `main` で再取得する。
 2. ユーザーの次の希望は **「松戸ワールドを `matsudo.json` から2km分割JSON参照に変更する」**。まずタイル実データ・index・分割Python・現行ローダー／ビルダーを照合し、最小変更の段階的な実装案を決める。
 3. **「🧪 地図JSON読み込みログ」を残すことが明示的な希望。** ログは新しい取得方式に合わせて見直すが、削除しない。
-4. 森ワールド、固定Engine、v0.6/v0.7、元500m JSON、559タイルの原本を不用意に変更しない。ユーザー実機PASSと未検証部分を区別し、必要なファイルだけ小さく変更する。
+4. 森ワールド、固定Engine、元500m JSON、559タイルの原本を不用意に変更しない。ユーザー実機PASSと未検証部分を区別し、必要なファイルだけ小さく変更する。
 5. GitHub書込みはユーザーの明示許可に沿って行い、静的検証と実機確認を区別して `STATUS.md` を更新する。今回のチャットから次へ移ったという理由だけで、新機能を実装済み扱いにしない。
