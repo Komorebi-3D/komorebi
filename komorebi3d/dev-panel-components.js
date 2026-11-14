@@ -1,5 +1,32 @@
 // Developer panel views. No game-engine imports or global panel lookup.
 // Each view owns only its supplied DOM root and receives game state through the Game API.
+// @screen-settings-ui:start
+export function renderScreenSettingsUI(root,state){
+ const settings=root.querySelector('.screen-settings');
+ if(!settings)return;
+ const mode=['A','B','compare'].includes(state.renderMode)?state.renderMode:'compare';
+ const comparing=mode==='compare',screens=state.screens;
+ settings.dataset.visible=mode;
+ for(const card of settings.querySelectorAll('[data-screen]')){
+  const screen=card.dataset.screen;
+  card.hidden=!comparing&&screen!==mode;
+  for(const kind of ['map','engine']){
+   const group=card.querySelector('[data-setting="'+kind+'"]');
+   const different=comparing&&screens.A[kind]!==screens.B[kind];
+   group?.classList.toggle('is-different',different);
+   for(const input of group?.querySelectorAll('input')||[])input.checked=screens[screen][kind]===input.value;
+  }
+ }
+ for(const button of root.querySelectorAll('[data-mode]')){
+  const selected=button.dataset.mode===mode;
+  button.classList.toggle('selected',selected);
+  button.setAttribute('aria-pressed',String(selected));
+ }
+ const caption=root.querySelector('#mode-status');
+ if(caption)caption.textContent='表示：'+(comparing?'画面A＋画面B':'画面'+mode+'のみ');
+}
+// @screen-settings-ui:end
+
 export function createGameView(root){
  if(!root)return null;
  const get=id=>root.querySelector('#'+id);
@@ -114,13 +141,20 @@ export function mountTestControlsPanel(root,api){
   npcRenderDistance:Number(find('npc-render-distance')?.defaultValue ?? 70),
   renderMode:find('mode-a')?.getAttribute('aria-pressed')==='true'?'A':
    find('mode-compare')?.getAttribute('aria-pressed')==='true'?'compare':'B',
+  screens:{A:{map:'old',engine:'B'},B:{map:'new',engine:'B'}},
   mapVisible:find('map-toggle')?.getAttribute('aria-pressed')==='true'
  });
  let localState={...initial};
  const readState=()=>api?api.getState():localState;
  const act=(method,value)=>{
   if(api)return api[method](value);
-  if(method==='reset')localState={...initial};
+  if(method==='reset')localState={...initial,screens:{A:{...initial.screens.A},B:{...initial.screens.B}}};
+  else if(method==='setScreenConfig'){
+   const {screen,setting,value}=value||{};
+   if(['A','B'].includes(screen)&&['map','engine'].includes(setting)&&
+      (setting==='map'?['old','new']:['A','B']).includes(value))
+    localState={...localState,screens:{...localState.screens,[screen]:{...localState.screens[screen],[setting]:value}}};
+  }
   else if(method==='setWorld')localState.worldId=value;
   else if(method==='setRenderMode')localState.renderMode=value;
   else if(method==='setNpcCount')localState.npcCount=value;
@@ -149,18 +183,12 @@ export function mountTestControlsPanel(root,api){
    mapButton.setAttribute('aria-pressed',String(s.mapVisible));
    mapButton.classList.toggle('selected',Boolean(s.mapVisible));
   }
-  for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']]){
-   const button=find(id);if(!button)continue;
-   const selected=s.renderMode===mode;
-   button.classList.toggle('selected',selected);
-   button.setAttribute('aria-pressed',String(selected));
-  }
+  renderScreenSettingsUI(root,s);
   for(const button of root.querySelectorAll('[data-world]')){
    const selected=(s.worldId||'forest')===button.dataset.world;
    button.setAttribute('aria-pressed',String(selected));
    button.classList.toggle('selected',selected);
   }
-  write('mode-status',s.renderMode==='A'?'描画モード：Engine A（WebGL）':s.renderMode==='B'?'描画モード：Engine B（Three.js）':'描画モード：Engine A/B比較・共通Snapshot');
  };
  bind(find('reset'),'click',()=>act('reset',));
  for(const button of root.querySelectorAll('[data-world]'))bind(button,'click',()=>{
@@ -169,6 +197,12 @@ export function mountTestControlsPanel(root,api){
  });
  for(const [id,mode] of [['mode-a','A'],['mode-b','B'],['mode-compare','compare']])
   bind(find(id),'click',()=>act('setRenderMode',mode));
+ for(const input of root.querySelectorAll('.screen-settings input[type="radio"]'))bind(input,'change',()=>{
+  if(!input.checked)return;
+  const screen=input.closest('[data-screen]')?.dataset.screen;
+  const setting=input.closest('[data-setting]')?.dataset.setting;
+  if(screen&&setting)act('setScreenConfig',{screen,setting,value:input.value});
+ });
  bind(find('npc-render-limit'),'input',e=>act('setNpcRenderLimit',e.currentTarget.value));
  bind(find('npc-render-distance'),'input',e=>act('setNpcRenderDistance',e.currentTarget.value));
  for(const button of root.querySelectorAll('[data-step-target]')){
