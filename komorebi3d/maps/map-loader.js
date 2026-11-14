@@ -3,7 +3,7 @@ const MAP_URL='./maps/data/matsudo.json';
 const TILE_INDEX_URL='./maps/data/tiles-2km/index.json';
 const TILE_ROOT='./maps/data/tiles-2km/';
 // Future regional tests change this one ID only. JSON files remain untouched.
-export const TEST_TILE_ID='-6_-4';
+export const TEST_TILE_ID='0_0';
 const facilityKeys=['shop','amenity','tourism','office','leisure','healthcare'];
 function verify(map){
  if(map?.source!=='OpenStreetMap contributors'||!Array.isArray(map.elements))throw Error('OSM形式不正');
