@@ -316,11 +316,11 @@ export function createMapLabels(host,ignoreRules=[]){
   for(const viewport of viewports)viewport.items=entries.map(()=>null);
  }
  // Instantiate HTML only when a feature enters the screen, not for every OSM POI.
- function createItem(item){
+ function createItem(item,widthLimit,heightLimit){
     const el=document.createElement('div');
     el.style.cssText='position:absolute;display:none;pointer-events:auto;touch-action:manipulation;cursor:pointer;transform:translate(-50%,-100%);flex-direction:column;align-items:center;white-space:normal;';
     const card=document.createElement('div');
-    card.style.cssText='box-sizing:border-box;width:210px;max-width:210px;min-width:92px;overflow-wrap:anywhere;padding:7px 11px 8px;border:1px solid rgba(123,234,216,.72);border-radius:10px;background:rgba(23,40,56,.75);box-shadow:0 3px 14px rgba(6,15,29,.22);color:white;font-family:system-ui,-apple-system,sans-serif;text-align:left;';
+    card.style.cssText='box-sizing:border-box;min-width:0;overflow-wrap:anywhere;overflow-y:auto;touch-action:pan-y;padding:7px 11px 8px;border:1px solid rgba(123,234,216,.72);border-radius:10px;background:rgba(23,40,56,.75);box-shadow:0 3px 14px rgba(6,15,29,.22);color:white;font-family:system-ui,-apple-system,sans-serif;text-align:left;';
     const header=document.createElement('div');
     header.style.cssText='display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;';
     for(const [key,value] of item.visibleTags){
@@ -338,6 +338,9 @@ export function createMapLabels(host,ignoreRules=[]){
     stem.style.cssText='width:1px;height:22px;background:#7bead8;box-shadow:0 0 4px rgba(123,234,216,.35);';
     const dot=document.createElement('div');
     dot.style.cssText='width:7px;height:7px;border-radius:50%;background:#7bead8;box-shadow:0 0 0 2px rgba(23,40,56,.45);';
+    card.style.width=widthLimit+'px';
+    card.style.maxWidth=widthLimit+'px';
+    card.style.maxHeight=heightLimit+'px';
     el.append(card,stem,dot);layer.appendChild(el);
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',item.name+'を編集');
     el.addEventListener('click',event=>{event.stopPropagation();openEditor(item);});
@@ -345,10 +348,28 @@ export function createMapLabels(host,ignoreRules=[]){
     // Measure the complete, wrapped label once (not on every animation frame).
     el.style.display='flex';
     el.style.visibility='hidden';
-    const width=el.offsetWidth||210,height=el.offsetHeight||72;
+    const width=el.offsetWidth||widthLimit,height=el.offsetHeight||72;
     el.style.display='none';
     el.style.visibility='';
-    return {...item,el,width,height};
+    return {...item,el,width,height,widthLimit,heightLimit};
+ }
+ function sizeItem(measured,widthLimit,heightLimit){
+  if(measured.widthLimit===widthLimit&&measured.heightLimit===heightLimit)return;
+  const card=measured.el.firstElementChild;
+  card.style.width=widthLimit+'px';
+  card.style.maxWidth=widthLimit+'px';
+  card.style.maxHeight=heightLimit+'px';
+  measured.el.style.display='flex';
+  measured.el.style.visibility='hidden';
+  measured.width=measured.el.offsetWidth||widthLimit;
+  measured.height=measured.el.offsetHeight||72;
+  measured.el.style.display='none';
+  measured.el.style.visibility='';
+  measured.widthLimit=widthLimit;measured.heightLimit=heightLimit;
+ }
+ function replaceCanvas(screen,canvas){
+  const viewport=viewports[screen==='A'?0:screen==='B'?1:-1];
+  if(viewport&&canvas&&host.contains(canvas))viewport.canvas=canvas;
  }
   function update(camera,player){
   const empty={total:entries.length,inRange:0,inView:0,shown:0};
@@ -377,6 +398,9 @@ export function createMapLabels(host,ignoreRules=[]){
    const rect=viewport.canvas.getBoundingClientRect();
    if(rect.width<1||rect.height<1)continue;
    const scale=rect.height/(2*tanHalf),occupied=[];
+   // Keep labels inside narrow A/B viewports without rebuilding OSM data.
+   const widthLimit=Math.max(1,Math.min(210,Math.floor(rect.width-12)));
+   const heightLimit=Math.max(1,Math.floor(rect.height-42));
    let viewShown=0;
    for(const {i,item} of ranked){
     if(viewShown>=20)break;
@@ -386,20 +410,25 @@ export function createMapLabels(host,ignoreRules=[]){
     const x=rect.width/2+(vx*rx+vz*rz)*scale/depth;
     const y=rect.height/2-(vx*ux+vy*uy+vz*uz)*scale/depth;
     if(x<0||x>rect.width||y<0||y>rect.height)continue;
-    const measured=viewport.items[i]||(viewport.items[i]=createItem(item));
-    const wd=measured.width,top=y-measured.height;
-    if(x>=0&&x<=rect.width&&y>=0&&y<=rect.height)inView++;
-    if(x<wd/2+4||x>rect.width-wd/2-4||top<4||y>rect.height-4||
-      occupied.some(p=>x-wd/2<p.right+8&&x+wd/2>p.left-8&&top<p.bottom+8&&y>p.top-8))continue;
-    occupied.push({left:x-wd/2,right:x+wd/2,top,bottom:y});
+    const measured=viewport.items[i]||(viewport.items[i]=createItem(item,widthLimit,heightLimit));
+    sizeItem(measured,widthLimit,heightLimit);
+    const wd=measured.width;
+    // Clamp only the HTML card; the 3D position and label data are unchanged.
+    const labelX=Math.max(wd/2+4,Math.min(rect.width-wd/2-4,x));
+    const labelY=Math.max(measured.height+4,Math.min(rect.height-4,y));
+    const top=labelY-measured.height;
+    inView++;
+    if(measured.height+8>rect.height||wd+8>rect.width||
+      occupied.some(p=>labelX-wd/2<p.right+8&&labelX+wd/2>p.left-8&&top<p.bottom+8&&labelY>p.top-8))continue;
+    occupied.push({left:labelX-wd/2,right:labelX+wd/2,top,bottom:labelY});
     const el=measured.el;
     el.style.display='flex';
-    el.style.left=(rect.left-hostRect.left+x)+'px';
-    el.style.top=(rect.top-hostRect.top+y)+'px';
+    el.style.left=(rect.left-hostRect.left+labelX)+'px';
+    el.style.top=(rect.top-hostRect.top+labelY)+'px';
     viewShown++;shown++;
    }
   }
   return {total:entries.length,inRange:ranked.length,inView,shown};
  }
- return {setLabels,update,dispose(){editor?.remove();editor=null;layer.remove();entries=[];}};
+ return {setLabels,replaceCanvas,update,dispose(){editor?.remove();editor=null;layer.remove();entries=[];}};
 }
