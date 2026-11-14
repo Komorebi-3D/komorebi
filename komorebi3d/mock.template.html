@@ -1,4 +1,21 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Komorebi 3D｜4パネルモック</title><style>/* @component-styles */</style></head><body><div class="mock-root"><div class="mock-frame"><div class="shell"><div class="landscape-hero"><div class="site-heading"><strong>🌳 Komorebi 3D — こもれびの森</strong></div><div class="panel-slot panel-slot-top" data-panel-slot="top"><!-- @panel:build --></div><div class="landscape-main"><div class="panel-slot panel-slot-main" data-panel-slot="left"><!-- @panel:game --></div><div class="panel-slot panel-slot-main" data-panel-slot="right"><!-- @panel:test --></div></div></div><div class="panel-slot panel-slot-bottom" data-panel-slot="bottom"><!-- @panel:runtime --></div></div></div></div><script type="module">
+/* @screen-settings-ui */
+(function(){
+ const panel=document.querySelector('#test-ops-panel');
+ if(!panel)return;
+ const state={renderMode:'compare',screens:{A:{map:'old',engine:'B'},B:{map:'new',engine:'B'}}};
+ const render=()=>renderScreenSettingsUI(panel,state);
+ panel.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{
+  state.renderMode=button.dataset.mode;render();
+ }));
+ panel.querySelectorAll('.screen-settings input').forEach(input=>input.addEventListener('change',()=>{
+  if(!input.checked)return;
+  const screen=input.closest('[data-screen]').dataset.screen;
+  const kind=input.closest('[data-setting]').dataset.setting;
+  state.screens[screen][kind]=input.value;render();
+ }));
+ render();
+})();
 import {mountPanelLayoutEditor} from './dev-panel-layout.js?v=slot-size-20261110';
 mountPanelLayoutEditor(document,{top:'build',left:'game',right:'test',bottom:'runtime'},{preserveSlotSize:true});
 </script></body></html>
