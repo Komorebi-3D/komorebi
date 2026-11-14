@@ -15,11 +15,11 @@ export async function loadOsmTagIgnore(url='./maps/osm-tags.ignore'){
 export function visibleOsmTags(tags={},rules=[]){
  return Object.entries(tags).filter(([key])=>!rules.some(rule=>rule.exact===key||(rule.prefix!==undefined&&key.startsWith(rule.prefix))));
 }
-export function createMapLabels(host,ignoreRules=[]){
+export function createMapLabels(host,ignoreRules=[],{screen=null}={}){
  const layer=document.createElement('div');
  layer.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3';
  host.appendChild(layer);
- const viewports=[...host.querySelectorAll('.view-panel canvas')].map(canvas=>({canvas,items:[]}));
+ const viewports=[...host.querySelectorAll('.view-panel canvas')].map((canvas,i)=>({canvas,screen:i===0?'A':'B',items:[]})).filter(viewport=>screen===null||viewport.screen===screen);
  let entries=[];
 
  // JSON edit/confirm, with strictly isolated OSM development-server level test.
@@ -368,7 +368,7 @@ export function createMapLabels(host,ignoreRules=[]){
   measured.widthLimit=widthLimit;measured.heightLimit=heightLimit;
  }
  function replaceCanvas(screen,canvas){
-  const viewport=viewports[screen==='A'?0:screen==='B'?1:-1];
+  const viewport=viewports.find(viewport=>viewport.screen===screen);
   if(viewport&&canvas&&host.contains(canvas))viewport.canvas=canvas;
  }
   function update(camera,player){
