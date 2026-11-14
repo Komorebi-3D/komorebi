@@ -98,7 +98,7 @@ import { CollisionWorld2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komore
 import { CharacterMotionCore2D } from "https://cdn.jsdelivr.net/gh/komorebi-3d/komorebi@d4a392aba35c840e0bea8b585c6852515bf58f30/engine/core/CharacterMotionCore2D.js";
 import {createGameView,mountRuntimeStatusPanel,mountTestControlsPanel} from "./dev-panel-components.js?v=map-json-forest-20261113";
 import {mountPanelLayoutEditor} from "./dev-panel-layout.js?v=slot-size-20261110";
-import {loadMap} from "./maps/map-loader.js?v=map-abort-forest-20261113";
+import {loadMap} from "./maps/map-loader.js?v=matsudo-json-only-20261114";
 import {buildMap} from "./maps/map-builder.js?v=tags-json-editor-20261113";
 import {drawConvenienceSign,drawConvenienceRoof,drawConvenienceWindows} from "./objects/buildings/convenience/common.js?v=convenience-dark-handles-v10-20261112";
 import {createMapLabels,loadOsmTagIgnore} from "./maps/map-labels.js?v=osm-auto-comment-20261113";
@@ -652,15 +652,14 @@ function productRenderSnapshot(){
   objects
  });
 }
-// Source changes do not reset the helicopter's position, altitude or camera.
-let mapSourceMode='json',mapLoadToken=0,mapDisplayedSource=null,mapLoadController=null;
+// Matsudo loads the local 500m JSON snapshot; requests remain cancellable on world switches.
+let mapLoadToken=0,mapLoadController=null;
 const mapDebugLog=[];
 function addMapDebug(line){
  mapDebugLog.push(new Date().toLocaleTimeString('ja-JP',{hour12:false})+' '+line);
  if(mapDebugLog.length>32)mapDebugLog.shift();
  publishRuntimeStatus('map-debug-log',mapDebugLog.join('\n'));
 }
-const sourceName=s=>s==='osm'?'OSM最新':s==='json'?'matsudo.json':'未読込';
 // Matsudo owns the map request lifecycle. World switching only disposes the old session.
 function cancelMatsudoMapRequest(){
  mapLoadController?.abort();
@@ -673,57 +672,39 @@ function isCurrentMatsudoMapRequest(token,controller){
 async function loadMatsudoMapInBackground(){
  cancelMatsudoMapRequest();
  const controller=new AbortController();mapLoadController=controller;
- const token=++mapLoadToken,mode=mapSourceMode;
- mapDebugLog.length=0;addMapDebug('開始 / '+mode+' / 500m四方');
+ const token=++mapLoadToken;
+ mapDebugLog.length=0;addMapDebug('開始 / matsudo.json / 500m四方');
  const onLog=line=>{if(isCurrentMatsudoMapRequest(token,controller))addMapDebug(line);};
- publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得中 / 表示：'+sourceName(mapDisplayedSource));
+ publishRuntimeStatus('map-source-status','🗺️ matsudo.json 読み込み中');
  try{
   const ignoreRules=await loadOsmTagIgnore();
   // Ignore a completed async stage if its Matsudo request has been disposed.
   if(!isCurrentMatsudoMapRequest(token,controller))return;
-  let result=await loadMap({mode,onLog,signal:controller.signal}),next,geometry;
-  addMapDebug('地図生成: 開始 / '+result.source);
-
-  try{
-   next=buildMap(result.map);
-   if(next.counts.buildings<10||next.counts.roads<10)throw Error('3D地図生成データ不足');
-   geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
-  }catch(buildError){
-   if(mode!=='auto'||result.source==='json')throw buildError;
-   // API response can be syntactically valid but unusable for the renderer.
-   addMapDebug('地図生成: OSM失敗 '+String(buildError.message||buildError)+' → JSON');
-   result=await loadMap({mode:'json',onLog,signal:controller.signal});
-   result.fallbackError='OSM地図生成失敗：'+String(buildError.message||buildError);
-   next=buildMap(result.map);
-   geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
-  }
-  const {source,fallbackError}=result;
+  const map=await loadMap({onLog,signal:controller.signal});
+  if(!isCurrentMatsudoMapRequest(token,controller))return;
+  addMapDebug('地図生成: 開始 / matsudo.json');
+  const next=buildMap(map);
+  if(next.counts.buildings<10||next.counts.roads<10)throw Error('3D地図生成データ不足');
+  const geometry=next.meshes.map((m,i)=>createMeshGeometry({id:'matsudo:'+i,positions:m.positions,normals:m.normals,colors:m.colors}));
   addMapDebug('地図生成: 完了 / 建物'+next.counts.buildings+' 道路'+next.counts.roads+' 鉄道'+next.counts.rails);
   if(!isCurrentMatsudoMapRequest(token,controller))return;
-  matsudoMeshes=geometry;matsudoMapFeatures=next.mapFeatures;mapDisplayedSource=source;
+  matsudoMeshes=geometry;matsudoMapFeatures=next.mapFeatures;
   if(miniMapVisible)paintDebugMap();
   matsudoLabels?.dispose();matsudoLabels=null;
   if(gameView?.surface){matsudoLabels=createMapLabels(gameView.surface,ignoreRules);matsudoLabels.setLabels(next.labels);}
-  addMapDebug('表示切替: '+sourceName(source));
-  publishRuntimeStatus('map-source-status','🗺️ '+mode+' / 表示：'+sourceName(source)+(fallbackError?'（OSM失敗→JSON：'+fallbackError+'）':''));
+  addMapDebug('表示完了: matsudo.json');
+  publishRuntimeStatus('map-source-status','🗺️ matsudo.json 読み込み完了');
   publishRuntimeStatus('label-status',`🏙️ 屋上名：読込 ${next.labels.length}件 / レイヤー ${matsudoLabels?'作成済み':'未作成'} / 描画診断待ち`);
   publishRuntimeStatus('status','🏙️ 松戸：建物'+next.counts.buildings+' / 道路'+next.counts.roads+' / 鉄道'+next.counts.rails);
  }catch(error){
   if(!isCurrentMatsudoMapRequest(token,controller))return;
   addMapDebug('失敗: '+String(error.name||'Error')+' / '+String(error.message||error));
-  publishRuntimeStatus('map-source-status','🗺️ '+mode+' 取得失敗：'+String(error.message||error)+' / 表示：'+sourceName(mapDisplayedSource));
+  publishRuntimeStatus('map-source-status','🗺️ matsudo.json 読み込み失敗：'+String(error.message||error));
   publishRuntimeStatus('status','🏙️ 地図読込失敗（現在地図・飛行維持）：'+String(error.message||error));
-  if(!mapDisplayedSource)publishRuntimeStatus('label-status','🏙️ 屋上名：地図読込失敗');
+  publishRuntimeStatus('label-status','🏙️ 屋上名：地図読込失敗');
  }finally{
   if(mapLoadController===controller)mapLoadController=null;
  }
-}
-function setMapSourceMode(mode){
- if(!['auto','osm','json'].includes(mode))throw RangeError('Invalid map mode');
- mapSourceMode=mode;publishGameState();
- if(activeWorld==='matsudo'&&!warpInProgress)return loadMatsudoMapInBackground();
- publishRuntimeStatus('map-source-status','🗺️ 次回松戸ワープ：'+mode);
- return Promise.resolve();
 }
 // Only world-specific geometry changes; the common Engine input/camera are reused.
 async function setWorld(name){
@@ -739,7 +720,6 @@ async function setWorld(name){
   await Promise.allSettled([loadingA,loadingB].filter(Boolean));
   rendererA?.dispose?.();rendererB?.dispose?.();
   rendererA=null;rendererB=null;loadingA=null;loadingB=null;okA=false;okB=false;
-  mapDisplayedSource=null;
   matsudoLabels?.dispose();matsudoLabels=null;matsudoMeshes=[];matsudoMapFeatures=null;
   groundSystem=new GroundBounds({centerX:0,centerZ:0,width:name==='matsudo'?500:100,depth:name==='matsudo'?500:100});
   collisionSystem=new CollisionWorld2D({obstacles:name==='forest'?GAME_COLLISION_OBSTACLES:[],characterRadius:.30,maxStep:.12});
@@ -759,13 +739,13 @@ async function setWorld(name){
    cameraRig.state.pitch=0;
    cameraRig.state.yaw=Math.PI/2;
    publishRuntimeStatus('status','🏙️ 松戸：地図読み込み中（飛行できます）');
-    publishRuntimeStatus('map-source-status','🗺️ '+mapSourceMode+' 取得待ち');
+    publishRuntimeStatus('map-source-status','🗺️ matsudo.json 読み込み待ち');
    publishRuntimeStatus('label-status','🏙️ 屋上名：地図読み込み中');
    // Give the renderer an opportunity to show the helicopter before map work begins.
    requestAnimationFrame(()=>setTimeout(()=>{
     if(generation===worldGeneration)void loadMatsudoMapInBackground();
    },0));
-  }else {publishRuntimeStatus('map-source-status','🗺️ 次回松戸：'+mapSourceMode);publishRuntimeStatus('status','🌳 森にワープしました');publishRuntimeStatus('label-status','🏙️ 屋上名：森ワールドでは非表示');}
+  }else {publishRuntimeStatus('map-source-status','🗺️ 松戸地図：未読込');publishRuntimeStatus('status','🌳 森にワープしました');publishRuntimeStatus('label-status','🏙️ 屋上名：森ワールドでは非表示');}
   // Persist the selected world; map loading is independent of flight.
   try{localStorage.setItem(SAVED_WORLD_KEY,name)}catch(_){/* storage unavailable */}
   publishGameState();return true;
@@ -835,7 +815,7 @@ const gameApi=Object.freeze({
    ...core.getState(),houseLevel,renderMode,worldId:activeWorld,flightAltitude:activeWorld==='matsudo'?flightAltitude:0,
    npcCount:activeWorld==='forest'?npcManager.agents.length:(matsudoNpcStressSelected?1000:0),npcVisible:activeWorld==='forest'?npcManager.visibleCount:0,
    npcDrawn:activeWorld==='forest'?npcManager.drawCount:0,npcRenderLimit:npcManager.maxDrawn,
-   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,mapSourceMode,
+   npcRenderDistance:npcManager.maxDrawDistance,mapVisible:miniMapVisible,
    status:Object.fromEntries(runtimeStatusValues)
   };
  },
@@ -845,7 +825,7 @@ const gameApi=Object.freeze({
   return ()=>gameStateListeners.delete(listener);
  },
  reset:resetGameForTest,setRenderMode,setNpcCount,setNpcRenderLimit,setNpcRenderDistance,
- setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot,setWorld,setMapSourceMode
+ setMapVisible:setMiniMapVisible,teleport:teleportToTestSpot,setWorld
 });
 // Panel views subscribe to Game API without controlling each other.
 const unmountRuntimeStatusPanel=mountRuntimeStatusPanel(document.querySelector('.runtime-status'),gameApi);
