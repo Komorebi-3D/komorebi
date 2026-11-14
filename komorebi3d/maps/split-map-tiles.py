@@ -188,8 +188,8 @@ def input_header(path: Path) -> dict:
         for prefix, event, value in ijson.parse(stream, use_float=True):
             if prefix == 'elements' and event == 'start_array':
                 break
-            if prefix in {'source', 'license', 'radius_m'} and event in {'string', 'number'}:
-                result[prefix] = int(value) if prefix == 'radius_m' else value
+            if prefix in {'source', 'license'} and event == 'string':
+                result[prefix] = value
             elif prefix == 'center.item' and event == 'number':
                 result.setdefault('center', []).append(float(value))
     return result
@@ -311,7 +311,6 @@ def split(source: Path, destination: Path, *, timestamp: str | None = None,
             'generatedAt': generated,
             'source': header.get('source', 'OpenStreetMap contributors'),
             'license': header.get('license', 'ODbL-1.0'),
-            'sourceCoverageRadiusM': header.get('radius_m'),
             'tiles': {}
         }
         for (x, y), n in sorted(spool.counts.items()):
