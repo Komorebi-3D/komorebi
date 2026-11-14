@@ -1,5 +1,13 @@
 # 🌳 松戸OSMタグ編集・テストAPI：現在地（2026-11-13）
 
+## index.jsonの最小構成へ変更（2026-11-14／実データ実行未確認）
+- `komorebi3d/maps/split-map-tiles.py` の先頭仕様と生成処理を更新。分割出力の `index.json` は `generatedAt`（UTC）と `tiles`（タイルID→ファイル名の文字列）のみ。座標系・サイズ・原点・出典・件数・ファイル容量は含めない。
+- 個々のタイルJSONには従来どおり出典・ライセンス・タイルメタデータと元OSM要素を保持。グリッド・配置・命名規則は変更なし。
+- 分割テストはindexの完全一致と各タイルJSONの属性保持を確認するよう変更。GitHub Action側も簡素なindexに合わせ、タイル名・生成日時・実ファイルとの整合をチェック。
+- 変更はGitHub mainへコミット済み。大容量の取得済み地図JSONによるAction実行は未確認。
+
+
+
 ## 分割仕様の管理場所を実装Pythonに一本化（2026-11-14）
 - 仕様の正本を `komorebi3d/maps/split-map-tiles.py` の先頭コメントに集約。`docs/rules/map-tiles.md` は削除し、`docs/rules/README.md` からも分割処理の案内を削除。分割Actionの参照コメントを修正。処理ロジックは変更なし。
 
