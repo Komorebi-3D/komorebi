@@ -1,4 +1,5 @@
-# Dedicated tile splitter: docs/rules/map-tiles.md is the canonical rule.
+# Dedicated tile splitter: canonical rules live at the top of
+# komorebi3d/maps/split-map-tiles.py (docs/rules/map-tiles.md links to them).
 # Uses already-exported JSON only; do NOT fetch OSM/Overpass/Geofabrik here.
 # Fixed 2km EPSG:6677 grid centered at WGS84 (35.78444, 139.90061).
 # Copy each complete original OSM element to every intersecting tile.
